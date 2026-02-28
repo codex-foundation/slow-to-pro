@@ -1,0 +1,31 @@
+// This is an optional configuration file used primarily for debugging purposes when reporting issues.
+// It is safe to delete this file as it does not affect the functionality of your application.
+{
+  "cesVersion": "2.21.0-next.c82538c",
+  "projectName": "slow-to-pro",
+  "packages": [
+    {
+      "name": "nativewind",
+      "type": "styling"
+    }
+  ],
+  "flags": {
+    "noGit": false,
+    "noInstall": false,
+    "overwrite": false,
+    "importAlias": true,
+    "packageManager": "pnpm",
+    "eas": false,
+    "publish": false
+  },
+  "packageManager": {
+    "type": "pnpm",
+    "version": "10.30.3"
+  },
+  "os": {
+    "type": "Darwin",
+    "platform": "darwin",
+    "arch": "arm64",
+    "kernelVersion": "25.3.0"
+  }
+}
