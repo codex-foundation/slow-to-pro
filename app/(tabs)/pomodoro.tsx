@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Platform, ScrollView, Text, View } from 'react-native';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SessionLog } from '@/components/pomodoro/SessionLog';
@@ -7,10 +8,14 @@ import { TaskPicker } from '@/components/pomodoro/TaskPicker';
 import { TimerControls } from '@/components/pomodoro/TimerControls';
 import { TimerDisplay } from '@/components/pomodoro/TimerDisplay';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
+import { fireConfetti } from '@/utils/confetti';
 
 export default function PomodoroScreen() {
   const status = usePomodoroStore((s) => s.status);
+  const sessionsCount = usePomodoroStore((s) => s.sessions.length);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const confettiRef = useRef<ConfettiCannon>(null);
+  const previousSessionsCountRef = useRef(sessionsCount);
 
   useEffect(() => {
     if (status === 'running') {
@@ -38,6 +43,18 @@ export default function PomodoroScreen() {
     };
   }, [status]);
 
+  useEffect(() => {
+    if (sessionsCount > previousSessionsCountRef.current) {
+      if (Platform.OS === 'web') {
+        fireConfetti();
+      } else {
+        confettiRef.current?.start();
+      }
+    }
+
+    previousSessionsCountRef.current = sessionsCount;
+  }, [sessionsCount]);
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
@@ -61,6 +78,18 @@ export default function PomodoroScreen() {
           <SessionLog />
         </View>
       </ScrollView>
+
+      {Platform.OS !== 'web' && (
+        <ConfettiCannon
+          ref={confettiRef}
+          count={80}
+          origin={{ x: 0, y: 0 }}
+          autoStart={false}
+          fadeOut
+          explosionSpeed={350}
+          fallSpeed={2200}
+        />
+      )}
     </SafeAreaView>
   );
 }
