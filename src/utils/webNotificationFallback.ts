@@ -17,15 +17,37 @@ function createFallbackId(): string {
 export function emitWebNotificationFallback(title: string, body: string): void {
   if (!canUseWindow()) return;
 
-  window.dispatchEvent(
-    new CustomEvent<WebNotificationFallbackPayload>(WEB_NOTIFICATION_FALLBACK_EVENT, {
-      detail: {
-        id: createFallbackId(),
-        title,
-        body,
-      },
-    })
-  );
+  const detail: WebNotificationFallbackPayload = {
+    id: createFallbackId(),
+    title,
+    body,
+  };
+
+  try {
+    if (typeof window.CustomEvent === 'function') {
+      window.dispatchEvent(
+        new window.CustomEvent<WebNotificationFallbackPayload>(WEB_NOTIFICATION_FALLBACK_EVENT, {
+          detail,
+        })
+      );
+      return;
+    }
+
+    if (typeof document !== 'undefined' && typeof document.createEvent === 'function') {
+      const legacyEvent = document.createEvent('CustomEvent');
+      legacyEvent.initCustomEvent(WEB_NOTIFICATION_FALLBACK_EVENT, false, false, detail);
+      window.dispatchEvent(legacyEvent);
+      return;
+    }
+  } catch {
+    // Keep fail-safe if browser event APIs are partially unavailable.
+  }
+
+  try {
+    console.warn('[web-notification-fallback] Failed to dispatch fallback event', { title, body });
+  } catch {
+    // no-op
+  }
 }
 
 export function subscribeWebNotificationFallback(

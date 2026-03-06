@@ -23,9 +23,7 @@ if (Platform.OS !== 'web') {
 
 export default function RootLayout() {
   useEffect(() => {
-    if (Platform.OS === 'web' && typeof Notification !== 'undefined') {
-      void Notification.requestPermission();
-    } else if (Platform.OS !== 'web') {
+    if (Platform.OS !== 'web') {
       Notifications.requestPermissionsAsync();
     }
     useTaskStore.getState().resetRecurringTasksIfNewDay();

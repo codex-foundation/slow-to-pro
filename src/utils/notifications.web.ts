@@ -6,21 +6,7 @@ function supportsBrowserNotifications(): boolean {
 
 async function ensureNotificationPermission(): Promise<boolean> {
   if (!supportsBrowserNotifications()) return false;
-
-  if (Notification.permission === 'granted') {
-    return true;
-  }
-
-  if (Notification.permission === 'denied') {
-    return false;
-  }
-
-  try {
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
-  } catch {
-    return false;
-  }
+  return Notification.permission === 'granted';
 }
 
 async function showBrowserNotification(title: string, body: string): Promise<void> {
