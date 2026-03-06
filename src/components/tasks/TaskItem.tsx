@@ -1,10 +1,21 @@
-import { createElement, useState } from 'react';
+import { createElement, useRef, useState } from 'react';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Animated, {
+  FadeInDown,
+  FadeOutUp,
+  Layout,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 import type { Priority, Task } from '@/models/task';
 import { useTaskStore } from '@/stores/taskStore';
+import { fireConfetti } from '@/utils/confetti';
 import { Modal } from '../ui/Modal';
 import { PriorityBadge } from './PriorityBadge';
 
@@ -33,10 +44,20 @@ interface Props {
 export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }: Props) {
   const { toggleTask, deleteTask, updateTask } = useTaskStore();
   const [showEdit, setShowEdit] = useState(false);
+  const confettiRef = useRef<ConfettiCannon>(null);
+
+  // Animation values
+  const checkboxScale = useSharedValue(1);
+  const itemOpacity = useSharedValue(1);
+  const strikethroughWidth = useSharedValue(item.completed ? 100 : 0);
   const [editTitle, setEditTitle] = useState(item.title);
   const [editPriority, setEditPriority] = useState<Priority>(item.priority);
-  const [editDueDate, setEditDueDate] = useState<Date | null>(item.dueDate ? new Date(item.dueDate) : null);
-  const [editDueDateInput, setEditDueDateInput] = useState(item.dueDate ? new Date(item.dueDate).toISOString().slice(0, 10) : '');
+  const [editDueDate, setEditDueDate] = useState<Date | null>(
+    item.dueDate ? new Date(item.dueDate) : null
+  );
+  const [editDueDateInput, setEditDueDateInput] = useState(
+    item.dueDate ? new Date(item.dueDate).toISOString().slice(0, 10) : ''
+  );
   const [showEditDueDatePicker, setShowEditDueDatePicker] = useState(false);
   const [editReminderEnabled, setEditReminderEnabled] = useState(!!item.reminderAt);
   const [editReminderDateTime, setEditReminderDateTime] = useState<Date | null>(
@@ -84,7 +105,9 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
 
     setEditReminderEnabled(!!item.reminderAt);
     setEditReminderDateTime(item.reminderAt ? new Date(item.reminderAt) : null);
-    setEditReminderDateInput(item.reminderAt ? new Date(item.reminderAt).toISOString().slice(0, 10) : '');
+    setEditReminderDateInput(
+      item.reminderAt ? new Date(item.reminderAt).toISOString().slice(0, 10) : ''
+    );
     if (item.reminderAt) {
       const d = new Date(item.reminderAt);
       setEditReminderTimeInput(
@@ -173,8 +196,46 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
     setShowEditReminderTimePicker(false);
   };
 
+  const handleToggle = () => {
+    // Animate checkbox
+    checkboxScale.value = withSpring(0.8, {}, () => {
+      checkboxScale.value = withSpring(1);
+    });
+
+    // Animate item opacity
+    itemOpacity.value = withTiming(0.6, { duration: 150 }, () => {
+      itemOpacity.value = withTiming(1, { duration: 150 });
+    });
+
+    // Animate strikethrough
+    strikethroughWidth.value = withTiming(item.completed ? 0 : 100, { duration: 300 });
+
+    // Fire confetti when completing (not uncompleting)
+    if (!item.completed) {
+      if (Platform.OS === 'web') {
+        fireConfetti();
+      } else {
+        confettiRef.current?.start();
+      }
+    }
+
+    toggleTask(item.id);
+  };
+
+  const checkboxAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: checkboxScale.value }],
+  }));
+
+  const itemAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: itemOpacity.value,
+  }));
+
   return (
-    <View
+    <Animated.View
+      entering={FadeInDown.duration(200)}
+      exiting={FadeOutUp.duration(200)}
+      layout={Layout.springify().damping(15).stiffness(100)}
+      style={itemAnimatedStyle}
       className={`flex-row items-center px-4 py-3 bg-white border-b border-gray-100 ${isActive ? 'opacity-80 shadow-md' : ''}`}>
       {drag ? (
         <TouchableOpacity onLongPress={drag} className="pr-3 py-1">
@@ -199,11 +260,12 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
         </View>
       )}
 
-      <TouchableOpacity onPress={() => toggleTask(item.id)} className="pr-3">
-        <View
+      <TouchableOpacity onPress={handleToggle} className="pr-3">
+        <Animated.View
+          style={checkboxAnimatedStyle}
           className={`w-5 h-5 rounded border-2 items-center justify-center ${item.completed ? 'bg-indigo-500 border-indigo-500' : 'border-gray-300'}`}>
           {item.completed && <Ionicons name="checkmark" size={12} color="white" />}
-        </View>
+        </Animated.View>
       </TouchableOpacity>
 
       <View className="flex-1">
@@ -311,7 +373,11 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
                 <Text className="text-xs font-medium text-gray-400">Clear</Text>
               </TouchableOpacity>
             )}
-            <Switch value={editReminderEnabled} onValueChange={setEditReminderEnabled} trackColor={{ true: '#6366f1' }} />
+            <Switch
+              value={editReminderEnabled}
+              onValueChange={setEditReminderEnabled}
+              trackColor={{ true: '#6366f1' }}
+            />
           </View>
         </View>
 
@@ -322,7 +388,8 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
                 {createElement('input', {
                   type: 'date',
                   value: editReminderDateInput,
-                  onChange: (e: { target: { value: string } }) => setEditReminderDateInput(e.target.value),
+                  onChange: (e: { target: { value: string } }) =>
+                    setEditReminderDateInput(e.target.value),
                   style: WEB_INPUT_STYLE,
                 })}
               </View>
@@ -330,7 +397,8 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
                 {createElement('input', {
                   type: 'time',
                   value: editReminderTimeInput,
-                  onChange: (e: { target: { value: string } }) => setEditReminderTimeInput(e.target.value),
+                  onChange: (e: { target: { value: string } }) =>
+                    setEditReminderTimeInput(e.target.value),
                   style: WEB_INPUT_STYLE,
                 })}
               </View>
@@ -386,6 +454,18 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
           </TouchableOpacity>
         </View>
       </Modal>
-    </View>
+
+      {Platform.OS !== 'web' && (
+        <ConfettiCannon
+          ref={confettiRef}
+          count={50}
+          origin={{ x: 0, y: 0 }}
+          autoStart={false}
+          fadeOut
+          explosionSpeed={350}
+          fallSpeed={2000}
+        />
+      )}
+    </Animated.View>
   );
 }
