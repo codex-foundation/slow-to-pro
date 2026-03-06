@@ -1,4 +1,5 @@
 import { Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInRight, FadeOutLeft, Layout } from 'react-native-reanimated';
 import type { Category, Expense } from '@/models/finance';
 import { formatShortDate, formatTime } from '@/utils/date';
 
@@ -10,7 +11,11 @@ interface Props {
 
 export function ExpenseItem({ expense, category, onDelete }: Props) {
   return (
-    <View className="flex-row items-center py-3 border-b border-gray-50">
+    <Animated.View
+      entering={FadeInRight.duration(250)}
+      exiting={FadeOutLeft.duration(200)}
+      layout={Layout.springify().damping(16).stiffness(130)}
+      className="flex-row items-center py-3 border-b border-gray-50">
       <View
         className="w-9 h-9 rounded-full items-center justify-center mr-3"
         style={{ backgroundColor: (category?.color ?? '#94a3b8') + '22' }}>
@@ -39,6 +44,6 @@ export function ExpenseItem({ expense, category, onDelete }: Props) {
       <TouchableOpacity onPress={onDelete} className="p-1">
         <Text className="text-gray-300 text-lg">✕</Text>
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 }

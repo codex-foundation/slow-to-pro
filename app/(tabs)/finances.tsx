@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BarChartView } from '@/components/finance/BarChartView';
@@ -83,11 +84,17 @@ export default function FinancesScreen() {
           </TouchableOpacity>
         </View>
 
-        <View className="px-4 mt-2">
+        <Animated.View
+          entering={FadeInUp.delay(40).duration(260)}
+          layout={Layout.springify()}
+          className="px-4 mt-2">
           <ExpenseForm />
-        </View>
+        </Animated.View>
 
-        <View className="px-4 mt-6">
+        <Animated.View
+          entering={FadeInUp.delay(80).duration(260)}
+          layout={Layout.springify()}
+          className="px-4 mt-6">
           <Text className="text-base font-semibold text-gray-700 mb-3">Overall budget</Text>
 
           <View className="flex-row gap-2 mb-3">
@@ -142,9 +149,12 @@ export default function FinancesScreen() {
               </Text>
             </View>
           </View>
-        </View>
+        </Animated.View>
 
-        <View className="px-4 mt-6">
+        <Animated.View
+          entering={FadeInUp.delay(120).duration(260)}
+          layout={Layout.springify()}
+          className="px-4 mt-6">
           <Text className="text-base font-semibold text-gray-700 mb-3">Budget overview</Text>
           {categories.map((cat) => (
             <BudgetProgressBar
@@ -154,9 +164,12 @@ export default function FinancesScreen() {
               limit={getBudgetLimit(cat.id)}
             />
           ))}
-        </View>
+        </Animated.View>
 
-        <View className="px-4 mt-6">
+        <Animated.View
+          entering={FadeInUp.delay(160).duration(260)}
+          layout={Layout.springify()}
+          className="px-4 mt-6">
           <View className="flex-row gap-2 mb-3">
             {(['bar', 'pie'] as const).map((t) => (
               <TouchableOpacity
@@ -175,9 +188,12 @@ export default function FinancesScreen() {
             spentByCategory={spentByCategory}
             type={chartType}
           />
-        </View>
+        </Animated.View>
 
-        <View className="px-4 mt-6 mb-8">
+        <Animated.View
+          entering={FadeInUp.delay(200).duration(260)}
+          layout={Layout.springify()}
+          className="px-4 mt-6 mb-8">
           <Text className="text-base font-semibold text-gray-700 mb-2">
             Recent expenses ({month})
           </Text>
@@ -196,7 +212,7 @@ export default function FinancesScreen() {
               );
             })
           )}
-        </View>
+        </Animated.View>
       </ScrollView>
 
       <CategoryBudgetModal visible={showSettings} onClose={() => setShowSettings(false)} />

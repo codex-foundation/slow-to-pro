@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { Category } from '@/models/finance';
 
 interface Props {
@@ -11,6 +13,15 @@ export function BudgetProgressBar({ category, spent, limit }: Props) {
   const hasLimit = limit > 0;
   const pct = hasLimit ? Math.min(spent / limit, 1) : 0;
   const overBudget = hasLimit && spent > limit;
+  const progress = useSharedValue(pct);
+
+  useEffect(() => {
+    progress.value = withTiming(pct, { duration: 350 });
+  }, [pct, progress]);
+
+  const progressStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleX: progress.value }],
+  }));
 
   return (
     <View className="mb-3">
@@ -26,12 +37,15 @@ export function BudgetProgressBar({ category, spent, limit }: Props) {
       </View>
       {hasLimit && (
         <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <View
+          <Animated.View
             className="h-full rounded-full"
-            style={{
-              width: `${pct * 100}%`,
-              backgroundColor: overBudget ? '#ef4444' : category.color,
-            }}
+            style={[
+              {
+                width: '100%',
+                backgroundColor: overBudget ? '#ef4444' : category.color,
+              },
+              progressStyle,
+            ]}
           />
         </View>
       )}

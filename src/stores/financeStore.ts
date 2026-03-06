@@ -15,6 +15,8 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: 'cat-other', name: 'Other', color: '#94a3b8' },
 ];
 
+const OVER_BUDGET_NOTIFICATION_THRESHOLDS = [1, 1.2, 1.5] as const;
+
 function periodKey(ms: number, period: BudgetPeriod): string {
   const iso = new Date(ms).toISOString();
   if (period === 'daily') return iso.slice(0, 10);
@@ -26,6 +28,7 @@ interface FinanceStore {
   categories: Category[];
   budgets: Budget[];
   expenses: Expense[];
+  notifiedBudgetThresholdByKey: Record<string, number>;
   overallBudgetAmount: number;
   overallBudgetPeriod: BudgetPeriod;
   addCategory: (name: string, color: string) => string;
@@ -43,6 +46,7 @@ export const useFinanceStore = create<FinanceStore>()(
       categories: DEFAULT_CATEGORIES,
       budgets: [],
       expenses: [],
+      notifiedBudgetThresholdByKey: {},
       overallBudgetAmount: 0,
       overallBudgetPeriod: 'monthly',
 
@@ -57,17 +61,25 @@ export const useFinanceStore = create<FinanceStore>()(
           categories: s.categories.filter((c) => c.id !== id),
           budgets: s.budgets.filter((b) => b.categoryId !== id),
           expenses: s.expenses.filter((e) => e.categoryId !== id),
+          notifiedBudgetThresholdByKey: Object.fromEntries(
+            Object.entries(s.notifiedBudgetThresholdByKey).filter(
+              ([key]) => !key.startsWith(`${id}:`)
+            )
+          ),
         }));
       },
 
       upsertBudget: (categoryId, limit, month) => {
+        const notifyKey = `${categoryId}:${month}`;
         set((s) => {
           const existing = s.budgets.find((b) => b.categoryId === categoryId && b.month === month);
+          const { [notifyKey]: _removed, ...remainingThresholds } = s.notifiedBudgetThresholdByKey;
           if (existing) {
             return {
               budgets: s.budgets.map((b) =>
                 b.id === existing.id ? { ...b, monthlyLimit: limit } : b
               ),
+              notifiedBudgetThresholdByKey: remainingThresholds,
             };
           }
           return {
@@ -75,6 +87,7 @@ export const useFinanceStore = create<FinanceStore>()(
               ...s.budgets,
               { id: crypto.randomUUID(), categoryId, monthlyLimit: limit, month },
             ],
+            notifiedBudgetThresholdByKey: remainingThresholds,
           };
         });
       },
@@ -101,7 +114,7 @@ export const useFinanceStore = create<FinanceStore>()(
         set((s) => ({ expenses: [...s.expenses, expense] }));
 
         // Check over-budget
-        const { expenses, budgets, categories } = get();
+        const { expenses, budgets, categories, notifiedBudgetThresholdByKey } = get();
         const month = currentMonth();
         const total = expenses
           .filter(
@@ -110,10 +123,27 @@ export const useFinanceStore = create<FinanceStore>()(
           )
           .reduce((sum, e) => sum + e.amount, 0);
         const budget = budgets.find((b) => b.categoryId === categoryId && b.month === month);
-        if (budget && total > budget.monthlyLimit) {
-          const cat = categories.find((c) => c.id === categoryId);
-          if (cat) {
-            scheduleOverBudgetNotification(cat.name, total, budget.monthlyLimit);
+        if (budget && budget.monthlyLimit > 0) {
+          const ratio = total / budget.monthlyLimit;
+          const reachedThreshold = OVER_BUDGET_NOTIFICATION_THRESHOLDS.reduce(
+            (highest, threshold) => (ratio >= threshold ? threshold : highest),
+            0
+          );
+          const notifyKey = `${categoryId}:${month}`;
+          const lastNotifiedThreshold = notifiedBudgetThresholdByKey[notifyKey] ?? 0;
+
+          if (reachedThreshold > lastNotifiedThreshold) {
+            set((s) => ({
+              notifiedBudgetThresholdByKey: {
+                ...s.notifiedBudgetThresholdByKey,
+                [notifyKey]: reachedThreshold,
+              },
+            }));
+
+            const cat = categories.find((c) => c.id === categoryId);
+            if (cat) {
+              scheduleOverBudgetNotification(cat.name, total, budget.monthlyLimit);
+            }
           }
         }
       },

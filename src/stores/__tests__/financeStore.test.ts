@@ -22,6 +22,7 @@ function resetStore() {
     ],
     budgets: [],
     expenses: [],
+    notifiedBudgetThresholdByKey: {},
     overallBudgetAmount: 0,
     overallBudgetPeriod: 'monthly',
   });
@@ -261,6 +262,27 @@ describe('financeStore', () => {
       useFinanceStore.getState().addExpense({ categoryId: FOOD_ID, amount: 50 }); // total = 110 → over
 
       expect(scheduleOverBudgetNotification).toHaveBeenCalledWith('Food', 110, 100);
+    });
+
+    it('does not fire duplicate notifications within the same threshold band', () => {
+      useFinanceStore.getState().upsertBudget(FOOD_ID, 100, currentMonth());
+
+      useFinanceStore.getState().addExpense({ categoryId: FOOD_ID, amount: 110 }); // 110%
+      useFinanceStore.getState().addExpense({ categoryId: FOOD_ID, amount: 5 }); // 115%
+
+      expect(scheduleOverBudgetNotification).toHaveBeenCalledTimes(1);
+      expect(scheduleOverBudgetNotification).toHaveBeenCalledWith('Food', 110, 100);
+    });
+
+    it('fires again when crossing a higher threshold', () => {
+      useFinanceStore.getState().upsertBudget(FOOD_ID, 100, currentMonth());
+
+      useFinanceStore.getState().addExpense({ categoryId: FOOD_ID, amount: 110 }); // 110%
+      useFinanceStore.getState().addExpense({ categoryId: FOOD_ID, amount: 45 }); // 155%
+
+      expect(scheduleOverBudgetNotification).toHaveBeenCalledTimes(2);
+      expect(scheduleOverBudgetNotification).toHaveBeenNthCalledWith(1, 'Food', 110, 100);
+      expect(scheduleOverBudgetNotification).toHaveBeenNthCalledWith(2, 'Food', 155, 100);
     });
   });
 
