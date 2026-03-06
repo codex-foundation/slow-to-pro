@@ -5,7 +5,11 @@ import { useFinanceStore } from '@/stores/financeStore';
 const CUSTOM_CATEGORY_ID = '__custom__';
 const CUSTOM_CATEGORY_COLOR = '#64748b';
 
-export function ExpenseForm() {
+interface ExpenseFormProps {
+  onSubmitted?: () => void;
+}
+
+export function ExpenseForm({ onSubmitted }: ExpenseFormProps) {
   const { categories, addCategory, addExpense } = useFinanceStore();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [customCategoryName, setCustomCategoryName] = useState('');
@@ -36,6 +40,7 @@ export function ExpenseForm() {
     setNote('');
     setCustomCategoryName('');
     setSelectedCategoryId(null);
+    onSubmitted?.();
   };
 
   return (

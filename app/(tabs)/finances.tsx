@@ -8,6 +8,7 @@ import { BudgetProgressBar } from '@/components/finance/BudgetProgressBar';
 import { CategoryBudgetModal } from '@/components/finance/CategoryBudgetModal';
 import { ExpenseForm } from '@/components/finance/ExpenseForm';
 import { ExpenseItem } from '@/components/finance/ExpenseItem';
+import { Modal } from '@/components/ui/Modal';
 import type { BudgetPeriod } from '@/models/finance';
 import { useFinanceStore } from '@/stores/financeStore';
 import { currentMonth, todayString } from '@/utils/date';
@@ -23,6 +24,7 @@ export default function FinancesScreen() {
     setOverallBudget,
   } = useFinanceStore();
   const [showSettings, setShowSettings] = useState(false);
+  const [showAddExpense, setShowAddExpense] = useState(false);
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
   const [budgetInput, setBudgetInput] = useState(
     overallBudgetAmount > 0 ? String(overallBudgetAmount) : ''
@@ -88,7 +90,15 @@ export default function FinancesScreen() {
           entering={FadeInUp.delay(40).duration(260)}
           layout={Layout.springify()}
           className="px-4 mt-2">
-          <ExpenseForm />
+          <TouchableOpacity
+            onPress={() => setShowAddExpense(true)}
+            className="bg-indigo-500 rounded-2xl px-4 py-4 flex-row items-center justify-between">
+            <View>
+              <Text className="text-white text-base font-semibold">Add expense</Text>
+              <Text className="text-indigo-100 text-xs mt-0.5">Track a new transaction</Text>
+            </View>
+            <Text className="text-white text-2xl leading-none">＋</Text>
+          </TouchableOpacity>
         </Animated.View>
 
         <Animated.View
@@ -216,6 +226,10 @@ export default function FinancesScreen() {
       </ScrollView>
 
       <CategoryBudgetModal visible={showSettings} onClose={() => setShowSettings(false)} />
+
+      <Modal visible={showAddExpense} onClose={() => setShowAddExpense(false)} title="Add expense">
+        <ExpenseForm onSubmitted={() => setShowAddExpense(false)} />
+      </Modal>
     </SafeAreaView>
   );
 }
