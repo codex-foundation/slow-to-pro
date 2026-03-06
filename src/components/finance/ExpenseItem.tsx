@@ -1,8 +1,8 @@
-import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInRight, FadeOutLeft, Layout } from 'react-native-reanimated';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Category, Expense } from '@/models/finance';
 import { formatShortDate, formatTime } from '@/utils/date';
-import { getTheme } from '@/utils/theme';
 
 interface Props {
   expense: Expense;
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function ExpenseItem({ expense, category, onDelete }: Props) {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
 
   return (
     <Animated.View

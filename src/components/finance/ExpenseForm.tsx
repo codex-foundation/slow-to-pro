@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFinanceStore } from '@/stores/financeStore';
-import { getTheme } from '@/utils/theme';
 
 const CUSTOM_CATEGORY_ID = '__custom__';
 const CUSTOM_CATEGORY_COLOR = '#64748b';
@@ -11,7 +11,7 @@ interface ExpenseFormProps {
 }
 
 export function ExpenseForm({ onSubmitted }: ExpenseFormProps) {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const { categories, addCategory, addExpense } = useFinanceStore();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [customCategoryName, setCustomCategoryName] = useState('');

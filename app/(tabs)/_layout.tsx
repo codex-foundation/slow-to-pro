@@ -1,11 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
 
-import { getTheme } from '@/utils/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 export default function TabLayout() {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
 
   return (
     <Tabs
@@ -42,6 +41,15 @@ export default function TabLayout() {
           title: 'Money',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="wallet-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" size={size} color={color} />
           ),
         }}
       />

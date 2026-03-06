@@ -4,10 +4,9 @@ import {
   Modal as RNModal,
   Text,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from 'react-native';
-import { getTheme } from '@/utils/theme';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface ModalProps {
   visible: boolean;
@@ -17,7 +16,7 @@ interface ModalProps {
 }
 
 export function Modal({ visible, onClose, title, children }: ModalProps) {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
 
   return (
     <RNModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>

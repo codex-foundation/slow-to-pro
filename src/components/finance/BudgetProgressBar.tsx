@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { Text, View, useColorScheme } from 'react-native';
+import { Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Category } from '@/models/finance';
-import { getTheme } from '@/utils/theme';
 
 interface Props {
   category: Category;
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function BudgetProgressBar({ category, spent, limit }: Props) {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const hasLimit = limit > 0;
   const pct = hasLimit ? Math.min(spent / limit, 1) : 0;
   const overBudget = hasLimit && spent > limit;

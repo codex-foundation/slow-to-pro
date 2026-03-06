@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { BarChartView } from '@/components/finance/BarChartView';
 import { BudgetProgressBar } from '@/components/finance/BudgetProgressBar';
 import { CategoryBudgetModal } from '@/components/finance/CategoryBudgetModal';
@@ -12,10 +13,9 @@ import { Modal } from '@/components/ui/Modal';
 import type { BudgetPeriod } from '@/models/finance';
 import { useFinanceStore } from '@/stores/financeStore';
 import { currentMonth, todayString } from '@/utils/date';
-import { getTheme } from '@/utils/theme';
 
 export default function FinancesScreen() {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const {
     categories,
     expenses,

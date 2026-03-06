@@ -1,15 +1,7 @@
 import { createElement, useRef, useState } from 'react';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  Platform,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useColorScheme,
-} from 'react-native';
+import { Platform, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, {
   FadeInDown,
   FadeOutUp,
@@ -21,10 +13,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import ConfettiCannon from 'react-native-confetti-cannon';
 
+import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Priority, Task } from '@/models/task';
 import { useTaskStore } from '@/stores/taskStore';
 import { fireConfetti } from '@/utils/confetti';
-import { getTheme } from '@/utils/theme';
 import { Modal } from '../ui/Modal';
 import { PriorityBadge } from './PriorityBadge';
 
@@ -40,7 +32,7 @@ interface Props {
 }
 
 export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }: Props) {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const { toggleTask, deleteTask, updateTask } = useTaskStore();
   const [showEdit, setShowEdit] = useState(false);
   const confettiRef = useRef<ConfettiCannon>(null);

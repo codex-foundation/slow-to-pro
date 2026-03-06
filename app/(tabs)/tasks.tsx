@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import { Platform, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { AddTaskModal } from '@/components/tasks/AddTaskModal';
 import { NextReminderDebugPanel } from '@/components/tasks/NextReminderDebugPanel';
 import { TaskList } from '@/components/tasks/TaskList';
 import { FAB } from '@/components/ui/FAB';
 import { useTaskStore } from '@/stores/taskStore';
-import { getTheme } from '@/utils/theme';
 
 type Filter = 'all' | 'active' | 'completed';
 
 export default function TasksScreen() {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const tasks = useTaskStore((s) => s.tasks);
   const [filter, setFilter] = useState<Filter>('all');
   const [showAdd, setShowAdd] = useState(false);

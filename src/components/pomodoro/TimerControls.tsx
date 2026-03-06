@@ -1,9 +1,9 @@
-import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
-import { getTheme } from '@/utils/theme';
 
 export function TimerControls() {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const { status, start, pause, reset } = usePomodoroStore();
 
   return (

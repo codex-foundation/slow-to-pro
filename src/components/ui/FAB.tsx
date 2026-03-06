@@ -1,5 +1,5 @@
-import { Text, TouchableOpacity, useColorScheme } from 'react-native';
-import { getTheme } from '@/utils/theme';
+import { Text, TouchableOpacity } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface FABProps {
   onPress: () => void;
@@ -7,7 +7,7 @@ interface FABProps {
 }
 
 export function FAB({ onPress, label = '+' }: FABProps) {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
 
   return (
     <TouchableOpacity

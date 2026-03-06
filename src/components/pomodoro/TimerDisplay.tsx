@@ -1,13 +1,13 @@
-import { Text, View, useColorScheme } from 'react-native';
+import { Text, View } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
-import { getTheme } from '@/utils/theme';
 
 function pad(n: number) {
   return String(n).padStart(2, '0');
 }
 
 export function TimerDisplay() {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const { secondsRemaining, phase, cycleCount } = usePomodoroStore();
   const minutes = Math.floor(secondsRemaining / 60);
   const seconds = secondsRemaining % 60;

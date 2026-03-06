@@ -1,18 +1,18 @@
 import { useEffect, useRef } from 'react';
-import { Platform, ScrollView, Text, View, useColorScheme } from 'react-native';
+import { Platform, ScrollView, Text, View } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { SessionLog } from '@/components/pomodoro/SessionLog';
 import { TaskPicker } from '@/components/pomodoro/TaskPicker';
 import { TimerControls } from '@/components/pomodoro/TimerControls';
 import { TimerDisplay } from '@/components/pomodoro/TimerDisplay';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { fireConfetti } from '@/utils/confetti';
-import { getTheme } from '@/utils/theme';
 
 export default function PomodoroScreen() {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const status = usePomodoroStore((s) => s.status);
   const sessionsCount = usePomodoroStore((s) => s.sessions.length);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);

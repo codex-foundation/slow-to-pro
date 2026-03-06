@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useTaskStore } from '@/stores/taskStore';
-import { getTheme } from '@/utils/theme';
 
 export function TaskPicker() {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const selectedTaskId = usePomodoroStore((s) => s.selectedTaskId);
   const setSelectedTask = usePomodoroStore((s) => s.setSelectedTask);
   const tasks = useTaskStore((s) => s.tasks);

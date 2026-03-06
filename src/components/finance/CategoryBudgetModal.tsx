@@ -1,17 +1,9 @@
 import { useState } from 'react';
-import {
-  Alert,
-  FlatList,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useColorScheme,
-} from 'react-native';
+import { Alert, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { Modal } from '@/components/ui/Modal';
 import { useFinanceStore } from '@/stores/financeStore';
 import { currentMonth } from '@/utils/date';
-import { getTheme } from '@/utils/theme';
 
 const PRESET_COLORS = [
   '#f97316',
@@ -30,7 +22,7 @@ interface Props {
 }
 
 export function CategoryBudgetModal({ visible, onClose }: Props) {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const { categories, budgets, addCategory, deleteCategory, upsertBudget } = useFinanceStore();
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PRESET_COLORS[0]);

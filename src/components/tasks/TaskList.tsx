@@ -1,13 +1,13 @@
-import { Text, FlatList, Platform, View, useColorScheme } from 'react-native';
+import { Text, FlatList, Platform, View } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 
+import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Task } from '@/models/task';
 import { useTaskStore } from '@/stores/taskStore';
-import { getTheme } from '@/utils/theme';
 import { TaskItem } from './TaskItem';
 
 export function TaskList({ tasks }: { tasks: Task[] }) {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const reorderTasks = useTaskStore((s) => s.reorderTasks);
   const allTasks = useTaskStore((s) => s.tasks);
 

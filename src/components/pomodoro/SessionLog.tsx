@@ -1,10 +1,10 @@
-import { FlatList, Text, View, useColorScheme } from 'react-native';
+import { FlatList, Text, View } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { formatShortDate, formatTime } from '@/utils/date';
-import { getTheme } from '@/utils/theme';
 
 export function SessionLog() {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const sessions = usePomodoroStore((s) => s.sessions);
 
   if (sessions.length === 0) {
