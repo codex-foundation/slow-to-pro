@@ -1,20 +1,26 @@
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
+import { getTheme } from '@/utils/theme';
 
 export function TimerControls() {
+  const theme = getTheme(useColorScheme());
   const { status, start, pause, reset } = usePomodoroStore();
 
   return (
     <View className="flex-row justify-center gap-4">
       <TouchableOpacity
         onPress={reset}
-        className="w-14 h-14 rounded-full border-2 border-gray-200 items-center justify-center">
-        <Text className="text-gray-500 text-lg">↺</Text>
+        className="w-14 h-14 rounded-full border-2 items-center justify-center"
+        style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
+        <Text className="text-lg" style={{ color: theme.textMuted }}>
+          ↺
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         onPress={status === 'running' ? pause : start}
-        className="w-20 h-20 rounded-full bg-indigo-500 items-center justify-center shadow-sm"
+        className="w-20 h-20 rounded-full items-center justify-center shadow-sm"
+        style={{ backgroundColor: theme.primary }}
         activeOpacity={0.8}>
         <Text className="text-white text-2xl">{status === 'running' ? '⏸' : '▶'}</Text>
       </TouchableOpacity>

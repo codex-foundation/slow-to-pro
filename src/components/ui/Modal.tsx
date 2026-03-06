@@ -4,8 +4,10 @@ import {
   Modal as RNModal,
   Text,
   TouchableOpacity,
+  useColorScheme,
   View,
 } from 'react-native';
+import { getTheme } from '@/utils/theme';
 
 interface ModalProps {
   visible: boolean;
@@ -15,16 +17,36 @@ interface ModalProps {
 }
 
 export function Modal({ visible, onClose, title, children }: ModalProps) {
+  const theme = getTheme(useColorScheme());
+
   return (
     <RNModal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity className="flex-1 bg-black/40" activeOpacity={1} onPress={onClose} />
+      <TouchableOpacity
+        className="flex-1"
+        style={{ backgroundColor: theme.overlay }}
+        activeOpacity={1}
+        onPress={onClose}
+      />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View className="bg-white rounded-t-2xl px-6 pt-4 pb-8">
-          <View className="w-10 h-1 bg-gray-300 rounded-full self-center mb-4" />
+        <View
+          className="rounded-t-2xl px-6 pt-4 pb-8"
+          style={{
+            backgroundColor: theme.surfaceElevated,
+            borderTopColor: theme.border,
+            borderTopWidth: 1,
+          }}>
+          <View
+            className="w-10 h-1 rounded-full self-center mb-4"
+            style={{ backgroundColor: theme.border }}
+          />
           <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-lg font-bold text-gray-900">{title}</Text>
+            <Text className="text-lg font-bold" style={{ color: theme.text }}>
+              {title}
+            </Text>
             <TouchableOpacity onPress={onClose} className="p-1">
-              <Text className="text-gray-400 text-lg">✕</Text>
+              <Text className="text-lg" style={{ color: theme.textSubtle }}>
+                ✕
+              </Text>
             </TouchableOpacity>
           </View>
           {children}

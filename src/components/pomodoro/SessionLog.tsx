@@ -1,12 +1,18 @@
-import { FlatList, Text, View } from 'react-native';
+import { FlatList, Text, View, useColorScheme } from 'react-native';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { formatShortDate, formatTime } from '@/utils/date';
+import { getTheme } from '@/utils/theme';
 
 export function SessionLog() {
+  const theme = getTheme(useColorScheme());
   const sessions = usePomodoroStore((s) => s.sessions);
 
   if (sessions.length === 0) {
-    return <Text className="text-gray-400 text-sm text-center py-4">No sessions yet</Text>;
+    return (
+      <Text className="text-sm text-center py-4" style={{ color: theme.textSubtle }}>
+        No sessions yet
+      </Text>
+    );
   }
 
   return (
@@ -15,24 +21,36 @@ export function SessionLog() {
       keyExtractor={(item) => item.id}
       scrollEnabled={false}
       renderItem={({ item }) => (
-        <View className="flex-row items-center py-2.5 border-b border-gray-50">
+        <View
+          className="flex-row items-center py-2.5 border-b"
+          style={{ borderBottomColor: theme.border }}>
           <View
-            className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${item.phase === 'work' ? 'bg-indigo-100' : 'bg-green-100'}`}>
+            className="w-8 h-8 rounded-full items-center justify-center mr-3"
+            style={{
+              backgroundColor: item.phase === 'work' ? theme.primarySoft : `${theme.success}22`,
+            }}>
             <Text className="text-sm">{item.phase === 'work' ? '🎯' : '☕'}</Text>
           </View>
           <View className="flex-1">
-            <Text className="text-sm text-gray-700 font-medium" numberOfLines={1}>
+            <Text
+              className="text-sm font-medium"
+              style={{ color: theme.textMuted }}
+              numberOfLines={1}>
               {item.taskTitle ?? '—'}
             </Text>
-            <Text className="text-xs text-gray-400">
+            <Text className="text-xs" style={{ color: theme.textSubtle }}>
               {formatShortDate(item.startedAt)} · {formatTime(item.startedAt)} ·{' '}
               {item.durationMinutes}min
             </Text>
           </View>
           <View
-            className={`px-2 py-0.5 rounded-full ${item.phase === 'work' ? 'bg-indigo-50' : 'bg-green-50'}`}>
+            className="px-2 py-0.5 rounded-full"
+            style={{
+              backgroundColor: item.phase === 'work' ? theme.primarySoft : `${theme.success}22`,
+            }}>
             <Text
-              className={`text-xs font-medium ${item.phase === 'work' ? 'text-indigo-600' : 'text-green-600'}`}>
+              className="text-xs font-medium"
+              style={{ color: item.phase === 'work' ? theme.primary : theme.success }}>
               {item.phase === 'work' ? 'Focus' : 'Break'}
             </Text>
           </View>

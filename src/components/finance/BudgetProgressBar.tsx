@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import { Text, View, useColorScheme } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { Category } from '@/models/finance';
+import { getTheme } from '@/utils/theme';
 
 interface Props {
   category: Category;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function BudgetProgressBar({ category, spent, limit }: Props) {
+  const theme = getTheme(useColorScheme());
   const hasLimit = limit > 0;
   const pct = hasLimit ? Math.min(spent / limit, 1) : 0;
   const overBudget = hasLimit && spent > limit;
@@ -24,19 +26,27 @@ export function BudgetProgressBar({ category, spent, limit }: Props) {
   }));
 
   return (
-    <View className="mb-3">
+    <View
+      className="mb-3 rounded-xl px-3 py-2"
+      style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, borderWidth: 1 }}>
       <View className="flex-row justify-between items-center mb-1">
         <View className="flex-row items-center gap-2">
           <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: category.color }} />
-          <Text className="text-sm font-medium text-gray-700">{category.name}</Text>
+          <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
+            {category.name}
+          </Text>
         </View>
-        <Text className={`text-sm font-semibold ${overBudget ? 'text-red-500' : 'text-gray-600'}`}>
+        <Text
+          className="text-sm font-semibold"
+          style={{ color: overBudget ? theme.danger : theme.textMuted }}>
           ${spent.toFixed(0)}
           {hasLimit ? ` / $${limit.toFixed(0)}` : ''}
         </Text>
       </View>
       {hasLimit && (
-        <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <View
+          className="h-2 rounded-full overflow-hidden"
+          style={{ backgroundColor: theme.surface }}>
           <Animated.View
             className="h-full rounded-full"
             style={[

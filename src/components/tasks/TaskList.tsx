@@ -1,11 +1,13 @@
-import { Text, FlatList, Platform, View } from 'react-native';
+import { Text, FlatList, Platform, View, useColorScheme } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 
 import type { Task } from '@/models/task';
 import { useTaskStore } from '@/stores/taskStore';
+import { getTheme } from '@/utils/theme';
 import { TaskItem } from './TaskItem';
 
 export function TaskList({ tasks }: { tasks: Task[] }) {
+  const theme = getTheme(useColorScheme());
   const reorderTasks = useTaskStore((s) => s.reorderTasks);
   const allTasks = useTaskStore((s) => s.tasks);
 
@@ -39,7 +41,9 @@ export function TaskList({ tasks }: { tasks: Task[] }) {
   if (tasks.length === 0) {
     return (
       <View className="flex-1 items-center justify-center pb-24">
-        <Text className="text-gray-400 text-base">No tasks yet — tap + to add one</Text>
+        <Text className="text-base" style={{ color: theme.textSubtle }}>
+          No tasks yet — tap + to add one
+        </Text>
       </View>
     );
   }

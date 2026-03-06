@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { useFinanceStore } from '@/stores/financeStore';
+import { getTheme } from '@/utils/theme';
 
 const CUSTOM_CATEGORY_ID = '__custom__';
 const CUSTOM_CATEGORY_COLOR = '#64748b';
@@ -10,6 +11,7 @@ interface ExpenseFormProps {
 }
 
 export function ExpenseForm({ onSubmitted }: ExpenseFormProps) {
+  const theme = getTheme(useColorScheme());
   const { categories, addCategory, addExpense } = useFinanceStore();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [customCategoryName, setCustomCategoryName] = useState('');
@@ -44,8 +46,12 @@ export function ExpenseForm({ onSubmitted }: ExpenseFormProps) {
   };
 
   return (
-    <View className="bg-gray-50 rounded-2xl p-4">
-      <Text className="text-sm font-semibold text-gray-600 mb-2">Add expense</Text>
+    <View
+      className="rounded-2xl p-4"
+      style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, borderWidth: 1 }}>
+      <Text className="text-sm font-semibold mb-2" style={{ color: theme.textMuted }}>
+        Add expense
+      </Text>
 
       <ScrollView
         horizontal
@@ -59,10 +65,12 @@ export function ExpenseForm({ onSubmitted }: ExpenseFormProps) {
               paddingHorizontal: 12,
               paddingVertical: 6,
               borderRadius: 20,
-              backgroundColor: selectedCategoryId === cat.id ? cat.color : '#e5e7eb',
+              backgroundColor: selectedCategoryId === cat.id ? cat.color : theme.surface,
+              borderWidth: 1,
+              borderColor: selectedCategoryId === cat.id ? cat.color : theme.border,
             }}>
             <Text
-              style={{ color: selectedCategoryId === cat.id ? '#fff' : '#374151' }}
+              style={{ color: selectedCategoryId === cat.id ? '#fff' : theme.textMuted }}
               className="text-sm font-medium">
               {cat.name}
             </Text>
@@ -75,10 +83,12 @@ export function ExpenseForm({ onSubmitted }: ExpenseFormProps) {
             paddingHorizontal: 12,
             paddingVertical: 6,
             borderRadius: 20,
-            backgroundColor: isCustomCategory ? CUSTOM_CATEGORY_COLOR : '#e5e7eb',
+            backgroundColor: isCustomCategory ? CUSTOM_CATEGORY_COLOR : theme.surface,
+            borderWidth: 1,
+            borderColor: isCustomCategory ? CUSTOM_CATEGORY_COLOR : theme.border,
           }}>
           <Text
-            style={{ color: isCustomCategory ? '#fff' : '#374151' }}
+            style={{ color: isCustomCategory ? '#fff' : theme.textMuted }}
             className="text-sm font-medium">
             Custom
           </Text>
@@ -87,8 +97,15 @@ export function ExpenseForm({ onSubmitted }: ExpenseFormProps) {
 
       {isCustomCategory && (
         <TextInput
-          className="border border-gray-200 bg-white rounded-xl px-4 py-3 text-base text-gray-800 mb-2"
+          className="rounded-xl px-4 py-3 text-base mb-2"
+          style={{
+            borderColor: theme.border,
+            borderWidth: 1,
+            backgroundColor: theme.surface,
+            color: theme.text,
+          }}
           placeholder="Custom category name"
+          placeholderTextColor={theme.textSubtle}
           value={customCategoryName}
           onChangeText={setCustomCategoryName}
         />
@@ -96,15 +113,29 @@ export function ExpenseForm({ onSubmitted }: ExpenseFormProps) {
 
       <View className="flex-row gap-2 mb-2">
         <TextInput
-          className="flex-1 border border-gray-200 bg-white rounded-xl px-4 py-3 text-base text-gray-800"
+          className="flex-1 rounded-xl px-4 py-3 text-base"
+          style={{
+            borderColor: theme.border,
+            borderWidth: 1,
+            backgroundColor: theme.surface,
+            color: theme.text,
+          }}
           placeholder="Amount"
+          placeholderTextColor={theme.textSubtle}
           value={amount}
           onChangeText={setAmount}
           keyboardType="decimal-pad"
         />
         <TextInput
-          className="flex-2 border border-gray-200 bg-white rounded-xl px-4 py-3 text-base text-gray-800"
+          className="flex-2 rounded-xl px-4 py-3 text-base"
+          style={{
+            borderColor: theme.border,
+            borderWidth: 1,
+            backgroundColor: theme.surface,
+            color: theme.text,
+          }}
           placeholder="Note (optional)"
+          placeholderTextColor={theme.textSubtle}
           value={note}
           onChangeText={setNote}
         />
@@ -112,9 +143,12 @@ export function ExpenseForm({ onSubmitted }: ExpenseFormProps) {
 
       <TouchableOpacity
         onPress={handleAdd}
-        className="bg-indigo-500 py-3 rounded-xl items-center"
+        className="py-3 rounded-xl items-center"
+        style={{ backgroundColor: canSubmit ? theme.primary : theme.surface }}
         disabled={!canSubmit}>
-        <Text className="text-white font-semibold">Add Expense</Text>
+        <Text className="font-semibold" style={{ color: canSubmit ? '#fff' : theme.textSubtle }}>
+          Add Expense
+        </Text>
       </TouchableOpacity>
     </View>
   );

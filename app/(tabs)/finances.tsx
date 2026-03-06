@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
 import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,8 +12,10 @@ import { Modal } from '@/components/ui/Modal';
 import type { BudgetPeriod } from '@/models/finance';
 import { useFinanceStore } from '@/stores/financeStore';
 import { currentMonth, todayString } from '@/utils/date';
+import { getTheme } from '@/utils/theme';
 
 export default function FinancesScreen() {
+  const theme = getTheme(useColorScheme());
   const {
     categories,
     expenses,
@@ -79,12 +81,16 @@ export default function FinancesScreen() {
     budgets.find((b) => b.categoryId === categoryId && b.month === month)?.monthlyLimit ?? 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.bg }}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="px-4 pt-4 pb-2 flex-row justify-between items-center">
-          <Text className="text-2xl font-bold text-gray-900">Money</Text>
+          <Text className="text-2xl font-bold" style={{ color: theme.text }}>
+            Money
+          </Text>
           <TouchableOpacity onPress={() => setShowSettings(true)} className="p-1">
-            <Text className="text-indigo-500 font-medium">Budgets</Text>
+            <Text className="font-medium" style={{ color: theme.primary }}>
+              Budgets
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -94,10 +100,15 @@ export default function FinancesScreen() {
           className="px-4 mt-2">
           <TouchableOpacity
             onPress={() => setShowAddExpense(true)}
-            className="bg-indigo-500 rounded-2xl px-4 py-4 flex-row items-center justify-between">
+            className="rounded-2xl px-4 py-4 flex-row items-center justify-between"
+            style={{ backgroundColor: theme.primary }}>
             <View>
               <Text className="text-white text-base font-semibold">Add expense</Text>
-              <Text className="text-indigo-100 text-xs mt-0.5">Track a new transaction</Text>
+              <Text
+                className="text-xs mt-0.5"
+                style={{ color: theme.isDark ? '#c7d2fe' : '#e0e7ff' }}>
+                Track a new transaction
+              </Text>
             </View>
             <Text className="text-white text-2xl leading-none">＋</Text>
           </TouchableOpacity>
@@ -107,39 +118,63 @@ export default function FinancesScreen() {
           entering={FadeInUp.delay(80).duration(260)}
           layout={Layout.springify()}
           className="px-4 mt-6">
-          <Text className="text-base font-semibold text-gray-700 mb-3">Overall budget</Text>
+          <Text className="text-base font-semibold mb-3" style={{ color: theme.textMuted }}>
+            Overall budget
+          </Text>
 
           <TouchableOpacity
             onPress={() => setShowSetBudget(true)}
-            className="mb-3 bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3 flex-row items-center justify-between">
+            className="mb-3 border rounded-2xl px-4 py-3 flex-row items-center justify-between"
+            style={{ backgroundColor: theme.primarySoft, borderColor: theme.border }}>
             <View>
-              <Text className="text-indigo-700 text-sm font-semibold">Set overall budget</Text>
-              <Text className="text-indigo-500 text-xs mt-0.5 capitalize">
+              <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
+                Set overall budget
+              </Text>
+              <Text className="text-xs mt-0.5 capitalize" style={{ color: theme.textSubtle }}>
                 {overallBudgetPeriod} period
               </Text>
             </View>
-            <Text className="text-indigo-500 text-lg">✎</Text>
+            <Text className="text-lg" style={{ color: theme.primary }}>
+              ✎
+            </Text>
           </TouchableOpacity>
 
-          <View className="bg-gray-50 rounded-2xl p-4">
-            <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+          <View
+            className="rounded-2xl p-4"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              borderWidth: 1,
+            }}>
+            <Text
+              className="text-xs font-semibold uppercase tracking-wide mb-2"
+              style={{ color: theme.textSubtle }}>
               {overallBudgetPeriod} budget ({periodLabel})
             </Text>
             <View className="flex-row justify-between mb-1">
-              <Text className="text-sm text-gray-500">Budget</Text>
-              <Text className="text-sm font-semibold text-gray-700">
+              <Text className="text-sm" style={{ color: theme.textSubtle }}>
+                Budget
+              </Text>
+              <Text className="text-sm font-semibold" style={{ color: theme.textMuted }}>
                 ${overallBudgetAmount.toFixed(2)}
               </Text>
             </View>
             <View className="flex-row justify-between mb-1">
-              <Text className="text-sm text-gray-500">Spent</Text>
-              <Text className="text-sm font-semibold text-gray-700">${periodSpent.toFixed(2)}</Text>
+              <Text className="text-sm" style={{ color: theme.textSubtle }}>
+                Spent
+              </Text>
+              <Text className="text-sm font-semibold" style={{ color: theme.textMuted }}>
+                ${periodSpent.toFixed(2)}
+              </Text>
             </View>
-            <View className="h-px bg-gray-200 my-2" />
+            <View className="h-px my-2" style={{ backgroundColor: theme.border }} />
             <View className="flex-row justify-between">
-              <Text className="text-sm font-medium text-gray-600">Remaining</Text>
+              <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
+                Remaining
+              </Text>
               <Text
-                className={`text-base font-bold ${remainingBudget >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                className="text-base font-bold"
+                style={{ color: remainingBudget >= 0 ? theme.success : theme.danger }}>
                 ${remainingBudget.toFixed(2)}
               </Text>
             </View>
@@ -150,7 +185,9 @@ export default function FinancesScreen() {
           entering={FadeInUp.delay(120).duration(260)}
           layout={Layout.springify()}
           className="px-4 mt-6">
-          <Text className="text-base font-semibold text-gray-700 mb-3">Budget overview</Text>
+          <Text className="text-base font-semibold mb-3" style={{ color: theme.textMuted }}>
+            Budget overview
+          </Text>
           {categories.map((cat) => (
             <BudgetProgressBar
               key={cat.id}
@@ -170,9 +207,15 @@ export default function FinancesScreen() {
               <TouchableOpacity
                 key={t}
                 onPress={() => setChartType(t)}
-                className={`px-4 py-1.5 rounded-full ${chartType === t ? 'bg-indigo-500' : 'bg-gray-100'}`}>
+                className="px-4 py-1.5 rounded-full"
+                style={{
+                  backgroundColor: chartType === t ? theme.primary : theme.surface,
+                  borderColor: theme.border,
+                  borderWidth: chartType === t ? 0 : 1,
+                }}>
                 <Text
-                  className={`text-sm font-medium capitalize ${chartType === t ? 'text-white' : 'text-gray-600'}`}>
+                  className="text-sm font-medium capitalize"
+                  style={{ color: chartType === t ? '#fff' : theme.textMuted }}>
                   {t} chart
                 </Text>
               </TouchableOpacity>
@@ -189,11 +232,13 @@ export default function FinancesScreen() {
           entering={FadeInUp.delay(200).duration(260)}
           layout={Layout.springify()}
           className="px-4 mt-6 mb-8">
-          <Text className="text-base font-semibold text-gray-700 mb-2">
+          <Text className="text-base font-semibold mb-2" style={{ color: theme.textMuted }}>
             Recent expenses ({month})
           </Text>
           {monthExpenses.length === 0 ? (
-            <Text className="text-gray-400 text-sm py-4 text-center">No expenses this month</Text>
+            <Text className="text-sm py-4 text-center" style={{ color: theme.textSubtle }}>
+              No expenses this month
+            </Text>
           ) : (
             monthExpenses.map((expense) => {
               const cat = categories.find((c) => c.id === expense.categoryId);
@@ -223,9 +268,15 @@ export default function FinancesScreen() {
               <TouchableOpacity
                 key={period}
                 onPress={() => handleChangePeriod(period)}
-                className={`px-4 py-1.5 rounded-full ${overallBudgetPeriod === period ? 'bg-indigo-500' : 'bg-gray-100'}`}>
+                className="px-4 py-1.5 rounded-full"
+                style={{
+                  backgroundColor: overallBudgetPeriod === period ? theme.primary : theme.surface,
+                  borderColor: theme.border,
+                  borderWidth: overallBudgetPeriod === period ? 0 : 1,
+                }}>
                 <Text
-                  className={`text-sm font-medium capitalize ${overallBudgetPeriod === period ? 'text-white' : 'text-gray-600'}`}>
+                  className="text-sm font-medium capitalize"
+                  style={{ color: overallBudgetPeriod === period ? '#fff' : theme.textMuted }}>
                   {period}
                 </Text>
               </TouchableOpacity>
@@ -234,15 +285,23 @@ export default function FinancesScreen() {
 
           <View className="flex-row gap-2">
             <TextInput
-              className="flex-1 border border-gray-200 bg-white rounded-xl px-4 py-3 text-base text-gray-800"
+              className="flex-1 rounded-xl px-4 py-3 text-base"
+              style={{
+                borderColor: theme.border,
+                borderWidth: 1,
+                backgroundColor: theme.surface,
+                color: theme.text,
+              }}
               placeholder="Set budget"
+              placeholderTextColor={theme.textSubtle}
               value={budgetInput}
               onChangeText={setBudgetInput}
               keyboardType="decimal-pad"
             />
             <TouchableOpacity
               onPress={handleSaveOverallBudget}
-              className="bg-indigo-500 px-4 rounded-xl items-center justify-center">
+              className="px-4 rounded-xl items-center justify-center"
+              style={{ backgroundColor: theme.primary }}>
               <Text className="text-white font-semibold">Save</Text>
             </TouchableOpacity>
           </View>

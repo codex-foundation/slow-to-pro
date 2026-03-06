@@ -1,8 +1,17 @@
 import { useState } from 'react';
-import { Alert, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useColorScheme,
+} from 'react-native';
 import { Modal } from '@/components/ui/Modal';
 import { useFinanceStore } from '@/stores/financeStore';
 import { currentMonth } from '@/utils/date';
+import { getTheme } from '@/utils/theme';
 
 const PRESET_COLORS = [
   '#f97316',
@@ -21,6 +30,7 @@ interface Props {
 }
 
 export function CategoryBudgetModal({ visible, onClose }: Props) {
+  const theme = getTheme(useColorScheme());
   const { categories, budgets, addCategory, deleteCategory, upsertBudget } = useFinanceStore();
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PRESET_COLORS[0]);
@@ -49,7 +59,9 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} onClose={onClose} title="Budgets & Categories">
-      <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+      <Text
+        className="text-xs font-semibold uppercase tracking-wide mb-2"
+        style={{ color: theme.textSubtle }}>
         Monthly budgets ({month})
       </Text>
 
@@ -60,13 +72,24 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
         renderItem={({ item }) => (
           <View className="flex-row items-center mb-2 gap-2">
             <View className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-            <Text className="flex-1 text-sm text-gray-700">{item.name}</Text>
-            <Text className="text-xs text-gray-400 mr-1">$</Text>
+            <Text className="flex-1 text-sm" style={{ color: theme.textMuted }}>
+              {item.name}
+            </Text>
+            <Text className="text-xs mr-1" style={{ color: theme.textSubtle }}>
+              $
+            </Text>
             <TextInput
-              className="w-20 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-800 text-right"
+              className="w-20 rounded-lg px-2 py-1.5 text-sm text-right"
+              style={{
+                borderColor: theme.border,
+                borderWidth: 1,
+                backgroundColor: theme.surface,
+                color: theme.text,
+              }}
               keyboardType="decimal-pad"
               defaultValue={getBudgetLimit(item.id) > 0 ? String(getBudgetLimit(item.id)) : ''}
               placeholder="0"
+              placeholderTextColor={theme.textSubtle}
               onEndEditing={(e) => {
                 const val = parseFloat(e.nativeEvent.text);
                 if (!isNaN(val) && val >= 0) upsertBudget(item.id, val, month);
@@ -75,15 +98,19 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
             <TouchableOpacity
               onPress={() => handleDeleteCategory(item.id, item.name)}
               className="pl-1">
-              <Text className="text-gray-300 text-base">✕</Text>
+              <Text className="text-base" style={{ color: theme.textSubtle }}>
+                ✕
+              </Text>
             </TouchableOpacity>
           </View>
         )}
       />
 
-      <View className="h-px bg-gray-100 my-4" />
+      <View className="h-px my-4" style={{ backgroundColor: theme.border }} />
 
-      <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+      <Text
+        className="text-xs font-semibold uppercase tracking-wide mb-2"
+        style={{ color: theme.textSubtle }}>
         Add category
       </Text>
       <View className="flex-row flex-wrap gap-2 mb-2">
@@ -98,8 +125,15 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
       </View>
       <View className="flex-row gap-2">
         <TextInput
-          className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800"
+          className="flex-1 rounded-xl px-3 py-2.5 text-sm"
+          style={{
+            borderColor: theme.border,
+            borderWidth: 1,
+            backgroundColor: theme.surface,
+            color: theme.text,
+          }}
           placeholder="Category name"
+          placeholderTextColor={theme.textSubtle}
           value={newName}
           onChangeText={setNewName}
           returnKeyType="done"
@@ -107,9 +141,14 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
         />
         <TouchableOpacity
           onPress={handleAddCategory}
-          className="bg-indigo-500 px-4 rounded-xl items-center justify-center"
+          className="px-4 rounded-xl items-center justify-center"
+          style={{ backgroundColor: newName.trim() ? theme.primary : theme.surface }}
           disabled={!newName.trim()}>
-          <Text className="text-white font-semibold">Add</Text>
+          <Text
+            className="font-semibold"
+            style={{ color: newName.trim() ? '#fff' : theme.textSubtle }}>
+            Add
+          </Text>
         </TouchableOpacity>
       </View>
     </Modal>

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Platform, ScrollView, Text, View } from 'react-native';
+import { Platform, ScrollView, Text, View, useColorScheme } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,8 +9,10 @@ import { TimerControls } from '@/components/pomodoro/TimerControls';
 import { TimerDisplay } from '@/components/pomodoro/TimerDisplay';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { fireConfetti } from '@/utils/confetti';
+import { getTheme } from '@/utils/theme';
 
 export default function PomodoroScreen() {
+  const theme = getTheme(useColorScheme());
   const status = usePomodoroStore((s) => s.status);
   const sessionsCount = usePomodoroStore((s) => s.sessions.length);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -56,10 +58,12 @@ export default function PomodoroScreen() {
   }, [sessionsCount]);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.bg }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pt-4 pb-2">
-          <Text className="text-2xl font-bold text-gray-900">Focus</Text>
+          <Text className="text-2xl font-bold" style={{ color: theme.text }}>
+            Focus
+          </Text>
         </View>
 
         <TimerDisplay />
@@ -69,12 +73,16 @@ export default function PomodoroScreen() {
         </View>
 
         <View className="px-4 mt-6">
-          <Text className="text-base font-semibold text-gray-700 mb-2">Link to task</Text>
+          <Text className="text-base font-semibold mb-2" style={{ color: theme.textMuted }}>
+            Link to task
+          </Text>
           <TaskPicker />
         </View>
 
         <View className="px-4 mt-6 mb-8">
-          <Text className="text-base font-semibold text-gray-700 mb-2">Session log</Text>
+          <Text className="text-base font-semibold mb-2" style={{ color: theme.textMuted }}>
+            Session log
+          </Text>
           <SessionLog />
         </View>
       </ScrollView>

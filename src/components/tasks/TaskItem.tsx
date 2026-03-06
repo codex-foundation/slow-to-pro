@@ -1,7 +1,15 @@
 import { createElement, useRef, useState } from 'react';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Platform,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useColorScheme,
+} from 'react-native';
 import Animated, {
   FadeInDown,
   FadeOutUp,
@@ -16,22 +24,12 @@ import ConfettiCannon from 'react-native-confetti-cannon';
 import type { Priority, Task } from '@/models/task';
 import { useTaskStore } from '@/stores/taskStore';
 import { fireConfetti } from '@/utils/confetti';
+import { getTheme } from '@/utils/theme';
 import { Modal } from '../ui/Modal';
 import { PriorityBadge } from './PriorityBadge';
 
 const PRIORITIES: Priority[] = ['high', 'medium', 'low'];
 const PRIORITY_LABELS: Record<Priority, string> = { high: 'High', medium: 'Medium', low: 'Low' };
-
-const WEB_INPUT_STYLE = {
-  width: '100%',
-  borderWidth: 1,
-  borderColor: '#e5e7eb',
-  borderRadius: 12,
-  padding: 12,
-  fontSize: 16,
-  color: '#1f2937',
-  backgroundColor: '#ffffff',
-};
 
 interface Props {
   item: Task;
@@ -42,6 +40,7 @@ interface Props {
 }
 
 export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }: Props) {
+  const theme = getTheme(useColorScheme());
   const { toggleTask, deleteTask, updateTask } = useTaskStore();
   const [showEdit, setShowEdit] = useState(false);
   const confettiRef = useRef<ConfettiCannon>(null);
@@ -230,16 +229,35 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
     opacity: itemOpacity.value,
   }));
 
+  const webInputStyle = {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
+    color: theme.text,
+    backgroundColor: theme.surface,
+  };
+
   return (
     <Animated.View
       entering={FadeInDown.duration(200)}
       exiting={FadeOutUp.duration(200)}
       layout={Layout.springify().damping(15).stiffness(100)}
-      style={itemAnimatedStyle}
-      className={`flex-row items-center px-4 py-3 bg-white border-b border-gray-100 ${isActive ? 'opacity-80 shadow-md' : ''}`}>
+      style={[
+        itemAnimatedStyle,
+        {
+          backgroundColor: theme.surface,
+          borderBottomColor: theme.border,
+          borderBottomWidth: 1,
+          opacity: isActive ? 0.8 : 1,
+        },
+      ]}
+      className="flex-row items-center px-4 py-3">
       {drag ? (
         <TouchableOpacity onLongPress={drag} className="pr-3 py-1">
-          <Ionicons name="reorder-three-outline" size={20} color="#9ca3af" />
+          <Ionicons name="reorder-three-outline" size={20} color={theme.textSubtle} />
         </TouchableOpacity>
       ) : (
         <View className="pr-3 py-1 flex-row gap-1">
@@ -247,14 +265,14 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
             <Ionicons
               name="chevron-up-outline"
               size={18}
-              color={onMoveUp ? '#9ca3af' : '#e5e7eb'}
+              color={onMoveUp ? theme.textSubtle : theme.border}
             />
           </TouchableOpacity>
           <TouchableOpacity onPress={onMoveDown} disabled={!onMoveDown}>
             <Ionicons
               name="chevron-down-outline"
               size={18}
-              color={onMoveDown ? '#9ca3af' : '#e5e7eb'}
+              color={onMoveDown ? theme.textSubtle : theme.border}
             />
           </TouchableOpacity>
         </View>
@@ -262,8 +280,14 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
 
       <TouchableOpacity onPress={handleToggle} className="pr-3">
         <Animated.View
-          style={checkboxAnimatedStyle}
-          className={`w-5 h-5 rounded border-2 items-center justify-center ${item.completed ? 'bg-indigo-500 border-indigo-500' : 'border-gray-300'}`}>
+          className="w-5 h-5 rounded border-2 items-center justify-center"
+          style={[
+            checkboxAnimatedStyle,
+            {
+              backgroundColor: item.completed ? theme.primary : 'transparent',
+              borderColor: item.completed ? theme.primary : theme.border,
+            },
+          ]}>
           {item.completed && <Ionicons name="checkmark" size={12} color="white" />}
         </Animated.View>
       </TouchableOpacity>
@@ -271,19 +295,31 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
       <View className="flex-1">
         <View className="flex-row items-center gap-2">
           <Text
-            className={`flex-1 text-base ${item.completed ? 'line-through text-gray-400' : 'text-gray-800'}`}
+            className="flex-1 text-base"
+            style={{
+              textDecorationLine: item.completed ? 'line-through' : 'none',
+              color: item.completed ? theme.textSubtle : theme.text,
+            }}
             numberOfLines={2}>
             {item.title}
           </Text>
           <PriorityBadge priority={item.priority} />
-          {item.recurring.enabled && <Ionicons name="repeat-outline" size={14} color="#9ca3af" />}
+          {item.recurring.enabled && (
+            <Ionicons name="repeat-outline" size={14} color={theme.textSubtle} />
+          )}
         </View>
 
         {(dueDateText || reminderText) && (
           <View className="mt-1 gap-0.5">
-            {dueDateText && <Text className="text-xs text-gray-500">Due: {dueDateText}</Text>}
+            {dueDateText && (
+              <Text className="text-xs" style={{ color: theme.textSubtle }}>
+                Due: {dueDateText}
+              </Text>
+            )}
             {reminderText && (
-              <Text className="text-xs text-gray-500">Reminder: {reminderText}</Text>
+              <Text className="text-xs" style={{ color: theme.textSubtle }}>
+                Reminder: {reminderText}
+              </Text>
             )}
           </View>
         )}
@@ -292,34 +328,48 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
       <View className="flex-row items-center">
         {!item.completed && (
           <TouchableOpacity onPress={openEdit} className="pl-2 py-1">
-            <Ionicons name="create-outline" size={18} color="#9ca3af" />
+            <Ionicons name="create-outline" size={18} color={theme.textSubtle} />
           </TouchableOpacity>
         )}
 
         <TouchableOpacity onPress={() => deleteTask(item.id)} className="pl-3 py-1">
-          <Ionicons name="trash-outline" size={18} color="#d1d5db" />
+          <Ionicons name="trash-outline" size={18} color={theme.textSubtle} />
         </TouchableOpacity>
       </View>
 
       <Modal visible={showEdit} onClose={() => setShowEdit(false)} title="Edit task">
         <TextInput
-          className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-800 mb-4"
+          className="rounded-xl px-4 py-3 text-base mb-4"
+          style={{
+            borderColor: theme.border,
+            borderWidth: 1,
+            backgroundColor: theme.surface,
+            color: theme.text,
+          }}
           value={editTitle}
           onChangeText={setEditTitle}
+          placeholderTextColor={theme.textSubtle}
           autoFocus
           returnKeyType="done"
           onSubmitEditing={saveEdit}
         />
 
-        <Text className="text-sm font-medium text-gray-600 mb-2">Priority</Text>
+        <Text className="text-sm font-medium mb-2" style={{ color: theme.textMuted }}>
+          Priority
+        </Text>
         <View className="flex-row gap-2 mb-4">
           {PRIORITIES.map((p) => (
             <TouchableOpacity
               key={p}
               onPress={() => setEditPriority(p)}
-              className={`flex-1 py-2 rounded-lg border ${editPriority === p ? 'bg-indigo-500 border-indigo-500' : 'bg-white border-gray-200'}`}>
+              className="flex-1 py-2 rounded-lg border"
+              style={{
+                backgroundColor: editPriority === p ? theme.primary : theme.surface,
+                borderColor: editPriority === p ? theme.primary : theme.border,
+              }}>
               <Text
-                className={`text-center text-sm font-medium ${editPriority === p ? 'text-white' : 'text-gray-700'}`}>
+                className="text-center text-sm font-medium"
+                style={{ color: editPriority === p ? '#fff' : theme.textMuted }}>
                 {PRIORITY_LABELS[p]}
               </Text>
             </TouchableOpacity>
@@ -327,10 +377,14 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
         </View>
 
         <View className="flex-row items-center justify-between mb-2">
-          <Text className="text-sm font-medium text-gray-600">Due date</Text>
+          <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
+            Due date
+          </Text>
           {(editDueDate !== null || editDueDateInput.trim().length > 0) && (
             <TouchableOpacity onPress={clearEditDueDate}>
-              <Text className="text-xs font-medium text-gray-400">Clear</Text>
+              <Text className="text-xs font-medium" style={{ color: theme.textSubtle }}>
+                Clear
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -341,15 +395,18 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
               type: 'date',
               value: editDueDateInput,
               onChange: (e: { target: { value: string } }) => setEditDueDateInput(e.target.value),
-              style: WEB_INPUT_STYLE,
+              style: webInputStyle,
             })}
           </View>
         ) : (
           <>
             <TouchableOpacity
               onPress={() => setShowEditDueDatePicker(true)}
-              className="border border-gray-200 rounded-xl px-4 py-3 mb-4 bg-white">
-              <Text className="text-base text-gray-800">{formatDate(editDueDate)}</Text>
+              className="rounded-xl px-4 py-3 mb-4"
+              style={{ borderColor: theme.border, borderWidth: 1, backgroundColor: theme.surface }}>
+              <Text className="text-base" style={{ color: theme.text }}>
+                {formatDate(editDueDate)}
+              </Text>
             </TouchableOpacity>
             {showEditDueDatePicker && (
               <DateTimePicker
@@ -363,14 +420,18 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
         )}
 
         <View className="flex-row items-center justify-between mb-3">
-          <Text className="text-sm font-medium text-gray-600">Reminder</Text>
+          <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
+            Reminder
+          </Text>
           <View className="flex-row items-center gap-3">
             {(editReminderEnabled ||
               editReminderDateTime !== null ||
               editReminderDateInput.trim().length > 0 ||
               editReminderTimeInput !== '09:00') && (
               <TouchableOpacity onPress={clearEditReminder}>
-                <Text className="text-xs font-medium text-gray-400">Clear</Text>
+                <Text className="text-xs font-medium" style={{ color: theme.textSubtle }}>
+                  Clear
+                </Text>
               </TouchableOpacity>
             )}
             <Switch
@@ -390,7 +451,7 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
                   value: editReminderDateInput,
                   onChange: (e: { target: { value: string } }) =>
                     setEditReminderDateInput(e.target.value),
-                  style: WEB_INPUT_STYLE,
+                  style: webInputStyle,
                 })}
               </View>
               <View style={{ width: 120 }}>
@@ -399,7 +460,7 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
                   value: editReminderTimeInput,
                   onChange: (e: { target: { value: string } }) =>
                     setEditReminderTimeInput(e.target.value),
-                  style: WEB_INPUT_STYLE,
+                  style: webInputStyle,
                 })}
               </View>
             </View>
@@ -407,15 +468,25 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
             <View className="mb-4 gap-2">
               <TouchableOpacity
                 onPress={() => setShowEditReminderDatePicker(true)}
-                className="border border-gray-200 rounded-xl px-4 py-3 bg-white">
-                <Text className="text-base text-gray-800">
+                className="rounded-xl px-4 py-3"
+                style={{
+                  borderColor: theme.border,
+                  borderWidth: 1,
+                  backgroundColor: theme.surface,
+                }}>
+                <Text className="text-base" style={{ color: theme.text }}>
                   Reminder date: {formatDate(editReminderDateTime)}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setShowEditReminderTimePicker(true)}
-                className="border border-gray-200 rounded-xl px-4 py-3 bg-white">
-                <Text className="text-base text-gray-800">
+                className="rounded-xl px-4 py-3"
+                style={{
+                  borderColor: theme.border,
+                  borderWidth: 1,
+                  backgroundColor: theme.surface,
+                }}>
+                <Text className="text-base" style={{ color: theme.text }}>
                   Reminder time: {formatTime(editReminderDateTime)}
                 </Text>
               </TouchableOpacity>
@@ -443,12 +514,16 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
         <View className="flex-row gap-2">
           <TouchableOpacity
             onPress={() => setShowEdit(false)}
-            className="flex-1 border border-gray-200 py-3 rounded-xl items-center">
-            <Text className="text-gray-600 font-semibold">Cancel</Text>
+            className="flex-1 py-3 rounded-xl items-center"
+            style={{ borderColor: theme.border, borderWidth: 1, backgroundColor: theme.surface }}>
+            <Text className="font-semibold" style={{ color: theme.textMuted }}>
+              Cancel
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={saveEdit}
-            className="flex-1 bg-indigo-500 py-3 rounded-xl items-center"
+            className="flex-1 py-3 rounded-xl items-center"
+            style={{ backgroundColor: theme.primary }}
             disabled={!editTitle.trim()}>
             <Text className="text-white font-semibold">Save</Text>
           </TouchableOpacity>
