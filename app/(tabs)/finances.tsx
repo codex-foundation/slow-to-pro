@@ -53,6 +53,8 @@ export default function FinancesScreen() {
 
   const periodSpent = periodExpenses.reduce((sum, e) => sum + e.amount, 0);
   const remainingBudget = overallBudgetAmount - periodSpent;
+  const spentPercentage =
+    overallBudgetAmount > 0 ? Math.max(0, (periodSpent / overallBudgetAmount) * 100) : null;
 
   const periodLabel =
     overallBudgetPeriod === 'daily' ? today : overallBudgetPeriod === 'annual' ? year : month;
@@ -163,9 +165,16 @@ export default function FinancesScreen() {
               <Text className="text-sm" style={{ color: theme.textSubtle }}>
                 Spent
               </Text>
-              <Text className="text-sm font-semibold" style={{ color: theme.textMuted }}>
-                ${periodSpent.toFixed(2)}
-              </Text>
+              <View className="items-end">
+                <Text className="text-sm font-semibold" style={{ color: theme.textMuted }}>
+                  ${periodSpent.toFixed(2)}
+                </Text>
+                <Text className="text-xs" style={{ color: theme.textSubtle }}>
+                  {spentPercentage === null
+                    ? 'No budget set'
+                    : `${spentPercentage.toFixed(0)}% used`}
+                </Text>
+              </View>
             </View>
             <View className="h-px my-2" style={{ backgroundColor: theme.border }} />
             <View className="flex-row justify-between">

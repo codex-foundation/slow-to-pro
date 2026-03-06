@@ -81,6 +81,26 @@ describe('FinancesScreen modal behavior', () => {
     resetFinanceStore();
   });
 
+  it('shows spent percentage based on overall budget', () => {
+    useFinanceStore.setState((state) => ({
+      ...state,
+      overallBudgetAmount: 200,
+      overallBudgetPeriod: 'monthly',
+      expenses: [
+        {
+          id: 'expense-1',
+          categoryId: 'cat-food',
+          amount: 50,
+          date: Date.now(),
+        },
+      ],
+    }));
+
+    const { getByText } = render(<FinancesScreen />);
+
+    expect(getByText('25% used')).toBeTruthy();
+  });
+
   it('opens add expense modal and closes it after successful submit', async () => {
     const { getByText, getByTestId, queryByTestId } = render(<FinancesScreen />);
 
