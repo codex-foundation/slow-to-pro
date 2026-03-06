@@ -25,6 +25,7 @@ export default function FinancesScreen() {
   } = useFinanceStore();
   const [showSettings, setShowSettings] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [showSetBudget, setShowSetBudget] = useState(false);
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
   const [budgetInput, setBudgetInput] = useState(
     overallBudgetAmount > 0 ? String(overallBudgetAmount) : ''
@@ -60,6 +61,7 @@ export default function FinancesScreen() {
       return;
     }
     setOverallBudget(parsed, overallBudgetPeriod);
+    setShowSetBudget(false);
   };
 
   const handleChangePeriod = (period: BudgetPeriod) => {
@@ -107,34 +109,17 @@ export default function FinancesScreen() {
           className="px-4 mt-6">
           <Text className="text-base font-semibold text-gray-700 mb-3">Overall budget</Text>
 
-          <View className="flex-row gap-2 mb-3">
-            {(['daily', 'monthly', 'annual'] as BudgetPeriod[]).map((period) => (
-              <TouchableOpacity
-                key={period}
-                onPress={() => handleChangePeriod(period)}
-                className={`px-4 py-1.5 rounded-full ${overallBudgetPeriod === period ? 'bg-indigo-500' : 'bg-gray-100'}`}>
-                <Text
-                  className={`text-sm font-medium capitalize ${overallBudgetPeriod === period ? 'text-white' : 'text-gray-600'}`}>
-                  {period}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View className="flex-row gap-2 mb-3">
-            <TextInput
-              className="flex-1 border border-gray-200 bg-white rounded-xl px-4 py-3 text-base text-gray-800"
-              placeholder="Set budget"
-              value={budgetInput}
-              onChangeText={setBudgetInput}
-              keyboardType="decimal-pad"
-            />
-            <TouchableOpacity
-              onPress={handleSaveOverallBudget}
-              className="bg-indigo-500 px-4 rounded-xl items-center justify-center">
-              <Text className="text-white font-semibold">Save</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => setShowSetBudget(true)}
+            className="mb-3 bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3 flex-row items-center justify-between">
+            <View>
+              <Text className="text-indigo-700 text-sm font-semibold">Set overall budget</Text>
+              <Text className="text-indigo-500 text-xs mt-0.5 capitalize">
+                {overallBudgetPeriod} period
+              </Text>
+            </View>
+            <Text className="text-indigo-500 text-lg">✎</Text>
+          </TouchableOpacity>
 
           <View className="bg-gray-50 rounded-2xl p-4">
             <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
@@ -229,6 +214,39 @@ export default function FinancesScreen() {
 
       <Modal visible={showAddExpense} onClose={() => setShowAddExpense(false)} title="Add expense">
         <ExpenseForm onSubmitted={() => setShowAddExpense(false)} />
+      </Modal>
+
+      <Modal visible={showSetBudget} onClose={() => setShowSetBudget(false)} title="Set budget">
+        <View className="gap-3">
+          <View className="flex-row gap-2">
+            {(['daily', 'monthly', 'annual'] as BudgetPeriod[]).map((period) => (
+              <TouchableOpacity
+                key={period}
+                onPress={() => handleChangePeriod(period)}
+                className={`px-4 py-1.5 rounded-full ${overallBudgetPeriod === period ? 'bg-indigo-500' : 'bg-gray-100'}`}>
+                <Text
+                  className={`text-sm font-medium capitalize ${overallBudgetPeriod === period ? 'text-white' : 'text-gray-600'}`}>
+                  {period}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View className="flex-row gap-2">
+            <TextInput
+              className="flex-1 border border-gray-200 bg-white rounded-xl px-4 py-3 text-base text-gray-800"
+              placeholder="Set budget"
+              value={budgetInput}
+              onChangeText={setBudgetInput}
+              keyboardType="decimal-pad"
+            />
+            <TouchableOpacity
+              onPress={handleSaveOverallBudget}
+              className="bg-indigo-500 px-4 rounded-xl items-center justify-center">
+              <Text className="text-white font-semibold">Save</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
