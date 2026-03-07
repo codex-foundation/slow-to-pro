@@ -20,7 +20,8 @@
           "sounds": []
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-font"
     ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -30,7 +31,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.slowtopro"
@@ -41,6 +44,13 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.anonymous.slowtopro"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "84b5c610-ddd1-4636-b590-cb94cde96b70"
+      }
+    },
+    "owner": "acink"
   }
 }

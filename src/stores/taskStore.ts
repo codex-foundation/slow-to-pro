@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { Priority, Task } from '@/models/task';
 import { todayString, todayWeekday } from '@/utils/date';
+import { generateId } from '@/utils/id';
 import { mmkvStorage } from '@/utils/mmkv';
 import { scheduleTaskReminderNotification } from '@/utils/notifications';
 
@@ -33,7 +34,7 @@ export const useTaskStore = create<TaskStore>()(
         const tasks = get().tasks;
         const maxOrder = tasks.length > 0 ? Math.max(...tasks.map((t) => t.order)) : -1;
         const task: Task = {
-          id: crypto.randomUUID(),
+          id: generateId(),
           title,
           completed: false,
           priority,

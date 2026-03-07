@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { Budget, BudgetPeriod, Category, Expense } from '@/models/finance';
 import { currentMonth } from '@/utils/date';
+import { generateId } from '@/utils/id';
 import { mmkvStorage } from '@/utils/mmkv';
 import { scheduleOverBudgetNotification } from '@/utils/notifications';
 
@@ -51,7 +52,7 @@ export const useFinanceStore = create<FinanceStore>()(
       overallBudgetPeriod: 'monthly',
 
       addCategory: (name, color) => {
-        const cat: Category = { id: crypto.randomUUID(), name, color };
+        const cat: Category = { id: generateId(), name, color };
         set((s) => ({ categories: [...s.categories, cat] }));
         return cat.id;
       },
@@ -83,10 +84,7 @@ export const useFinanceStore = create<FinanceStore>()(
             };
           }
           return {
-            budgets: [
-              ...s.budgets,
-              { id: crypto.randomUUID(), categoryId, monthlyLimit: limit, month },
-            ],
+            budgets: [...s.budgets, { id: generateId(), categoryId, monthlyLimit: limit, month }],
             notifiedBudgetThresholdByKey: remainingThresholds,
           };
         });
@@ -105,7 +103,7 @@ export const useFinanceStore = create<FinanceStore>()(
 
       addExpense: ({ categoryId, amount, note }) => {
         const expense: Expense = {
-          id: crypto.randomUUID(),
+          id: generateId(),
           categoryId,
           amount,
           note,

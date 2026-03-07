@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { PomodoroSession, TimerPhase, TimerStatus } from '@/models/pomodoro';
+import { generateId } from '@/utils/id';
 import { mmkvStorage } from '@/utils/mmkv';
 import { scheduleTimerEndNotification } from '@/utils/notifications';
 import { useTaskStore } from './taskStore';
@@ -73,7 +74,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
           ? useTaskStore.getState().tasks.find((t) => t.id === selectedTaskId)?.title
           : undefined;
         const session: PomodoroSession = {
-          id: crypto.randomUUID(),
+          id: generateId(),
           taskId: selectedTaskId ?? undefined,
           taskTitle,
           phase,

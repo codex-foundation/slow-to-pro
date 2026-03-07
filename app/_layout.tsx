@@ -1,14 +1,14 @@
 import '../global.css';
 
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
-import { Stack } from 'expo-router';
+import { Slot, Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { Appearance, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { WebNotificationFallbackToast } from '@/components/ui/WebNotificationFallbackToast';
-import { useSettingsStore } from '@/stores/settingsStore';
 import { useTaskStore } from '@/stores/taskStore';
 
 if (Platform.OS !== 'web') {
@@ -23,7 +23,7 @@ if (Platform.OS !== 'web') {
 }
 
 export default function RootLayout() {
-  const themePreference = useSettingsStore((s) => s.themePreference);
+  const isExpoGo = Constants.appOwnership === 'expo';
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -32,15 +32,10 @@ export default function RootLayout() {
     useTaskStore.getState().resetRecurringTasksIfNewDay();
   }, []);
 
-  useEffect(() => {
-    if (typeof Appearance.setColorScheme !== 'function') return;
-    Appearance.setColorScheme(themePreference === 'system' ? null : themePreference);
-  }, [themePreference]);
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <Stack screenOptions={{ headerShown: false }} />
+        {isExpoGo ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
         <WebNotificationFallbackToast />
       </SafeAreaProvider>
     </GestureHandlerRootView>

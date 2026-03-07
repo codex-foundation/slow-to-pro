@@ -1,5 +1,4 @@
 import Constants from 'expo-constants';
-import { MMKV } from 'react-native-mmkv';
 import type { StateStorage } from 'zustand/middleware';
 
 type AppStorage = {
@@ -31,6 +30,16 @@ function createNativeStorage(): {
   }
 
   try {
+    type MMKVLike = {
+      getString: (key: string) => string | undefined;
+      set: (key: string, value: string) => void;
+      delete: (key: string) => void;
+    };
+    type MMKVModule = {
+      MMKV: new () => MMKVLike;
+    };
+    // biome-ignore lint/style/noCommonJs: Lazy loading avoids evaluating NitroModules in Expo Go.
+    const { MMKV } = require('react-native-mmkv') as MMKVModule;
     const instance = new MMKV();
 
     return {
