@@ -1,6 +1,8 @@
 import '../global.css';
 
 import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
+import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { Slot, Stack } from 'expo-router';
 import { useEffect } from 'react';
@@ -24,6 +26,7 @@ if (Platform.OS !== 'web') {
 
 export default function RootLayout() {
   const isExpoGo = Constants.appOwnership === 'expo';
+  const [fontsLoaded] = useFonts(Ionicons.font);
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -31,6 +34,10 @@ export default function RootLayout() {
     }
     useTaskStore.getState().resetRecurringTasksIfNewDay();
   }, []);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

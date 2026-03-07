@@ -13,6 +13,7 @@ import RootLayout from '../_layout';
 let capturedScreenOptions: Record<string, unknown> | undefined;
 let stackRenderCount = 0;
 let slotRenderCount = 0;
+let mockFontsLoaded = true;
 
 jest.mock('expo-router', () => {
   const React = jest.requireActual('react') as typeof import('react');
@@ -32,6 +33,10 @@ jest.mock('expo-router', () => {
 jest.mock('expo-notifications', () => ({
   requestPermissionsAsync: jest.fn(),
   setNotificationHandler: jest.fn(),
+}));
+
+jest.mock('expo-font', () => ({
+  useFonts: () => [mockFontsLoaded],
 }));
 
 jest.mock('react-native-gesture-handler', () => {
@@ -67,7 +72,17 @@ describe('RootLayout', () => {
     capturedScreenOptions = undefined;
     stackRenderCount = 0;
     slotRenderCount = 0;
+    mockFontsLoaded = true;
     mockResetRecurringTasksIfNewDay.mockClear();
+  });
+
+  it('returns null while icon fonts are loading', () => {
+    mockFontsLoaded = false;
+    const { toJSON } = render(<RootLayout />);
+
+    expect(toJSON()).toBeNull();
+    expect(slotRenderCount).toBe(0);
+    expect(stackRenderCount).toBe(0);
   });
 
   it('uses Slot in Expo Go to avoid native stack host-function issues', () => {
