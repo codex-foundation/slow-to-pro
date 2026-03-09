@@ -31,7 +31,8 @@ jest.mock('@/hooks/useAppTheme', () => ({
 
 jest.mock('react-native-confetti-cannon', () => {
   const React = jest.requireActual('react') as typeof import('react');
-  return React.forwardRef(() => null);
+  const { View } = jest.requireActual('react-native') as typeof import('react-native');
+  return React.forwardRef(() => React.createElement(View, { testID: 'pomodoro-confetti' }));
 });
 
 jest.mock('@/utils/confetti', () => ({
@@ -99,7 +100,7 @@ describe('PomodoroScreen UI', () => {
       cycleStartedAt: Date.now(),
     });
 
-    render(<PomodoroScreen />);
+    const { getByTestId } = render(<PomodoroScreen />);
 
     act(() => {
       jest.advanceTimersByTime(1000);
@@ -117,5 +118,6 @@ describe('PomodoroScreen UI', () => {
     expect(state.phase).toBe('break');
     expect(state.secondsRemaining).toBe(state.breakDuration * 60);
     expect(state.sessions.length).toBe(1);
+    expect(getByTestId('pomodoro-confetti')).toBeTruthy();
   });
 });

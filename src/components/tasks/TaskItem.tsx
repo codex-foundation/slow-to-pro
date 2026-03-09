@@ -1,4 +1,4 @@
-import { createElement, useRef, useState } from 'react';
+import { createElement, useState } from 'react';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -11,12 +11,10 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import ConfettiCannon from 'react-native-confetti-cannon';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Priority, Task } from '@/models/task';
 import { useTaskStore } from '@/stores/taskStore';
-import { fireConfetti } from '@/utils/confetti';
 import { Modal } from '../ui/Modal';
 import { PriorityBadge } from './PriorityBadge';
 
@@ -29,13 +27,20 @@ interface Props {
   isActive?: boolean;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  onCompleted?: () => void;
 }
 
-export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }: Props) {
+export function TaskItem({
+  item,
+  drag,
+  isActive = false,
+  onMoveUp,
+  onMoveDown,
+  onCompleted,
+}: Props) {
   const theme = useAppTheme();
   const { toggleTask, deleteTask, updateTask } = useTaskStore();
   const [showEdit, setShowEdit] = useState(false);
-  const confettiRef = useRef<ConfettiCannon>(null);
 
   // Animation values
   const checkboxScale = useSharedValue(1);
@@ -203,11 +208,7 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
 
     // Fire confetti when completing (not uncompleting)
     if (!item.completed) {
-      if (Platform.OS === 'web') {
-        fireConfetti();
-      } else {
-        confettiRef.current?.start();
-      }
+      onCompleted?.();
     }
 
     toggleTask(item.id);
@@ -521,18 +522,6 @@ export function TaskItem({ item, drag, isActive = false, onMoveUp, onMoveDown }:
           </TouchableOpacity>
         </View>
       </Modal>
-
-      {Platform.OS !== 'web' && (
-        <ConfettiCannon
-          ref={confettiRef}
-          count={50}
-          origin={{ x: 0, y: 0 }}
-          autoStart={false}
-          fadeOut
-          explosionSpeed={350}
-          fallSpeed={2000}
-        />
-      )}
     </Animated.View>
   );
 }

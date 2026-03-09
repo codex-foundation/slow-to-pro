@@ -26,7 +26,7 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}> 
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
       <View style={styles.container}>
         <Text style={[styles.title, { color: theme.primary }]}>Slow to Pro</Text>
         <View style={styles.subtitleRow}>
@@ -38,7 +38,7 @@ export default function WelcomeScreen() {
             color={theme.textSubtle}
             style={styles.subtitleIcon}
           />
-          <Text style={[styles.subtitle, { color: theme.textSubtle }]}> 
+          <Text style={[styles.subtitle, { color: theme.textSubtle }]}>
             Let’s turn consistent daily effort into real progress.
           </Text>
         </View>

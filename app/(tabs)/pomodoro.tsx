@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Platform, ScrollView, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,11 +13,13 @@ import { fireConfetti } from '@/utils/confetti';
 
 export default function PomodoroScreen() {
   const theme = useAppTheme();
+  const { width } = useWindowDimensions();
   const status = usePomodoroStore((s) => s.status);
   const sessionsCount = usePomodoroStore((s) => s.sessions.length);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const confettiRef = useRef<ConfettiCannon>(null);
   const previousSessionsCountRef = useRef(sessionsCount);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const confettiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (status === 'running') {
@@ -50,12 +52,28 @@ export default function PomodoroScreen() {
       if (Platform.OS === 'web') {
         fireConfetti();
       } else {
-        confettiRef.current?.start();
+        if (confettiTimeoutRef.current) {
+          clearTimeout(confettiTimeoutRef.current);
+        }
+        setShowConfetti(true);
+        confettiTimeoutRef.current = setTimeout(() => {
+          setShowConfetti(false);
+          confettiTimeoutRef.current = null;
+        }, 2400);
       }
     }
 
     previousSessionsCountRef.current = sessionsCount;
   }, [sessionsCount]);
+
+  useEffect(
+    () => () => {
+      if (confettiTimeoutRef.current) {
+        clearTimeout(confettiTimeoutRef.current);
+      }
+    },
+    []
+  );
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: theme.bg }}>
@@ -87,17 +105,26 @@ export default function PomodoroScreen() {
         </View>
       </ScrollView>
 
-      {Platform.OS !== 'web' && (
-        <ConfettiCannon
-          ref={confettiRef}
-          count={80}
-          origin={{ x: 0, y: 0 }}
-          autoStart={false}
-          fadeOut
-          explosionSpeed={350}
-          fallSpeed={2200}
-        />
+      {Platform.OS !== 'web' && showConfetti && (
+        <View pointerEvents="none" style={styles.confettiOverlay}>
+          <ConfettiCannon
+            count={80}
+            origin={{ x: width / 2, y: 18 }}
+            autoStart
+            fadeOut
+            explosionSpeed={700}
+            fallSpeed={2400}
+          />
+        </View>
       )}
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  confettiOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
+    elevation: 20,
+  },
+});

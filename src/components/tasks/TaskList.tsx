@@ -6,7 +6,12 @@ import type { Task } from '@/models/task';
 import { useTaskStore } from '@/stores/taskStore';
 import { TaskItem } from './TaskItem';
 
-export function TaskList({ tasks }: { tasks: Task[] }) {
+interface Props {
+  tasks: Task[];
+  onTaskCompleted?: () => void;
+}
+
+export function TaskList({ tasks, onTaskCompleted }: Props) {
   const theme = useAppTheme();
   const reorderTasks = useTaskStore((s) => s.reorderTasks);
   const allTasks = useTaskStore((s) => s.tasks);
@@ -48,7 +53,7 @@ export function TaskList({ tasks }: { tasks: Task[] }) {
     );
   }
 
-  if (Platform.OS === 'web') {
+  if (Platform.OS !== 'android') {
     return (
       <FlatList
         data={tasks}
@@ -60,6 +65,7 @@ export function TaskList({ tasks }: { tasks: Task[] }) {
             onMoveDown={
               index < tasks.length - 1 ? () => moveVisibleTask(index, index + 1) : undefined
             }
+            onCompleted={onTaskCompleted}
           />
         )}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -71,7 +77,7 @@ export function TaskList({ tasks }: { tasks: Task[] }) {
     <DraggableFlatList
       data={tasks}
       keyExtractor={(item) => item.id}
-      renderItem={(params) => <TaskItem {...params} />}
+      renderItem={(params) => <TaskItem {...params} onCompleted={onTaskCompleted} />}
       onDragEnd={({ data }) => commitVisibleReorder(data)}
       contentContainerStyle={{ paddingBottom: 100 }}
     />
