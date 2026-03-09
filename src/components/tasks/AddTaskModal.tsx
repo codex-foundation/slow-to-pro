@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Modal } from '@/components/ui/Modal';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Priority } from '@/models/task';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useTaskStore } from '@/stores/taskStore';
@@ -87,6 +88,7 @@ function PickerSheet({ visible, title, testID, onClose, onConfirm, children }: P
 }
 
 export function AddTaskModal({ visible, onClose }: Props) {
+  const theme = useAppTheme();
   const router = useRouter();
   const addTask = useTaskStore((s) => s.addTask);
   const startWorkForTask = usePomodoroStore((s) => s.startWorkForTask);
@@ -231,8 +233,14 @@ export function AddTaskModal({ visible, onClose }: Props) {
     <Modal visible={visible} onClose={onClose} title="New Task">
       <TextInput
         testID="task-title-input"
-        className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-800 mb-4"
+        className="border rounded-xl px-4 py-3 text-base mb-4"
         placeholder="What needs to be done?"
+        placeholderTextColor={theme.textSubtle}
+        style={{
+          borderColor: theme.border,
+          color: theme.text,
+          backgroundColor: theme.surface,
+        }}
         value={title}
         onChangeText={setTitle}
         autoFocus
