@@ -23,7 +23,7 @@ export default function TasksScreen() {
   const theme = useAppTheme();
   const tasks = useTaskStore((s) => s.tasks);
   const { width } = useWindowDimensions();
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useState<Filter>('active');
   const [showAdd, setShowAdd] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const confettiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);

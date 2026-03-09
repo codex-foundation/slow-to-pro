@@ -129,15 +129,15 @@ describe('TasksScreen UI', () => {
   it('filters tasks by active and completed', () => {
     const { getByText, queryByText } = render(<TasksScreen />);
 
-    // default: all
-    expect(getByText('Read docs')).toBeTruthy();
-    expect(getByText('Ship feature')).toBeTruthy();
-    expect(getByText('Write tests')).toBeTruthy();
-
-    fireEvent.press(getByText('active'));
+    // default: active
     expect(getByText('Read docs')).toBeTruthy();
     expect(getByText('Write tests')).toBeTruthy();
     expect(queryByText('Ship feature')).toBeNull();
+
+    fireEvent.press(getByText('all'));
+    expect(getByText('Read docs')).toBeTruthy();
+    expect(getByText('Write tests')).toBeTruthy();
+    expect(getByText('Ship feature')).toBeTruthy();
 
     fireEvent.press(getByText('completed'));
     expect(getByText('Ship feature')).toBeTruthy();
