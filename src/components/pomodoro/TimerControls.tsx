@@ -36,7 +36,9 @@ export function TimerControls() {
         style={{ backgroundColor: theme.primary }}
         activeOpacity={0.8}>
         <Ionicons name={isRunning ? 'pause' : 'play'} size={26} color="#fff" />
-        <Text className="text-white text-sm font-semibold mt-1">{isRunning ? 'PAUSE' : 'START'}</Text>
+        <Text className="text-white text-sm font-semibold mt-1">
+          {isRunning ? 'PAUSE' : 'START'}
+        </Text>
       </TouchableOpacity>
 
       <View className="w-14 h-14" />

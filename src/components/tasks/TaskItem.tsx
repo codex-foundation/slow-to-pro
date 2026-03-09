@@ -1,7 +1,15 @@
 import { createElement, useState } from 'react';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Platform, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Modal as RNModal,
+  Platform,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import Animated, {
   FadeInDown,
   FadeOutUp,
@@ -16,10 +24,60 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Priority, Task } from '@/models/task';
 import { useTaskStore } from '@/stores/taskStore';
 import { Modal } from '../ui/Modal';
-import { PriorityBadge } from './PriorityBadge';
 
 const PRIORITIES: Priority[] = ['high', 'medium', 'low'];
 const PRIORITY_LABELS: Record<Priority, string> = { high: 'High', medium: 'Medium', low: 'Low' };
+
+interface PickerSheetProps {
+  visible: boolean;
+  title: string;
+  testID: string;
+  onClose: () => void;
+  onConfirm: () => void;
+  children: React.ReactNode;
+}
+
+function PickerSheet({ visible, title, testID, onClose, onConfirm, children }: PickerSheetProps) {
+  const theme = useAppTheme();
+
+  return (
+    <RNModal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity
+        testID={`${testID}-backdrop`}
+        className="flex-1"
+        activeOpacity={1}
+        onPress={onClose}
+        style={{ backgroundColor: theme.overlay }}
+      />
+
+      <View
+        className="border-t rounded-t-2xl px-6 pt-4 pb-8"
+        style={{
+          backgroundColor: theme.surfaceElevated,
+          borderTopColor: theme.border,
+        }}
+        testID={testID}>
+        <Text className="text-lg font-bold mb-3" style={{ color: theme.text }}>
+          {title}
+        </Text>
+        <View className="mb-4">{children}</View>
+        <View className="flex-row justify-end gap-3">
+          <TouchableOpacity testID={`${testID}-cancel`} onPress={onClose} className="px-3 py-2">
+            <Text className="text-sm font-medium" style={{ color: theme.textSubtle }}>
+              Cancel
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID={`${testID}-done`}
+            onPress={onConfirm}
+            className="px-3 py-2 rounded-lg bg-indigo-500">
+            <Text className="text-sm font-semibold text-white">Done</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </RNModal>
+  );
+}
 
 interface Props {
   item: Task;
@@ -72,6 +130,21 @@ export function TaskItem({
   const dueDateText = item.dueDate ? new Date(item.dueDate).toLocaleDateString() : null;
   const reminderText = item.reminderAt ? new Date(item.reminderAt).toLocaleString() : null;
 
+  const nativePickerThemeProps =
+    Platform.OS === 'ios'
+      ? {
+          themeVariant: theme.isDark ? ('dark' as const) : ('light' as const),
+          textColor: theme.text,
+        }
+      : {};
+
+  const hasEditDueDateValue = editDueDate !== null || editDueDateInput.trim().length > 0;
+  const hasEditReminderValue =
+    editReminderEnabled ||
+    editReminderDateTime !== null ||
+    editReminderDateInput.trim().length > 0 ||
+    editReminderTimeInput !== '09:00';
+
   const parseDateToEndOfDay = (dateText: string): number | undefined => {
     const normalized = dateText.trim();
     if (!normalized) return undefined;
@@ -119,12 +192,10 @@ export function TaskItem({
   };
 
   const onChangeEditDueDate = (_event: DateTimePickerEvent, selected?: Date) => {
-    setShowEditDueDatePicker(false);
     if (selected) setEditDueDate(selected);
   };
 
   const onChangeEditReminderDate = (_event: DateTimePickerEvent, selected?: Date) => {
-    setShowEditReminderDatePicker(false);
     if (!selected) return;
     setEditReminderDateTime((prev) => {
       const next = new Date(selected);
@@ -138,7 +209,6 @@ export function TaskItem({
   };
 
   const onChangeEditReminderTime = (_event: DateTimePickerEvent, selected?: Date) => {
-    setShowEditReminderTimePicker(false);
     if (!selected) return;
     setEditReminderDateTime((prev) => {
       const base = prev ? new Date(prev) : new Date();
@@ -192,6 +262,48 @@ export function TaskItem({
     setShowEditReminderTimePicker(false);
   };
 
+  const openEditDueDatePicker = () => {
+    if (!editDueDate) {
+      const now = new Date();
+      now.setHours(23, 59, 0, 0);
+      setEditDueDate(now);
+    }
+    setShowEditDueDatePicker(true);
+  };
+
+  const enableEditReminder = (enabled: boolean) => {
+    setEditReminderEnabled(enabled);
+    if (enabled && !editReminderDateTime && Platform.OS !== 'web') {
+      const next = new Date();
+      next.setSeconds(0, 0);
+      setEditReminderDateTime(next);
+    }
+  };
+
+  const openEditReminderDatePicker = () => {
+    if (!editReminderDateTime) {
+      const next = new Date();
+      next.setSeconds(0, 0);
+      setEditReminderDateTime(next);
+    }
+    setShowEditReminderDatePicker(true);
+  };
+
+  const openEditReminderTimePicker = () => {
+    if (!editReminderDateTime) {
+      const next = new Date();
+      next.setSeconds(0, 0);
+      setEditReminderDateTime(next);
+    }
+    setShowEditReminderTimePicker(true);
+  };
+
+  const getPriorityBorderColor = (priority: Priority): string => {
+    if (priority === 'high') return theme.danger;
+    if (priority === 'low') return theme.success;
+    return '#f59e0b';
+  };
+
   const handleToggle = () => {
     // Animate checkbox
     checkboxScale.value = withSpring(0.8, {}, () => {
@@ -235,6 +347,7 @@ export function TaskItem({
 
   return (
     <Animated.View
+      testID="task-item-row"
       entering={FadeInDown.duration(200)}
       exiting={FadeOutUp.duration(200)}
       layout={Layout.springify().damping(15).stiffness(100)}
@@ -244,6 +357,8 @@ export function TaskItem({
           backgroundColor: theme.surface,
           borderBottomColor: theme.border,
           borderBottomWidth: 1,
+          borderRightColor: getPriorityBorderColor(item.priority),
+          borderRightWidth: 4,
           opacity: isActive ? 0.8 : 1,
         },
       ]}
@@ -317,10 +432,7 @@ export function TaskItem({
             numberOfLines={2}>
             {item.title}
           </Text>
-          <PriorityBadge priority={item.priority} />
-          {item.recurring.enabled && (
-            <Ionicons name="repeat" size={14} color={theme.textSubtle} />
-          )}
+          {item.recurring.enabled && <Ionicons name="repeat" size={14} color={theme.textSubtle} />}
         </View>
 
         {(dueDateText || reminderText) && (
@@ -343,6 +455,7 @@ export function TaskItem({
         {!item.completed && (
           <TouchableOpacity
             onPress={openEdit}
+            testID="edit-task-open"
             className="pl-2 py-1"
             accessibilityRole="button"
             accessibilityLabel={`Edit task ${item.title}`}
@@ -404,7 +517,7 @@ export function TaskItem({
           <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
             Due date
           </Text>
-          {(editDueDate !== null || editDueDateInput.trim().length > 0) && (
+          {hasEditDueDateValue && (
             <TouchableOpacity onPress={clearEditDueDate}>
               <Text className="text-xs font-medium" style={{ color: theme.textSubtle }}>
                 Clear
@@ -425,21 +538,29 @@ export function TaskItem({
         ) : (
           <>
             <TouchableOpacity
-              onPress={() => setShowEditDueDatePicker(true)}
+              testID="edit-due-date-open"
+              onPress={openEditDueDatePicker}
               className="rounded-xl px-4 py-3 mb-4"
               style={{ borderColor: theme.border, borderWidth: 1, backgroundColor: theme.surface }}>
               <Text className="text-base" style={{ color: theme.text }}>
                 {formatDate(editDueDate)}
               </Text>
             </TouchableOpacity>
-            {showEditDueDatePicker && (
+
+            <PickerSheet
+              visible={showEditDueDatePicker}
+              title="Select due date"
+              testID="edit-due-date-picker-modal"
+              onClose={() => setShowEditDueDatePicker(false)}
+              onConfirm={() => setShowEditDueDatePicker(false)}>
               <DateTimePicker
                 value={editDueDate ?? new Date()}
                 mode="date"
-                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                 onChange={onChangeEditDueDate}
+                {...nativePickerThemeProps}
               />
-            )}
+            </PickerSheet>
           </>
         )}
 
@@ -448,10 +569,7 @@ export function TaskItem({
             Reminder
           </Text>
           <View className="flex-row items-center gap-3">
-            {(editReminderEnabled ||
-              editReminderDateTime !== null ||
-              editReminderDateInput.trim().length > 0 ||
-              editReminderTimeInput !== '09:00') && (
+            {hasEditReminderValue && (
               <TouchableOpacity onPress={clearEditReminder}>
                 <Text className="text-xs font-medium" style={{ color: theme.textSubtle }}>
                   Clear
@@ -459,8 +577,9 @@ export function TaskItem({
               </TouchableOpacity>
             )}
             <Switch
+              testID="edit-reminder-enabled-switch"
               value={editReminderEnabled}
-              onValueChange={setEditReminderEnabled}
+              onValueChange={enableEditReminder}
               trackColor={{ true: '#6366f1' }}
             />
           </View>
@@ -491,7 +610,8 @@ export function TaskItem({
           ) : (
             <View className="mb-4 gap-2">
               <TouchableOpacity
-                onPress={() => setShowEditReminderDatePicker(true)}
+                testID="edit-reminder-date-open"
+                onPress={openEditReminderDatePicker}
                 className="rounded-xl px-4 py-3"
                 style={{
                   borderColor: theme.border,
@@ -503,7 +623,8 @@ export function TaskItem({
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => setShowEditReminderTimePicker(true)}
+                testID="edit-reminder-time-open"
+                onPress={openEditReminderTimePicker}
                 className="rounded-xl px-4 py-3"
                 style={{
                   borderColor: theme.border,
@@ -515,23 +636,35 @@ export function TaskItem({
                 </Text>
               </TouchableOpacity>
 
-              {showEditReminderDatePicker && (
+              <PickerSheet
+                visible={showEditReminderDatePicker}
+                title="Select reminder date"
+                testID="edit-reminder-date-picker-modal"
+                onClose={() => setShowEditReminderDatePicker(false)}
+                onConfirm={() => setShowEditReminderDatePicker(false)}>
                 <DateTimePicker
                   value={editReminderDateTime ?? new Date()}
                   mode="date"
-                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={onChangeEditReminderDate}
+                  {...nativePickerThemeProps}
                 />
-              )}
+              </PickerSheet>
 
-              {showEditReminderTimePicker && (
+              <PickerSheet
+                visible={showEditReminderTimePicker}
+                title="Select reminder time"
+                testID="edit-reminder-time-picker-modal"
+                onClose={() => setShowEditReminderTimePicker(false)}
+                onConfirm={() => setShowEditReminderTimePicker(false)}>
                 <DateTimePicker
                   value={editReminderDateTime ?? new Date()}
                   mode="time"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={onChangeEditReminderTime}
+                  {...nativePickerThemeProps}
                 />
-              )}
+              </PickerSheet>
             </View>
           ))}
 

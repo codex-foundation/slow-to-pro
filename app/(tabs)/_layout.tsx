@@ -101,21 +101,27 @@ export default function TabLayout() {
         name="pomodoro"
         options={{
           title: 'Focus',
-          tabBarIcon: ({ color, size }) => <Ionicons name="timer-outline" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="timer-outline" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
         name="finances"
         options={{
           title: 'Money',
-          tabBarIcon: ({ color, size }) => <Ionicons name="wallet-outline" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="wallet-outline" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" color={color} size={size} />
+          ),
         }}
       />
     </Tabs>

@@ -68,7 +68,12 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
             <Text className="flex-1 text-sm" style={{ color: theme.textMuted }}>
               {item.name}
             </Text>
-            <Ionicons name="cash-outline" size={14} color={theme.textSubtle} style={{ marginRight: 4 }} />
+            <Ionicons
+              name="cash-outline"
+              size={14}
+              color={theme.textSubtle}
+              style={{ marginRight: 4 }}
+            />
             <TextInput
               className="w-20 rounded-lg px-2 py-1.5 text-sm text-right"
               style={{
