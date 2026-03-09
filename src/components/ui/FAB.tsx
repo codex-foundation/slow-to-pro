@@ -14,6 +14,9 @@ export function FAB({ onPress, label = '+', bottomOffset = 16 }: FABProps) {
     <TouchableOpacity
       onPress={onPress}
       className="items-center justify-center shadow-lg"
+      accessibilityRole="button"
+      accessibilityLabel="Add task"
+      accessibilityHint="Opens the new task form"
       style={{
         position: 'absolute',
         width: 56,

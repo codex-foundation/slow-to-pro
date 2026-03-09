@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -33,8 +33,8 @@ export default function WelcomeScreen() {
           <Text style={[styles.subtitle, { color: theme.textSubtle }]}>Welcome</Text>
           <Ionicons
             testID="welcome-wave-icon"
-            name="hand-left-outline"
-            size={20}
+            name="sparkles-outline"
+            size={16}
             color={theme.textSubtle}
             style={styles.subtitleIcon}
           />

@@ -19,11 +19,12 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
-jest.mock('@expo/vector-icons', () => {
+jest.mock('@expo/vector-icons/Ionicons', () => {
   const React = jest.requireActual('react') as typeof import('react');
   const { Text } = jest.requireActual('react-native') as typeof import('react-native');
   return {
-    Ionicons: ({ testID }: { testID?: string }) =>
+    __esModule: true,
+    default: ({ testID }: { testID?: string }) =>
       React.createElement(Text, { testID: testID ?? 'mock-ionicon' }, 'icon'),
   };
 });

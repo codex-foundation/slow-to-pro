@@ -1,5 +1,6 @@
 import { Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInRight, FadeOutLeft, Layout } from 'react-native-reanimated';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Category, Expense } from '@/models/finance';
 import { formatShortDate, formatTime } from '@/utils/date';
@@ -23,7 +24,7 @@ export function ExpenseItem({ expense, category, onDelete }: Props) {
       <View
         className="w-9 h-9 rounded-full items-center justify-center mr-3"
         style={{ backgroundColor: (category?.color ?? '#94a3b8') + '22' }}>
-        <Text className="text-base">💰</Text>
+        <Ionicons name="wallet-outline" size={18} color={category?.color ?? theme.textSubtle} />
       </View>
       <View className="flex-1">
         <View className="flex-row items-center gap-1.5">
@@ -47,10 +48,13 @@ export function ExpenseItem({ expense, category, onDelete }: Props) {
       <Text className="text-base font-semibold mr-3" style={{ color: theme.text }}>
         ${expense.amount.toFixed(2)}
       </Text>
-      <TouchableOpacity onPress={onDelete} className="p-1">
-        <Text className="text-lg" style={{ color: theme.textSubtle }}>
-          ✕
-        </Text>
+      <TouchableOpacity
+        onPress={onDelete}
+        className="p-1"
+        accessibilityRole="button"
+        accessibilityLabel="Delete expense"
+        accessibilityHint="Removes this expense entry">
+        <Ionicons name="trash-outline" size={16} color={theme.textSubtle} />
       </TouchableOpacity>
     </Animated.View>
   );

@@ -17,6 +17,16 @@ jest.mock('@react-native-community/datetimepicker', () => {
   };
 });
 
+jest.mock('@expo/vector-icons/Ionicons', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { Text } = jest.requireActual('react-native') as typeof import('react-native');
+  return {
+    __esModule: true,
+    default: ({ testID }: { testID?: string }) =>
+      React.createElement(Text, { testID: testID ?? 'mock-ionicon' }, 'icon'),
+  };
+});
+
 const mockAddTask = jest.fn(() => 'task-id');
 const mockStartWorkForTask = jest.fn();
 

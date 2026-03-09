@@ -1,9 +1,9 @@
 import '../global.css';
 
 import Constants from 'expo-constants';
-import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Slot, Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
@@ -26,7 +26,9 @@ if (Platform.OS !== 'web') {
 
 export default function RootLayout() {
   const isExpoGo = Constants.appOwnership === 'expo';
-  const [fontsLoaded] = useFonts(Ionicons.font);
+  const [fontsLoaded, fontsError] = useFonts({
+    ...Ionicons.font,
+  });
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -35,7 +37,7 @@ export default function RootLayout() {
     useTaskStore.getState().resetRecurringTasksIfNewDay();
   }, []);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontsError) {
     return null;
   }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Alert, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { Modal } from '@/components/ui/Modal';
@@ -67,9 +68,7 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
             <Text className="flex-1 text-sm" style={{ color: theme.textMuted }}>
               {item.name}
             </Text>
-            <Text className="text-xs mr-1" style={{ color: theme.textSubtle }}>
-              $
-            </Text>
+            <Ionicons name="cash-outline" size={14} color={theme.textSubtle} style={{ marginRight: 4 }} />
             <TextInput
               className="w-20 rounded-lg px-2 py-1.5 text-sm text-right"
               style={{
@@ -89,10 +88,11 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
             />
             <TouchableOpacity
               onPress={() => handleDeleteCategory(item.id, item.name)}
-              className="pl-1">
-              <Text className="text-base" style={{ color: theme.textSubtle }}>
-                ✕
-              </Text>
+              className="pl-1"
+              accessibilityRole="button"
+              accessibilityLabel={`Delete category ${item.name}`}
+              accessibilityHint="Removes this category and related data">
+              <Ionicons name="trash-outline" size={16} color={theme.textSubtle} />
             </TouchableOpacity>
           </View>
         )}

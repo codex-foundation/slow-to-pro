@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface ModalProps {
@@ -25,6 +26,9 @@ export function Modal({ visible, onClose, title, children }: ModalProps) {
         style={{ backgroundColor: theme.overlay }}
         activeOpacity={1}
         onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close modal"
+        accessibilityHint="Dismisses this modal"
       />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View
@@ -42,10 +46,13 @@ export function Modal({ visible, onClose, title, children }: ModalProps) {
             <Text className="text-lg font-bold" style={{ color: theme.text }}>
               {title}
             </Text>
-            <TouchableOpacity onPress={onClose} className="p-1">
-              <Text className="text-lg" style={{ color: theme.textSubtle }}>
-                ✕
-              </Text>
+            <TouchableOpacity
+              onPress={onClose}
+              className="p-1"
+              accessibilityRole="button"
+              accessibilityLabel="Close modal"
+              accessibilityHint="Dismisses this modal">
+              <Ionicons name="close" size={20} color={theme.textSubtle} />
             </TouchableOpacity>
           </View>
           {children}

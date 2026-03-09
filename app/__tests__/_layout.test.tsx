@@ -8,12 +8,32 @@ jest.mock('expo-constants', () => ({
   },
 }));
 
+jest.mock('expo-font', () => ({
+  useFonts: () => [true, null],
+}));
+
+jest.mock('@expo/vector-icons/Ionicons', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { Text } = jest.requireActual('react-native') as typeof import('react-native');
+
+  const MockIonicons = ({ testID }: { testID?: string }) =>
+    React.createElement(Text, { testID: testID ?? 'mock-ionicon' }, 'icon');
+
+  (MockIonicons as unknown as { font: Record<string, unknown> }).font = {
+    ionicons: 'mock-ionicons-font',
+  };
+
+  return {
+    __esModule: true,
+    default: MockIonicons,
+  };
+});
+
 import RootLayout from '../_layout';
 
 let capturedScreenOptions: Record<string, unknown> | undefined;
 let stackRenderCount = 0;
 let slotRenderCount = 0;
-let mockFontsLoaded = true;
 
 jest.mock('expo-router', () => {
   const React = jest.requireActual('react') as typeof import('react');
@@ -33,10 +53,6 @@ jest.mock('expo-router', () => {
 jest.mock('expo-notifications', () => ({
   requestPermissionsAsync: jest.fn(),
   setNotificationHandler: jest.fn(),
-}));
-
-jest.mock('expo-font', () => ({
-  useFonts: () => [mockFontsLoaded],
 }));
 
 jest.mock('react-native-gesture-handler', () => {
@@ -72,16 +88,13 @@ describe('RootLayout', () => {
     capturedScreenOptions = undefined;
     stackRenderCount = 0;
     slotRenderCount = 0;
-    mockFontsLoaded = true;
     mockResetRecurringTasksIfNewDay.mockClear();
   });
 
-  it('returns null while icon fonts are loading', () => {
-    mockFontsLoaded = false;
-    const { toJSON } = render(<RootLayout />);
+  it('renders app immediately', () => {
+    render(<RootLayout />);
 
-    expect(toJSON()).toBeNull();
-    expect(slotRenderCount).toBe(0);
+    expect(slotRenderCount).toBe(1);
     expect(stackRenderCount).toBe(0);
   });
 

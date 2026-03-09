@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
-import { Ionicons } from '@expo/vector-icons';
 import { Slot, Tabs, usePathname, useRouter } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,7 +21,12 @@ export default function TabLayout() {
       href: '/(tabs)/tasks',
     },
     { key: 'pomodoro', title: 'Focus', icon: 'timer-outline' as const, href: '/(tabs)/pomodoro' },
-    { key: 'finances', title: 'Money', icon: 'wallet-outline' as const, href: '/(tabs)/finances' },
+    {
+      key: 'finances',
+      title: 'Money',
+      icon: 'wallet-outline' as const,
+      href: '/(tabs)/finances',
+    },
     {
       key: 'settings',
       title: 'Settings',
@@ -88,7 +93,7 @@ export default function TabLayout() {
         options={{
           title: 'Tasks',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="checkmark-done-outline" size={size} color={color} />
+            <Ionicons name="checkmark-done-outline" color={color} size={size} />
           ),
         }}
       />
@@ -96,27 +101,21 @@ export default function TabLayout() {
         name="pomodoro"
         options={{
           title: 'Focus',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="timer-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="timer-outline" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="finances"
         options={{
           title: 'Money',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wallet-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="wallet-outline" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" color={color} size={size} />,
         }}
       />
     </Tabs>

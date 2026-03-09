@@ -36,13 +36,19 @@ jest.mock('expo-router', () => {
   };
 });
 
-jest.mock('@expo/vector-icons', () => ({
-  Ionicons: () => null,
-}));
-
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
+
+jest.mock('@expo/vector-icons/Ionicons', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { Text } = jest.requireActual('react-native') as typeof import('react-native');
+  return {
+    __esModule: true,
+    default: ({ testID }: { testID?: string }) =>
+      React.createElement(Text, { testID: testID ?? 'mock-ionicon' }, 'icon'),
+  };
+});
 
 jest.mock('@/hooks/useAppTheme', () => ({
   useAppTheme: () => ({

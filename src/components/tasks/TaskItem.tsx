@@ -1,6 +1,6 @@
 import { createElement, useState } from 'react';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Platform, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, {
   FadeInDown,
@@ -249,29 +249,50 @@ export function TaskItem({
       ]}
       className="flex-row items-center px-4 py-3">
       {drag ? (
-        <TouchableOpacity onLongPress={drag} className="pr-3 py-1">
-          <Ionicons name="reorder-three-outline" size={20} color={theme.textSubtle} />
+        <TouchableOpacity
+          onLongPress={drag}
+          className="pr-3 py-1"
+          accessibilityRole="button"
+          accessibilityLabel={`Reorder task ${item.title}`}
+          accessibilityHint="Long press and drag to reorder this task">
+          <Ionicons name="reorder-three-outline" size={18} color={theme.textSubtle} />
         </TouchableOpacity>
       ) : (
         <View className="pr-3 py-1 flex-row gap-1">
-          <TouchableOpacity onPress={onMoveUp} disabled={!onMoveUp}>
+          <TouchableOpacity
+            onPress={onMoveUp}
+            disabled={!onMoveUp}
+            accessibilityRole="button"
+            accessibilityLabel={`Move ${item.title} up`}
+            accessibilityHint="Moves this task one position up">
             <Ionicons
-              name="chevron-up-outline"
-              size={18}
+              name="chevron-up"
+              size={16}
               color={onMoveUp ? theme.textSubtle : theme.border}
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={onMoveDown} disabled={!onMoveDown}>
+          <TouchableOpacity
+            onPress={onMoveDown}
+            disabled={!onMoveDown}
+            accessibilityRole="button"
+            accessibilityLabel={`Move ${item.title} down`}
+            accessibilityHint="Moves this task one position down">
             <Ionicons
-              name="chevron-down-outline"
-              size={18}
+              name="chevron-down"
+              size={16}
               color={onMoveDown ? theme.textSubtle : theme.border}
             />
           </TouchableOpacity>
         </View>
       )}
 
-      <TouchableOpacity onPress={handleToggle} className="pr-3">
+      <TouchableOpacity
+        onPress={handleToggle}
+        className="pr-3"
+        accessibilityRole="checkbox"
+        accessibilityLabel={item.title}
+        accessibilityState={{ checked: item.completed }}
+        accessibilityHint={item.completed ? 'Marks task as incomplete' : 'Marks task as complete'}>
         <Animated.View
           className="w-5 h-5 rounded border-2 items-center justify-center"
           style={[
@@ -281,7 +302,7 @@ export function TaskItem({
               borderColor: item.completed ? theme.primary : theme.border,
             },
           ]}>
-          {item.completed && <Ionicons name="checkmark" size={12} color="white" />}
+          {item.completed && <Ionicons name="checkmark" size={12} color="#fff" />}
         </Animated.View>
       </TouchableOpacity>
 
@@ -298,7 +319,7 @@ export function TaskItem({
           </Text>
           <PriorityBadge priority={item.priority} />
           {item.recurring.enabled && (
-            <Ionicons name="repeat-outline" size={14} color={theme.textSubtle} />
+            <Ionicons name="repeat" size={14} color={theme.textSubtle} />
           )}
         </View>
 
@@ -320,13 +341,23 @@ export function TaskItem({
 
       <View className="flex-row items-center">
         {!item.completed && (
-          <TouchableOpacity onPress={openEdit} className="pl-2 py-1">
-            <Ionicons name="create-outline" size={18} color={theme.textSubtle} />
+          <TouchableOpacity
+            onPress={openEdit}
+            className="pl-2 py-1"
+            accessibilityRole="button"
+            accessibilityLabel={`Edit task ${item.title}`}
+            accessibilityHint="Opens task edit form">
+            <Ionicons name="create-outline" size={16} color={theme.textSubtle} />
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity onPress={() => deleteTask(item.id)} className="pl-3 py-1">
-          <Ionicons name="trash-outline" size={18} color={theme.textSubtle} />
+        <TouchableOpacity
+          onPress={() => deleteTask(item.id)}
+          className="pl-3 py-1"
+          accessibilityRole="button"
+          accessibilityLabel={`Delete task ${item.title}`}
+          accessibilityHint="Removes this task">
+          <Ionicons name="trash-outline" size={16} color={theme.textSubtle} />
         </TouchableOpacity>
       </View>
 
