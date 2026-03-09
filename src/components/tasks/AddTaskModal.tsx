@@ -1,7 +1,15 @@
 import { createElement, useState } from 'react';
 import { useRouter } from 'expo-router';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Platform, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Modal as RNModal,
+  Platform,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Modal } from '@/components/ui/Modal';
 import type { Priority } from '@/models/task';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
@@ -36,6 +44,47 @@ const WEB_INPUT_STYLE = {
   color: '#1f2937',
   backgroundColor: '#ffffff',
 };
+
+interface PickerSheetProps {
+  visible: boolean;
+  title: string;
+  testID: string;
+  onClose: () => void;
+  onConfirm: () => void;
+  children: React.ReactNode;
+}
+
+function PickerSheet({ visible, title, testID, onClose, onConfirm, children }: PickerSheetProps) {
+  return (
+    <RNModal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity
+        testID={`${testID}-backdrop`}
+        className="flex-1"
+        activeOpacity={1}
+        onPress={onClose}
+        style={{ backgroundColor: 'rgba(2, 6, 23, 0.45)' }}
+      />
+
+      <View
+        className="bg-white border-t border-gray-200 rounded-t-2xl px-6 pt-4 pb-8"
+        testID={testID}>
+        <Text className="text-lg font-bold text-gray-800 mb-3">{title}</Text>
+        <View className="mb-4">{children}</View>
+        <View className="flex-row justify-end gap-3">
+          <TouchableOpacity testID={`${testID}-cancel`} onPress={onClose} className="px-3 py-2">
+            <Text className="text-sm font-medium text-gray-500">Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID={`${testID}-done`}
+            onPress={onConfirm}
+            className="px-3 py-2 rounded-lg bg-indigo-500">
+            <Text className="text-sm font-semibold text-white">Done</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </RNModal>
+  );
+}
 
 export function AddTaskModal({ visible, onClose }: Props) {
   const router = useRouter();
@@ -88,12 +137,10 @@ export function AddTaskModal({ visible, onClose }: Props) {
     value ? value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Select time';
 
   const onChangeDueDate = (_event: DateTimePickerEvent, selected?: Date) => {
-    setShowDueDatePicker(false);
     if (selected) setDueDate(selected);
   };
 
   const onChangeReminderDate = (_event: DateTimePickerEvent, selected?: Date) => {
-    setShowReminderDatePicker(false);
     if (!selected) return;
     setReminderDateTime((prev) => {
       const next = new Date(selected);
@@ -107,7 +154,6 @@ export function AddTaskModal({ visible, onClose }: Props) {
   };
 
   const onChangeReminderTime = (_event: DateTimePickerEvent, selected?: Date) => {
-    setShowReminderTimePicker(false);
     if (!selected) return;
     setReminderDateTime((prev) => {
       const base = prev ? new Date(prev) : new Date();
@@ -246,18 +292,25 @@ export function AddTaskModal({ visible, onClose }: Props) {
       ) : (
         <>
           <TouchableOpacity
+            testID="due-date-open"
             onPress={() => setShowDueDatePicker(true)}
             className="border border-gray-200 rounded-xl px-4 py-3 mb-4 bg-white">
             <Text className="text-base text-gray-800">{formatDate(dueDate)}</Text>
           </TouchableOpacity>
-          {showDueDatePicker && (
+
+          <PickerSheet
+            visible={showDueDatePicker}
+            title="Select due date"
+            testID="due-date-picker-modal"
+            onClose={() => setShowDueDatePicker(false)}
+            onConfirm={() => setShowDueDatePicker(false)}>
             <DateTimePicker
               value={dueDate ?? new Date()}
               mode="date"
-              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={onChangeDueDate}
             />
-          )}
+          </PickerSheet>
         </>
       )}
 
@@ -272,6 +325,7 @@ export function AddTaskModal({ visible, onClose }: Props) {
             <View />
           )}
           <Switch
+            testID="reminder-enabled-switch"
             value={reminderEnabled}
             onValueChange={setReminderEnabled}
             trackColor={{ true: '#6366f1' }}
@@ -286,7 +340,8 @@ export function AddTaskModal({ visible, onClose }: Props) {
               {createElement('input', {
                 type: 'date',
                 value: reminderDateInput,
-                onChange: (e: { target: { value: string } }) => setReminderDateInput(e.target.value),
+                onChange: (e: { target: { value: string } }) =>
+                  setReminderDateInput(e.target.value),
                 style: WEB_INPUT_STYLE,
               })}
             </View>
@@ -294,7 +349,8 @@ export function AddTaskModal({ visible, onClose }: Props) {
               {createElement('input', {
                 type: 'time',
                 value: reminderTimeInput,
-                onChange: (e: { target: { value: string } }) => setReminderTimeInput(e.target.value),
+                onChange: (e: { target: { value: string } }) =>
+                  setReminderTimeInput(e.target.value),
                 style: WEB_INPUT_STYLE,
               })}
             </View>
@@ -302,6 +358,7 @@ export function AddTaskModal({ visible, onClose }: Props) {
         ) : (
           <View className="mb-4 gap-2">
             <TouchableOpacity
+              testID="reminder-date-open"
               onPress={() => setShowReminderDatePicker(true)}
               className="border border-gray-200 rounded-xl px-4 py-3 bg-white">
               <Text className="text-base text-gray-800">
@@ -309,6 +366,7 @@ export function AddTaskModal({ visible, onClose }: Props) {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
+              testID="reminder-time-open"
               onPress={() => setShowReminderTimePicker(true)}
               className="border border-gray-200 rounded-xl px-4 py-3 bg-white">
               <Text className="text-base text-gray-800">
@@ -316,23 +374,33 @@ export function AddTaskModal({ visible, onClose }: Props) {
               </Text>
             </TouchableOpacity>
 
-            {showReminderDatePicker && (
+            <PickerSheet
+              visible={showReminderDatePicker}
+              title="Select reminder date"
+              testID="reminder-date-picker-modal"
+              onClose={() => setShowReminderDatePicker(false)}
+              onConfirm={() => setShowReminderDatePicker(false)}>
               <DateTimePicker
                 value={reminderDateTime ?? new Date()}
                 mode="date"
-                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                 onChange={onChangeReminderDate}
               />
-            )}
+            </PickerSheet>
 
-            {showReminderTimePicker && (
+            <PickerSheet
+              visible={showReminderTimePicker}
+              title="Select reminder time"
+              testID="reminder-time-picker-modal"
+              onClose={() => setShowReminderTimePicker(false)}
+              onConfirm={() => setShowReminderTimePicker(false)}>
               <DateTimePicker
                 value={reminderDateTime ?? new Date()}
                 mode="time"
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                 onChange={onChangeReminderTime}
               />
-            )}
+            </PickerSheet>
           </View>
         ))}
 
