@@ -39,6 +39,9 @@ export async function scheduleTaskReminderNotification(
       title: 'Task reminder',
       body: `Time to work on: ${taskTitle}`,
     },
-    trigger: triggerDate,
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: triggerDate,
+    },
   });
 }
