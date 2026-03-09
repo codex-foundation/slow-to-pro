@@ -64,4 +64,36 @@ describe('AddTaskModal date/reminder picker modals', () => {
     fireEvent.press(getByTestId('reminder-time-picker-modal-done'));
     expect(queryByTestId('reminder-time-picker-modal')).toBeNull();
   });
+
+  it('allows adding a task with reminder enabled without changing picker value', () => {
+    const onClose = jest.fn();
+    const { getByTestId } = render(<AddTaskModal visible onClose={onClose} />);
+
+    fireEvent.changeText(getByTestId('task-title-input'), 'Task with reminder');
+    fireEvent(getByTestId('reminder-enabled-switch'), 'valueChange', true);
+    fireEvent.press(getByTestId('add-task-submit'));
+
+    expect(mockAddTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Task with reminder',
+        reminderAt: expect.any(Number),
+      })
+    );
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('shows reduced opacity when submit is disabled', () => {
+    const { getByTestId } = render(<AddTaskModal visible onClose={jest.fn()} />);
+
+    const submit = getByTestId('add-task-submit');
+    expect(submit.props.style).toEqual(expect.objectContaining({ opacity: 0.55 }));
+    fireEvent.press(submit);
+    expect(mockAddTask).not.toHaveBeenCalled();
+
+    fireEvent.changeText(getByTestId('task-title-input'), 'Visible CTA');
+
+    const enabledSubmit = getByTestId('add-task-submit');
+    fireEvent.press(enabledSubmit);
+    expect(mockAddTask).toHaveBeenCalled();
+  });
 });
