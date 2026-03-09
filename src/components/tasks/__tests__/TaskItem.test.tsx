@@ -111,4 +111,16 @@ describe('TaskItem', () => {
     fireEvent.press(getByTestId('edit-reminder-time-picker-modal-done'));
     expect(queryByTestId('edit-reminder-time-picker-modal')).toBeNull();
   });
+
+  it('shows recurring indicator in metadata and exposes swipe actions', () => {
+    const recurringTask = {
+      ...baseTask,
+      recurring: { enabled: true, days: [1, 3, 5] },
+    };
+
+    const { getByText, getByTestId } = render(<TaskItem item={recurringTask} />);
+
+    expect(getByText('Recurring')).toBeTruthy();
+    expect(getByTestId('delete-task-swipe')).toBeTruthy();
+  });
 });

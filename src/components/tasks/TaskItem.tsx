@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import Animated, {
   FadeInDown,
   FadeOutUp,
@@ -304,6 +305,40 @@ export function TaskItem({
     return '#f59e0b';
   };
 
+  const renderSwipeActions = () => (
+    <View className="flex-row items-stretch">
+      {!item.completed && (
+        <TouchableOpacity
+          testID="edit-task-open"
+          onPress={openEdit}
+          className="w-20 items-center justify-center"
+          accessibilityRole="button"
+          accessibilityLabel={`Edit task ${item.title}`}
+          accessibilityHint="Opens task edit form"
+          style={{ backgroundColor: theme.primarySoft }}>
+          <Ionicons name="create-outline" size={18} color={theme.primary} />
+          <Text className="text-xs mt-0.5" style={{ color: theme.primary }}>
+            Edit
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      <TouchableOpacity
+        testID="delete-task-swipe"
+        onPress={() => deleteTask(item.id)}
+        className="w-20 items-center justify-center"
+        accessibilityRole="button"
+        accessibilityLabel={`Delete task ${item.title}`}
+        accessibilityHint="Removes this task"
+        style={{ backgroundColor: '#fee2e2' }}>
+        <Ionicons name="trash-outline" size={18} color={theme.danger} />
+        <Text className="text-xs mt-0.5" style={{ color: theme.danger }}>
+          Delete
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const handleToggle = () => {
     // Animate checkbox
     checkboxScale.value = withSpring(0.8, {}, () => {
@@ -345,7 +380,7 @@ export function TaskItem({
     backgroundColor: theme.surface,
   };
 
-  return (
+  const rowContent = (
     <Animated.View
       testID="task-item-row"
       entering={FadeInDown.duration(200)}
@@ -432,11 +467,18 @@ export function TaskItem({
             numberOfLines={2}>
             {item.title}
           </Text>
-          {item.recurring.enabled && <Ionicons name="repeat" size={14} color={theme.textSubtle} />}
         </View>
 
-        {(dueDateText || reminderText) && (
+        {(item.recurring.enabled || dueDateText || reminderText) && (
           <View className="mt-1 gap-0.5">
+            {item.recurring.enabled && (
+              <View className="flex-row items-center gap-1">
+                <Ionicons name="repeat" size={13} color={theme.textSubtle} />
+                <Text className="text-xs" style={{ color: theme.textSubtle }}>
+                  Recurring
+                </Text>
+              </View>
+            )}
             {dueDateText && (
               <Text className="text-xs" style={{ color: theme.textSubtle }}>
                 Due: {dueDateText}
@@ -451,28 +493,42 @@ export function TaskItem({
         )}
       </View>
 
-      <View className="flex-row items-center">
-        {!item.completed && (
-          <TouchableOpacity
-            onPress={openEdit}
-            testID="edit-task-open"
-            className="pl-2 py-1"
-            accessibilityRole="button"
-            accessibilityLabel={`Edit task ${item.title}`}
-            accessibilityHint="Opens task edit form">
-            <Ionicons name="create-outline" size={16} color={theme.textSubtle} />
-          </TouchableOpacity>
-        )}
+      {Platform.OS === 'web' && (
+        <View className="flex-row items-center">
+          {!item.completed && (
+            <TouchableOpacity
+              onPress={openEdit}
+              testID="edit-task-open"
+              className="pl-2 py-1"
+              accessibilityRole="button"
+              accessibilityLabel={`Edit task ${item.title}`}
+              accessibilityHint="Opens task edit form">
+              <Ionicons name="create-outline" size={16} color={theme.textSubtle} />
+            </TouchableOpacity>
+          )}
 
-        <TouchableOpacity
-          onPress={() => deleteTask(item.id)}
-          className="pl-3 py-1"
-          accessibilityRole="button"
-          accessibilityLabel={`Delete task ${item.title}`}
-          accessibilityHint="Removes this task">
-          <Ionicons name="trash-outline" size={16} color={theme.textSubtle} />
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            onPress={() => deleteTask(item.id)}
+            className="pl-3 py-1"
+            accessibilityRole="button"
+            accessibilityLabel={`Delete task ${item.title}`}
+            accessibilityHint="Removes this task">
+            <Ionicons name="trash-outline" size={16} color={theme.textSubtle} />
+          </TouchableOpacity>
+        </View>
+      )}
+    </Animated.View>
+  );
+
+  return (
+    <>
+      {Platform.OS === 'web' ? (
+        rowContent
+      ) : (
+        <Swipeable overshootRight={false} renderRightActions={renderSwipeActions}>
+          {rowContent}
+        </Swipeable>
+      )}
 
       <Modal visible={showEdit} onClose={() => setShowEdit(false)} title="Edit task">
         <TextInput
@@ -686,6 +742,6 @@ export function TaskItem({
           </TouchableOpacity>
         </View>
       </Modal>
-    </Animated.View>
+    </>
   );
 }

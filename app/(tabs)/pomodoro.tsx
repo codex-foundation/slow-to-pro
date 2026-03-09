@@ -14,38 +14,10 @@ import { fireConfetti } from '@/utils/confetti';
 export default function PomodoroScreen() {
   const theme = useAppTheme();
   const { width } = useWindowDimensions();
-  const status = usePomodoroStore((s) => s.status);
   const sessionsCount = usePomodoroStore((s) => s.sessions.length);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const previousSessionsCountRef = useRef(sessionsCount);
   const [showConfetti, setShowConfetti] = useState(false);
   const confettiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (status === 'running') {
-      intervalRef.current = setInterval(() => {
-        const remaining = usePomodoroStore.getState().secondsRemaining;
-        if (remaining <= 1) {
-          clearInterval(intervalRef.current!);
-          intervalRef.current = null;
-          usePomodoroStore.getState().completeCycle();
-        } else {
-          usePomodoroStore.getState().tick();
-        }
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [status]);
 
   useEffect(() => {
     if (sessionsCount > previousSessionsCountRef.current) {

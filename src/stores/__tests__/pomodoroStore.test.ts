@@ -26,6 +26,35 @@ beforeEach(() => {
 });
 
 describe('pomodoroStore', () => {
+  describe('global timer runtime', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+      usePomodoroStore.getState().reset();
+    });
+
+    it('keeps ticking while running and completes at zero with notification', () => {
+      usePomodoroStore.getState().start();
+      usePomodoroStore.setState({ secondsRemaining: 2 });
+
+      jest.advanceTimersByTime(1000);
+      expect(usePomodoroStore.getState().secondsRemaining).toBe(1);
+      expect(usePomodoroStore.getState().status).toBe('running');
+
+      jest.advanceTimersByTime(1000);
+      const state = usePomodoroStore.getState();
+      expect(state.status).toBe('idle');
+      expect(state.phase).toBe('break');
+      expect(state.secondsRemaining).toBe(state.breakDuration * 60);
+      expect(state.sessions).toHaveLength(1);
+      expect(scheduleTimerEndNotification).toHaveBeenCalledWith('work');
+    });
+  });
+
   describe('start', () => {
     it('sets status to running', () => {
       usePomodoroStore.getState().start();

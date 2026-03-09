@@ -7,6 +7,35 @@ import { mmkvStorage } from '@/utils/mmkv';
 import { scheduleTimerEndNotification } from '@/utils/notifications';
 import { useTaskStore } from './taskStore';
 
+let pomodoroInterval: ReturnType<typeof setInterval> | null = null;
+
+const stopPomodoroInterval = () => {
+  if (pomodoroInterval) {
+    clearInterval(pomodoroInterval);
+    pomodoroInterval = null;
+  }
+};
+
+const ensurePomodoroInterval = () => {
+  if (pomodoroInterval) return;
+
+  pomodoroInterval = setInterval(() => {
+    const state = usePomodoroStore.getState();
+    if (state.status !== 'running') {
+      stopPomodoroInterval();
+      return;
+    }
+
+    if (state.secondsRemaining <= 1) {
+      stopPomodoroInterval();
+      state.completeCycle();
+      return;
+    }
+
+    state.tick();
+  }, 1000);
+};
+
 interface PomodoroStore {
   // Persisted
   sessions: PomodoroSession[];
@@ -53,19 +82,25 @@ export const usePomodoroStore = create<PomodoroStore>()(
         } else {
           set({ status: 'running' });
         }
+        ensurePomodoroInterval();
       },
 
-      pause: () => set({ status: 'paused' }),
+      pause: () => {
+        set({ status: 'paused' });
+        stopPomodoroInterval();
+      },
 
       reset: () => {
         const { phase, workDuration, breakDuration } = get();
         const duration = phase === 'work' ? workDuration : breakDuration;
         set({ status: 'idle', secondsRemaining: duration * 60, cycleStartedAt: null });
+        stopPomodoroInterval();
       },
 
       tick: () => set((s) => ({ secondsRemaining: s.secondsRemaining - 1 })),
 
       completeCycle: () => {
+        stopPomodoroInterval();
         const { phase, workDuration, breakDuration, cycleCount, selectedTaskId, cycleStartedAt } =
           get();
 
@@ -111,6 +146,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
           secondsRemaining: workDuration * 60,
           cycleStartedAt: Date.now(),
         });
+        ensurePomodoroInterval();
       },
 
       updateDurations: (work, breakMins) => {
@@ -120,6 +156,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
           secondsRemaining: s.phase === 'work' ? work * 60 : breakMins * 60,
           status: 'idle',
         }));
+        stopPomodoroInterval();
       },
     }),
     {

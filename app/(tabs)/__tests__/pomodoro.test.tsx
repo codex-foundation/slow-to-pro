@@ -92,32 +92,23 @@ describe('PomodoroScreen UI', () => {
     expect(getByText('Session log')).toBeTruthy();
   });
 
-  it('ticks while running and completes cycle at zero', () => {
-    usePomodoroStore.setState({
-      status: 'running',
-      phase: 'work',
-      secondsRemaining: 2,
-      cycleStartedAt: Date.now(),
-    });
-
+  it('shows confetti when sessions increase', () => {
     const { getByTestId } = render(<PomodoroScreen />);
 
     act(() => {
-      jest.advanceTimersByTime(1000);
+      usePomodoroStore.setState({
+        sessions: [
+          {
+            id: 'session-1',
+            phase: 'work',
+            durationMinutes: 25,
+            startedAt: Date.now() - 25 * 60 * 1000,
+            endedAt: Date.now(),
+          },
+        ],
+      });
     });
 
-    expect(usePomodoroStore.getState().secondsRemaining).toBe(1);
-    expect(usePomodoroStore.getState().status).toBe('running');
-
-    act(() => {
-      jest.advanceTimersByTime(1000);
-    });
-
-    const state = usePomodoroStore.getState();
-    expect(state.status).toBe('idle');
-    expect(state.phase).toBe('break');
-    expect(state.secondsRemaining).toBe(state.breakDuration * 60);
-    expect(state.sessions.length).toBe(1);
     expect(getByTestId('pomodoro-confetti')).toBeTruthy();
   });
 });
