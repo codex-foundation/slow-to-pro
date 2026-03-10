@@ -61,9 +61,7 @@ describe('CategoryBudgetModal', () => {
   });
 
   it('renders category budget input and saves entered limit', () => {
-    const { getByPlaceholderText } = render(
-      <CategoryBudgetModal visible onClose={jest.fn()} />
-    );
+    const { getByPlaceholderText } = render(<CategoryBudgetModal visible onClose={jest.fn()} />);
 
     const budgetInput = getByPlaceholderText('0');
     fireEvent(budgetInput, 'endEditing', { nativeEvent: { text: '125.5' } });
