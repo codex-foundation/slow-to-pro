@@ -74,6 +74,23 @@ describe('pomodoroStore', () => {
       expect(cycleStartedAt).toBeGreaterThanOrEqual(before);
       expect(cycleStartedAt).toBeLessThanOrEqual(after);
     });
+
+    it('reconstructs cycleStartedAt when resuming from paused', () => {
+      const now = Date.now();
+      usePomodoroStore.setState({
+        ...INITIAL_STATE,
+        status: 'paused',
+        phase: 'work',
+        secondsRemaining: 24 * 60,
+        cycleStartedAt: null,
+      });
+
+      usePomodoroStore.getState().start();
+
+      const startedAt = usePomodoroStore.getState().cycleStartedAt;
+      expect(startedAt).not.toBeNull();
+      expect(Math.abs((startedAt ?? now) - (now - 60 * 1000))).toBeLessThanOrEqual(1000);
+    });
   });
 
   describe('pause', () => {
@@ -81,6 +98,12 @@ describe('pomodoroStore', () => {
       usePomodoroStore.getState().start();
       usePomodoroStore.getState().pause();
       expect(usePomodoroStore.getState().status).toBe('paused');
+    });
+
+    it('clears cycleStartedAt when paused', () => {
+      usePomodoroStore.getState().start();
+      usePomodoroStore.getState().pause();
+      expect(usePomodoroStore.getState().cycleStartedAt).toBeNull();
     });
   });
 
@@ -248,6 +271,54 @@ describe('pomodoroStore', () => {
       usePomodoroStore.getState().start();
       usePomodoroStore.getState().updateDurations(50, 10);
       expect(usePomodoroStore.getState().status).toBe('idle');
+    });
+  });
+
+  describe('reconcileRunningTimer', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-03-10T12:00:00.000Z'));
+    });
+
+    afterEach(() => {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+      usePomodoroStore.getState().reset();
+    });
+
+    it('updates secondsRemaining based on wall-clock elapsed time', () => {
+      const now = Date.now();
+      usePomodoroStore.setState({
+        ...INITIAL_STATE,
+        status: 'running',
+        phase: 'work',
+        secondsRemaining: 25 * 60,
+        cycleStartedAt: now - 10 * 1000,
+      });
+
+      usePomodoroStore.getState().reconcileRunningTimer();
+
+      expect(usePomodoroStore.getState().secondsRemaining).toBe(25 * 60 - 10);
+      expect(usePomodoroStore.getState().status).toBe('running');
+    });
+
+    it('completes the cycle if elapsed time passed the timer while app was away', () => {
+      const now = Date.now();
+      usePomodoroStore.setState({
+        ...INITIAL_STATE,
+        status: 'running',
+        phase: 'work',
+        secondsRemaining: 25 * 60,
+        cycleStartedAt: now - 26 * 60 * 1000,
+      });
+
+      usePomodoroStore.getState().reconcileRunningTimer();
+
+      const state = usePomodoroStore.getState();
+      expect(state.status).toBe('idle');
+      expect(state.phase).toBe('break');
+      expect(state.sessions).toHaveLength(1);
+      expect(scheduleTimerEndNotification).toHaveBeenCalledWith('work');
     });
   });
 });

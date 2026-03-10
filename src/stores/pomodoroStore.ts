@@ -58,6 +58,7 @@ interface PomodoroStore {
   setSelectedTask: (id: string | null) => void;
   startWorkForTask: (id: string | null) => void;
   updateDurations: (work: number, breakMins: number) => void;
+  reconcileRunningTimer: () => void;
 }
 
 export const usePomodoroStore = create<PomodoroStore>()(
@@ -75,18 +76,23 @@ export const usePomodoroStore = create<PomodoroStore>()(
       cycleStartedAt: null,
 
       start: () => {
-        const { status, phase, workDuration, breakDuration } = get();
+        const { status, phase, workDuration, breakDuration, secondsRemaining } = get();
         const duration = phase === 'work' ? workDuration : breakDuration;
         if (status === 'idle') {
           set({ status: 'running', secondsRemaining: duration * 60, cycleStartedAt: Date.now() });
         } else {
-          set({ status: 'running' });
+          const durationSeconds = duration * 60;
+          const elapsedSeconds = Math.max(0, durationSeconds - secondsRemaining);
+          set({
+            status: 'running',
+            cycleStartedAt: Date.now() - elapsedSeconds * 1000,
+          });
         }
         ensurePomodoroInterval();
       },
 
       pause: () => {
-        set({ status: 'paused' });
+        set({ status: 'paused', cycleStartedAt: null });
         stopPomodoroInterval();
       },
 
@@ -158,6 +164,35 @@ export const usePomodoroStore = create<PomodoroStore>()(
         }));
         stopPomodoroInterval();
       },
+
+      reconcileRunningTimer: () => {
+        const { status, phase, workDuration, breakDuration, secondsRemaining, cycleStartedAt } =
+          get();
+
+        if (status !== 'running') {
+          stopPomodoroInterval();
+          return;
+        }
+
+        const durationSeconds = (phase === 'work' ? workDuration : breakDuration) * 60;
+        const startedAt =
+          cycleStartedAt ?? Date.now() - Math.max(0, durationSeconds - secondsRemaining) * 1000;
+        const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+        const nextRemaining = durationSeconds - elapsedSeconds;
+
+        if (nextRemaining <= 0) {
+          set({ cycleStartedAt: startedAt, secondsRemaining: 0 });
+          get().completeCycle();
+          return;
+        }
+
+        set({
+          cycleStartedAt: startedAt,
+          secondsRemaining: nextRemaining,
+          status: 'running',
+        });
+        ensurePomodoroInterval();
+      },
     }),
     {
       name: 'pomodoro-store',
@@ -166,7 +201,17 @@ export const usePomodoroStore = create<PomodoroStore>()(
         sessions: s.sessions,
         workDuration: s.workDuration,
         breakDuration: s.breakDuration,
+        status: s.status,
+        phase: s.phase,
+        secondsRemaining: s.secondsRemaining,
+        cycleCount: s.cycleCount,
+        selectedTaskId: s.selectedTaskId,
+        cycleStartedAt: s.cycleStartedAt,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        state.reconcileRunningTimer();
+      },
     }
   )
 );

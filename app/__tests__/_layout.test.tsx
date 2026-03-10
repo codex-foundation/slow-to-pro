@@ -1,4 +1,12 @@
 import { render } from '@testing-library/react-native';
+import { AppState } from 'react-native';
+
+const mockAppStateRemove = jest.fn();
+const mockAppStateAddEventListener = jest.fn(
+  (_eventType: string, _listener: (state: string) => void) => ({
+    remove: mockAppStateRemove,
+  })
+);
 
 jest.mock('../../global.css', () => ({}));
 jest.mock('expo-constants', () => ({
@@ -74,6 +82,7 @@ jest.mock('@/components/ui/WebNotificationFallbackToast', () => ({
 }));
 
 const mockResetRecurringTasksIfNewDay = jest.fn();
+const mockReconcileRunningTimer = jest.fn();
 
 jest.mock('@/stores/taskStore', () => ({
   useTaskStore: {
@@ -83,12 +92,35 @@ jest.mock('@/stores/taskStore', () => ({
   },
 }));
 
+jest.mock('@/stores/pomodoroStore', () => ({
+  usePomodoroStore: {
+    getState: () => ({
+      reconcileRunningTimer: mockReconcileRunningTimer,
+    }),
+  },
+}));
+
 describe('RootLayout', () => {
+  let appStateAddEventListenerSpy: jest.SpyInstance;
+
   beforeEach(() => {
+    appStateAddEventListenerSpy = jest
+      .spyOn(AppState, 'addEventListener')
+      .mockImplementation((eventType, listener) =>
+        mockAppStateAddEventListener(eventType as string, listener as (state: string) => void)
+      );
+
     capturedScreenOptions = undefined;
     stackRenderCount = 0;
     slotRenderCount = 0;
+    mockAppStateAddEventListener.mockClear();
+    mockAppStateRemove.mockClear();
     mockResetRecurringTasksIfNewDay.mockClear();
+    mockReconcileRunningTimer.mockClear();
+  });
+
+  afterEach(() => {
+    appStateAddEventListenerSpy.mockRestore();
   });
 
   it('renders app immediately', () => {
@@ -96,6 +128,7 @@ describe('RootLayout', () => {
 
     expect(slotRenderCount).toBe(1);
     expect(stackRenderCount).toBe(0);
+    expect(mockReconcileRunningTimer).toHaveBeenCalledTimes(1);
   });
 
   it('uses Slot in Expo Go to avoid native stack host-function issues', () => {
@@ -104,5 +137,21 @@ describe('RootLayout', () => {
     expect(slotRenderCount).toBe(1);
     expect(stackRenderCount).toBe(0);
     expect(capturedScreenOptions).toBeUndefined();
+    expect(mockReconcileRunningTimer).toHaveBeenCalledTimes(1);
+  });
+
+  it('reconciles pomodoro timer when app returns to active', () => {
+    render(<RootLayout />);
+
+    expect(mockAppStateAddEventListener).toHaveBeenCalledTimes(1);
+    const appStateListener = mockAppStateAddEventListener.mock.calls[0]?.[1] as
+      | ((state: string) => void)
+      | undefined;
+
+    appStateListener?.('background');
+    expect(mockReconcileRunningTimer).toHaveBeenCalledTimes(1);
+
+    appStateListener?.('active');
+    expect(mockReconcileRunningTimer).toHaveBeenCalledTimes(2);
   });
 });
