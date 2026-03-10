@@ -84,7 +84,13 @@ export default function FinancesScreen() {
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: theme.bg }}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        testID="finances-scroll-view"
+        showsVerticalScrollIndicator={false}
+        scrollEnabled
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: 12 }}>
         <View className="px-4 pt-4 pb-2 flex-row justify-between items-center">
           <Text className="text-2xl font-bold" style={{ color: theme.text }}>
             Money

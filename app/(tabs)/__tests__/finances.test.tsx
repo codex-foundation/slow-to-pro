@@ -134,4 +134,13 @@ describe('FinancesScreen modal behavior', () => {
     expect(overallBudgetAmount).toBe(1500);
     expect(overallBudgetPeriod).toBe('annual');
   });
+
+  it('configures the finance scroll view for reliable touch scrolling', () => {
+    const { getByTestId } = render(<FinancesScreen />);
+    const scrollView = getByTestId('finances-scroll-view');
+
+    expect(scrollView.props.keyboardDismissMode).toBe('on-drag');
+    expect(scrollView.props.keyboardShouldPersistTaps).toBe('handled');
+    expect(scrollView.props.scrollEnabled).toBe(true);
+  });
 });
