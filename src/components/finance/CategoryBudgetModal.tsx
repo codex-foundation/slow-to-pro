@@ -75,8 +75,13 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
               style={{ marginRight: 4 }}
             />
             <TextInput
-              className="w-20 rounded-lg px-2 py-1.5 text-sm text-right"
               style={{
+                width: 80,
+                borderRadius: 8,
+                paddingHorizontal: 8,
+                paddingVertical: 6,
+                fontSize: 14,
+                textAlign: 'right',
                 borderColor: theme.border,
                 borderWidth: 1,
                 backgroundColor: theme.surface,
