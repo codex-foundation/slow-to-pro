@@ -1,5 +1,6 @@
 import { Text, FlatList, Platform, View } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
+import Animated, { Layout } from 'react-native-reanimated';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Task } from '@/models/task';
@@ -55,7 +56,7 @@ export function TaskList({ tasks, onTaskCompleted }: Props) {
 
   if (Platform.OS !== 'android') {
     return (
-      <FlatList
+      <Animated.FlatList
         data={tasks}
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => (
@@ -68,6 +69,7 @@ export function TaskList({ tasks, onTaskCompleted }: Props) {
             onCompleted={onTaskCompleted}
           />
         )}
+        itemLayoutAnimation={Platform.OS === 'ios' ? Layout.springify() : undefined}
         contentContainerStyle={{ paddingBottom: 100 }}
       />
     );

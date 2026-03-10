@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { Keyboard } from 'react-native';
 
 import { TaskItem } from '../TaskItem';
 
@@ -74,6 +75,16 @@ describe('TaskItem', () => {
     jest.clearAllMocks();
   });
 
+  let dismissSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    dismissSpy = jest.spyOn(Keyboard, 'dismiss').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    dismissSpy.mockRestore();
+  });
+
   it('uses right border color to represent priority', () => {
     const { getByTestId } = render(<TaskItem item={baseTask} />);
 
@@ -122,5 +133,16 @@ describe('TaskItem', () => {
 
     expect(getByText('Recurring')).toBeTruthy();
     expect(getByTestId('delete-task-swipe')).toBeTruthy();
+  });
+
+  it('dismisses keyboard on edit title submit without saving', () => {
+    const { getByTestId } = render(<TaskItem item={baseTask} />);
+
+    fireEvent.press(getByTestId('edit-task-open'));
+    fireEvent.changeText(getByTestId('edit-task-title-input'), 'Updated title');
+    fireEvent(getByTestId('edit-task-title-input'), 'submitEditing');
+
+    expect(dismissSpy).toHaveBeenCalled();
+    expect(mockUpdateTask).not.toHaveBeenCalled();
   });
 });

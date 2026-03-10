@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { Keyboard } from 'react-native';
 
 import { AddTaskModal } from '../AddTaskModal';
 
@@ -41,8 +42,15 @@ jest.mock('@/stores/pomodoroStore', () => ({
 }));
 
 describe('AddTaskModal date/reminder picker modals', () => {
+  let dismissSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    dismissSpy = jest.spyOn(Keyboard, 'dismiss').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    dismissSpy.mockRestore();
   });
 
   it('opens and closes the due date picker modal', () => {
@@ -105,5 +113,15 @@ describe('AddTaskModal date/reminder picker modals', () => {
     const enabledSubmit = getByTestId('add-task-submit');
     fireEvent.press(enabledSubmit);
     expect(mockAddTask).toHaveBeenCalled();
+  });
+
+  it('dismisses keyboard on title submit without adding task', () => {
+    const { getByTestId } = render(<AddTaskModal visible onClose={jest.fn()} />);
+
+    fireEvent.changeText(getByTestId('task-title-input'), 'Typing title');
+    fireEvent(getByTestId('task-title-input'), 'submitEditing');
+
+    expect(dismissSpy).toHaveBeenCalled();
+    expect(mockAddTask).not.toHaveBeenCalled();
   });
 });

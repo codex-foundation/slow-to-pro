@@ -6,7 +6,7 @@ import * as Notifications from 'expo-notifications';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Slot, Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { Keyboard, Platform, TouchableWithoutFeedback, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -44,8 +44,12 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        {isExpoGo ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
-        <WebNotificationFallbackToast />
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={{ flex: 1 }}>
+            {isExpoGo ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
+            <WebNotificationFallbackToast />
+          </View>
+        </TouchableWithoutFeedback>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

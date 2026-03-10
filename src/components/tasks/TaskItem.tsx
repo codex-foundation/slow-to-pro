@@ -2,6 +2,7 @@ import { createElement, useState } from 'react';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
+  Keyboard,
   Modal as RNModal,
   Platform,
   Switch,
@@ -532,6 +533,7 @@ export function TaskItem({
 
       <Modal visible={showEdit} onClose={() => setShowEdit(false)} title="Edit task">
         <TextInput
+          testID="edit-task-title-input"
           className="rounded-xl px-4 py-3 text-base mb-4"
           style={{
             borderColor: theme.border,
@@ -544,7 +546,7 @@ export function TaskItem({
           placeholderTextColor={theme.textSubtle}
           autoFocus
           returnKeyType="done"
-          onSubmitEditing={saveEdit}
+          onSubmitEditing={Keyboard.dismiss}
         />
 
         <Text className="text-sm font-medium mb-2" style={{ color: theme.textMuted }}>

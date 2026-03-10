@@ -2,6 +2,7 @@ import { createElement, useState } from 'react';
 import { useRouter } from 'expo-router';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import {
+  Keyboard,
   Modal as RNModal,
   Platform,
   Switch,
@@ -306,7 +307,7 @@ export function AddTaskModal({ visible, onClose }: Props) {
         onChangeText={setTitle}
         autoFocus
         returnKeyType="done"
-        onSubmitEditing={handleAdd}
+        onSubmitEditing={Keyboard.dismiss}
       />
 
       <Text className="text-sm font-medium text-gray-600 mb-2">Priority</Text>

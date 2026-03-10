@@ -3,6 +3,36 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { useTaskStore } from '@/stores/taskStore';
 import { TaskList } from '../TaskList';
 
+jest.mock('react-native-reanimated', () => {
+  const { FlatList } = jest.requireActual('react-native') as typeof import('react-native');
+
+  return {
+    __esModule: true,
+    default: {
+      FlatList,
+    },
+    Layout: {
+      springify: jest.fn(() => ({ name: 'mock-spring-layout-transition' })),
+    },
+  };
+});
+
+jest.mock('react-native-draggable-flatlist', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { FlatList } = jest.requireActual('react-native') as typeof import('react-native');
+
+  return {
+    __esModule: true,
+    default: ({ data, keyExtractor, renderItem, contentContainerStyle }: any) =>
+      React.createElement(FlatList, {
+        data,
+        keyExtractor,
+        renderItem,
+        contentContainerStyle,
+      }),
+  };
+});
+
 jest.mock('@/hooks/useAppTheme', () => ({
   useAppTheme: () => ({
     isDark: false,
@@ -101,6 +131,17 @@ function seedTaskStore() {
 describe('TaskList ordering controls', () => {
   beforeEach(() => {
     seedTaskStore();
+  });
+
+  it('enables iOS item layout animation on non-android list path', () => {
+    const reanimated = jest.requireMock('react-native-reanimated') as {
+      Layout: { springify: jest.Mock };
+    };
+    const tasks = [...useTaskStore.getState().tasks].sort((a, b) => a.order - b.order);
+
+    render(<TaskList tasks={tasks} />);
+
+    expect(reanimated.Layout.springify).toHaveBeenCalledTimes(1);
   });
 
   it('reorders tasks when move down is pressed (iOS/web path)', () => {
