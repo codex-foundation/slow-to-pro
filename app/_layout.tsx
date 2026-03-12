@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { WebNotificationFallbackToast } from '@/components/ui/WebNotificationFallbackToast';
+import { pullForCurrentUser, pushForCurrentUser } from '@/services/cloudSync';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useTaskStore } from '@/stores/taskStore';
 
@@ -37,10 +38,16 @@ export default function RootLayout() {
     }
     useTaskStore.getState().resetRecurringTasksIfNewDay();
     usePomodoroStore.getState().reconcileRunningTimer();
+    void pullForCurrentUser();
 
     const appStateSub = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
         usePomodoroStore.getState().reconcileRunningTimer();
+        void pullForCurrentUser();
+      }
+
+      if (nextState === 'background') {
+        void pushForCurrentUser();
       }
     });
 

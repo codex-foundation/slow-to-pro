@@ -1,8 +1,18 @@
 import Constants from 'expo-constants';
+import * as ExpoLinking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import {
+  applySnapshot,
+  pullCloudSnapshot,
+  pushCloudSnapshot,
+  syncFromCloudOrSeed,
+} from '@/services/cloudSync';
 import { type ThemePreference, useSettingsStore } from '@/stores/settingsStore';
 
 const THEME_OPTIONS: ThemePreference[] = ['system', 'light', 'dark'];
@@ -11,86 +21,428 @@ export default function SettingsScreen() {
   const theme = useAppTheme();
   const themePreference = useSettingsStore((s) => s.themePreference);
   const setThemePreference = useSettingsStore((s) => s.setThemePreference);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [busyAction, setBusyAction] = useState<
+    'login' | 'signup' | 'google' | 'apple' | 'logout' | 'pull' | 'push' | null
+  >(null);
 
   const appVersion = Constants.expoConfig?.version ?? Constants.nativeAppVersion ?? '1.0.0';
   const currentYear = new Date().getFullYear();
 
+  useEffect(() => {
+    if (!supabase) return;
+
+    let active = true;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      setUserEmail(data.user?.email ?? null);
+    });
+
+    const subscription = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      setUserEmail(session?.user?.email ?? null);
+    });
+
+    return () => {
+      active = false;
+      subscription.data.subscription.unsubscribe();
+    };
+  }, []);
+
+  const authEnabled = isSupabaseConfigured && !!supabase;
+  const isBusy = busyAction !== null;
+  const canAuthSubmit = useMemo(
+    () => authEnabled && email.trim().length > 0 && password.length >= 6 && !isBusy,
+    [authEnabled, email, password, isBusy]
+  );
+
+  const withBusy = async (
+    action: NonNullable<typeof busyAction>,
+    fn: () => Promise<void>
+  ): Promise<void> => {
+    try {
+      setBusyAction(action);
+      await fn();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Something went wrong.';
+      setStatusMessage(message);
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handleLogin = async () => {
+    if (!supabase || !canAuthSubmit) return;
+    await withBusy('login', async () => {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw error;
+      if (!data.user) throw new Error('No user returned from login.');
+
+      const result = await syncFromCloudOrSeed(data.user.id);
+      setStatusMessage(
+        result === 'pulled'
+          ? 'Logged in and synced your latest cloud data.'
+          : 'Logged in and created your first cloud backup.'
+      );
+    });
+  };
+
+  const handleSignUp = async () => {
+    if (!supabase || !canAuthSubmit) return;
+    await withBusy('signup', async () => {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw error;
+
+      if (data.user) {
+        await syncFromCloudOrSeed(data.user.id);
+      }
+
+      setStatusMessage('Account created. Check email to confirm if prompted, then log in.');
+    });
+  };
+
+  const handleLogout = async () => {
+    if (!supabase) return;
+    await withBusy('logout', async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setStatusMessage('Logged out. Local data remains on this device.');
+    });
+  };
+
+  const handleSocialLogin = async (provider: 'google' | 'apple') => {
+    if (!supabase || isBusy) return;
+
+    const action = provider === 'google' ? 'google' : 'apple';
+
+    await withBusy(action, async () => {
+      const redirectTo = ExpoLinking.createURL('auth/callback');
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.url) throw new Error('Unable to start OAuth flow.');
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+      if (result.type !== 'success' || !('url' in result)) {
+        return;
+      }
+
+      const callbackUrl = result.url;
+      const parsed = ExpoLinking.parse(callbackUrl);
+      const code =
+        typeof parsed.queryParams?.code === 'string' ? parsed.queryParams.code : undefined;
+
+      if (!code) {
+        return;
+      }
+
+      const { data: exchangeData, error: exchangeError } =
+        await supabase.auth.exchangeCodeForSession(code);
+      if (exchangeError) throw exchangeError;
+
+      if (exchangeData.user) {
+        const syncResult = await syncFromCloudOrSeed(exchangeData.user.id);
+        setStatusMessage(
+          syncResult === 'pulled'
+            ? 'Logged in and synced your latest cloud data.'
+            : 'Logged in and created your first cloud backup.'
+        );
+      }
+    });
+  };
+
+  const handlePull = async () => {
+    if (!supabase) return;
+    await withBusy('pull', async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      if (!data.user) throw new Error('Please log in first.');
+      const snapshot = await pullCloudSnapshot(data.user.id);
+      if (!snapshot) throw new Error('No cloud snapshot found yet for this account.');
+      applySnapshot(snapshot);
+      setStatusMessage('Pulled latest cloud data to this device.');
+    });
+  };
+
+  const handlePush = async () => {
+    if (!supabase) return;
+    await withBusy('push', async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      if (!data.user) throw new Error('Please log in first.');
+      await pushCloudSnapshot(data.user.id);
+      setStatusMessage('Pushed local data to cloud backup.');
+    });
+  };
+
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: theme.bg }}>
-      <View className="px-4 pt-4 pb-2">
-        <Text className="text-2xl font-bold" style={{ color: theme.text }}>
-          Settings
-        </Text>
-      </View>
-
-      <View className="px-4 mt-4">
-        <View
-          className="rounded-2xl p-4"
-          style={{
-            backgroundColor: theme.surfaceMuted,
-            borderColor: theme.border,
-            borderWidth: 1,
-          }}>
-          <Text className="text-sm font-semibold" style={{ color: theme.textMuted }}>
-            Theme
+      <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
+        <View className="px-4 pt-4 pb-2">
+          <Text className="text-2xl font-bold" style={{ color: theme.text }}>
+            Settings
           </Text>
-          <Text className="text-xs mt-1 mb-3" style={{ color: theme.textSubtle }}>
-            Choose your preferred appearance.
-          </Text>
+        </View>
 
-          <View className="flex-row gap-2">
-            {THEME_OPTIONS.map((option) => {
-              const active = themePreference === option;
-              return (
-                <TouchableOpacity
-                  key={option}
-                  onPress={() => setThemePreference(option)}
-                  className="px-4 py-2 rounded-full"
-                  style={{
-                    backgroundColor: active ? theme.primary : theme.surface,
-                    borderColor: active ? theme.primary : theme.border,
-                    borderWidth: 1,
-                  }}>
-                  <Text
-                    className="text-sm font-medium capitalize"
-                    style={{ color: active ? '#fff' : theme.textMuted }}>
-                    {option}
+        <View className="px-4 mt-4">
+          <View
+            className="rounded-2xl p-4"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              borderWidth: 1,
+            }}>
+            <Text className="text-sm font-semibold" style={{ color: theme.textMuted }}>
+              Theme
+            </Text>
+            <Text className="text-xs mt-1 mb-3" style={{ color: theme.textSubtle }}>
+              Choose your preferred appearance.
+            </Text>
+
+            <View className="flex-row gap-2">
+              {THEME_OPTIONS.map((option) => {
+                const active = themePreference === option;
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    onPress={() => setThemePreference(option)}
+                    className="px-4 py-2 rounded-full"
+                    style={{
+                      backgroundColor: active ? theme.primary : theme.surface,
+                      borderColor: active ? theme.primary : theme.border,
+                      borderWidth: 1,
+                    }}>
+                    <Text
+                      className="text-sm font-medium capitalize"
+                      style={{ color: active ? '#fff' : theme.textMuted }}>
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+
+        <View className="px-4 mt-4">
+          <View
+            className="rounded-2xl p-4"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              borderWidth: 1,
+            }}>
+            <Text className="text-sm font-semibold mb-2" style={{ color: theme.textMuted }}>
+              Account & Sync
+            </Text>
+            {!authEnabled ? (
+              <Text className="text-xs" style={{ color: theme.textSubtle }}>
+                Configure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env to
+                enable login and cross-device sync.
+              </Text>
+            ) : (
+              <>
+                <Text className="text-xs mb-3" style={{ color: theme.textSubtle }}>
+                  {userEmail
+                    ? `Logged in as ${userEmail}`
+                    : 'Log in or sign up to sync your tasks, finances, focus sessions, and settings across devices.'}
+                </Text>
+
+                {!userEmail && (
+                  <>
+                    <TextInput
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      placeholder="Email"
+                      placeholderTextColor={theme.textSubtle}
+                      className="rounded-xl px-4 py-3 text-sm mb-2"
+                      style={{
+                        borderColor: theme.border,
+                        borderWidth: 1,
+                        backgroundColor: theme.surface,
+                        color: theme.text,
+                      }}
+                    />
+                    <TextInput
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry
+                      placeholder="Password (min 6 chars)"
+                      placeholderTextColor={theme.textSubtle}
+                      className="rounded-xl px-4 py-3 text-sm mb-3"
+                      style={{
+                        borderColor: theme.border,
+                        borderWidth: 1,
+                        backgroundColor: theme.surface,
+                        color: theme.text,
+                      }}
+                    />
+
+                    <View className="flex-row gap-2 mb-2">
+                      <TouchableOpacity
+                        onPress={handleLogin}
+                        disabled={!canAuthSubmit}
+                        className="flex-1 py-2.5 rounded-xl items-center"
+                        style={{
+                          backgroundColor: canAuthSubmit ? theme.primary : theme.surface,
+                          borderColor: theme.border,
+                          borderWidth: canAuthSubmit ? 0 : 1,
+                        }}>
+                        <Text
+                          className="font-semibold"
+                          style={{ color: canAuthSubmit ? '#fff' : theme.textSubtle }}>
+                          {busyAction === 'login' ? 'Logging in...' : 'Log in'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handleSignUp}
+                        disabled={!canAuthSubmit}
+                        className="flex-1 py-2.5 rounded-xl items-center"
+                        style={{
+                          backgroundColor: canAuthSubmit ? theme.surface : theme.surfaceMuted,
+                          borderColor: theme.border,
+                          borderWidth: 1,
+                        }}>
+                        <Text className="font-semibold" style={{ color: theme.textMuted }}>
+                          {busyAction === 'signup' ? 'Signing up...' : 'Sign up'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View className="gap-2 mb-2">
+                      <TouchableOpacity
+                        onPress={() => handleSocialLogin('google')}
+                        disabled={isBusy}
+                        className="py-2.5 rounded-xl items-center"
+                        style={{
+                          backgroundColor: theme.surface,
+                          borderColor: theme.border,
+                          borderWidth: 1,
+                          opacity: isBusy ? 0.65 : 1,
+                        }}>
+                        <Text className="font-semibold" style={{ color: theme.textMuted }}>
+                          {busyAction === 'google' ? 'Opening Google...' : 'Continue with Google'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() => handleSocialLogin('apple')}
+                        disabled={isBusy}
+                        className="py-2.5 rounded-xl items-center"
+                        style={{
+                          backgroundColor: theme.surface,
+                          borderColor: theme.border,
+                          borderWidth: 1,
+                          opacity: isBusy ? 0.65 : 1,
+                        }}>
+                        <Text className="font-semibold" style={{ color: theme.textMuted }}>
+                          {busyAction === 'apple' ? 'Opening Apple...' : 'Continue with Apple'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+
+                {userEmail && (
+                  <>
+                    <View className="flex-row gap-2 mb-2">
+                      <TouchableOpacity
+                        onPress={handlePull}
+                        disabled={isBusy}
+                        className="flex-1 py-2.5 rounded-xl items-center"
+                        style={{ backgroundColor: theme.primary }}>
+                        <Text className="font-semibold text-white">
+                          {busyAction === 'pull' ? 'Syncing...' : 'Pull from cloud'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handlePush}
+                        disabled={isBusy}
+                        className="flex-1 py-2.5 rounded-xl items-center"
+                        style={{
+                          backgroundColor: theme.surface,
+                          borderColor: theme.border,
+                          borderWidth: 1,
+                        }}>
+                        <Text className="font-semibold" style={{ color: theme.textMuted }}>
+                          {busyAction === 'push' ? 'Backing up...' : 'Push to cloud'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={handleLogout}
+                      disabled={isBusy}
+                      className="py-2.5 rounded-xl items-center"
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        borderWidth: 1,
+                      }}>
+                      <Text className="font-semibold" style={{ color: theme.textMuted }}>
+                        {busyAction === 'logout' ? 'Logging out...' : 'Log out'}
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                {!!statusMessage && (
+                  <Text className="text-xs mt-3" style={{ color: theme.textSubtle }}>
+                    {statusMessage}
                   </Text>
-                </TouchableOpacity>
-              );
-            })}
+                )}
+              </>
+            )}
           </View>
         </View>
-      </View>
 
-      <View className="px-4 mt-4">
-        <View
-          className="rounded-2xl p-4"
-          style={{
-            backgroundColor: theme.surfaceMuted,
-            borderColor: theme.border,
-            borderWidth: 1,
-          }}>
-          <Text className="text-sm font-semibold mb-2" style={{ color: theme.textMuted }}>
-            About
-          </Text>
+        <View className="px-4 mt-4">
+          <View
+            className="rounded-2xl p-4"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              borderWidth: 1,
+            }}>
+            <Text className="text-sm font-semibold mb-2" style={{ color: theme.textMuted }}>
+              About
+            </Text>
 
-          <View className="flex-row justify-between py-1">
+            <View className="flex-row justify-between py-1">
+              <Text className="text-sm" style={{ color: theme.textSubtle }}>
+                App Version
+              </Text>
+              <Text className="text-sm font-semibold" style={{ color: theme.text }}>
+                {appVersion}
+              </Text>
+            </View>
+
+            <View className="h-px my-2" style={{ backgroundColor: theme.border }} />
+
             <Text className="text-sm" style={{ color: theme.textSubtle }}>
-              App Version
-            </Text>
-            <Text className="text-sm font-semibold" style={{ color: theme.text }}>
-              {appVersion}
+              © {currentYear} slow-to-pro. All rights reserved.
             </Text>
           </View>
-
-          <View className="h-px my-2" style={{ backgroundColor: theme.border }} />
-
-          <Text className="text-sm" style={{ color: theme.textSubtle }}>
-            © {currentYear} slow-to-pro. All rights reserved.
-          </Text>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

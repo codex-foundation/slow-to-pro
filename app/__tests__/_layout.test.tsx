@@ -83,6 +83,8 @@ jest.mock('@/components/ui/WebNotificationFallbackToast', () => ({
 
 const mockResetRecurringTasksIfNewDay = jest.fn();
 const mockReconcileRunningTimer = jest.fn();
+const mockPullForCurrentUser = jest.fn(async () => false);
+const mockPushForCurrentUser = jest.fn(async () => false);
 
 jest.mock('@/stores/taskStore', () => ({
   useTaskStore: {
@@ -98,6 +100,11 @@ jest.mock('@/stores/pomodoroStore', () => ({
       reconcileRunningTimer: mockReconcileRunningTimer,
     }),
   },
+}));
+
+jest.mock('@/services/cloudSync', () => ({
+  pullForCurrentUser: () => mockPullForCurrentUser(),
+  pushForCurrentUser: () => mockPushForCurrentUser(),
 }));
 
 describe('RootLayout', () => {
@@ -117,6 +124,8 @@ describe('RootLayout', () => {
     mockAppStateRemove.mockClear();
     mockResetRecurringTasksIfNewDay.mockClear();
     mockReconcileRunningTimer.mockClear();
+    mockPullForCurrentUser.mockClear();
+    mockPushForCurrentUser.mockClear();
   });
 
   afterEach(() => {
@@ -129,6 +138,7 @@ describe('RootLayout', () => {
     expect(slotRenderCount).toBe(1);
     expect(stackRenderCount).toBe(0);
     expect(mockReconcileRunningTimer).toHaveBeenCalledTimes(1);
+    expect(mockPullForCurrentUser).toHaveBeenCalledTimes(1);
   });
 
   it('uses Slot in Expo Go to avoid native stack host-function issues', () => {
@@ -138,6 +148,7 @@ describe('RootLayout', () => {
     expect(stackRenderCount).toBe(0);
     expect(capturedScreenOptions).toBeUndefined();
     expect(mockReconcileRunningTimer).toHaveBeenCalledTimes(1);
+    expect(mockPullForCurrentUser).toHaveBeenCalledTimes(1);
   });
 
   it('reconciles pomodoro timer when app returns to active', () => {
@@ -150,8 +161,10 @@ describe('RootLayout', () => {
 
     appStateListener?.('background');
     expect(mockReconcileRunningTimer).toHaveBeenCalledTimes(1);
+    expect(mockPushForCurrentUser).toHaveBeenCalledTimes(1);
 
     appStateListener?.('active');
     expect(mockReconcileRunningTimer).toHaveBeenCalledTimes(2);
+    expect(mockPullForCurrentUser).toHaveBeenCalledTimes(2);
   });
 });
