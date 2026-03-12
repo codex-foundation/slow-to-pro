@@ -273,7 +273,13 @@ export default function FinancesScreen() {
       <CategoryBudgetModal visible={showSettings} onClose={() => setShowSettings(false)} />
 
       <Modal visible={showAddExpense} onClose={() => setShowAddExpense(false)} title="Add expense">
-        <ExpenseForm onSubmitted={() => setShowAddExpense(false)} />
+        <ExpenseForm
+          onSubmitted={() => setShowAddExpense(false)}
+          onOpenCategoryModal={() => {
+            setShowAddExpense(false);
+            setShowSettings(true);
+          }}
+        />
       </Modal>
 
       <Modal visible={showSetBudget} onClose={() => setShowSetBudget(false)} title="Set budget">

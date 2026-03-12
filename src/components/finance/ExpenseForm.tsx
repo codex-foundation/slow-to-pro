@@ -1,46 +1,30 @@
 import { useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFinanceStore } from '@/stores/financeStore';
 
-const CUSTOM_CATEGORY_ID = '__custom__';
-const CUSTOM_CATEGORY_COLOR = '#64748b';
-
 interface ExpenseFormProps {
   onSubmitted?: () => void;
+  onOpenCategoryModal?: () => void;
 }
 
-export function ExpenseForm({ onSubmitted }: ExpenseFormProps) {
+export function ExpenseForm({ onSubmitted, onOpenCategoryModal }: ExpenseFormProps) {
   const theme = useAppTheme();
-  const { categories, addCategory, addExpense } = useFinanceStore();
+  const { categories, addExpense } = useFinanceStore();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [customCategoryName, setCustomCategoryName] = useState('');
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
 
-  const isCustomCategory = selectedCategoryId === CUSTOM_CATEGORY_ID;
-  const canSubmit =
-    !!amount.trim() && !!selectedCategoryId && (!isCustomCategory || !!customCategoryName.trim());
+  const canSubmit = !!amount.trim() && !!selectedCategoryId;
 
   const handleAdd = () => {
     const parsed = parseFloat(amount);
     if (!selectedCategoryId || isNaN(parsed) || parsed <= 0) return;
 
-    let categoryId = selectedCategoryId;
-    if (selectedCategoryId === CUSTOM_CATEGORY_ID) {
-      const normalizedName = customCategoryName.trim();
-      if (!normalizedName) return;
-
-      const existing = categories.find(
-        (cat) => cat.name.toLowerCase() === normalizedName.toLowerCase()
-      );
-      categoryId = existing ? existing.id : addCategory(normalizedName, CUSTOM_CATEGORY_COLOR);
-    }
-
-    addExpense({ categoryId, amount: parsed, note: note.trim() || undefined });
+    addExpense({ categoryId: selectedCategoryId, amount: parsed, note: note.trim() || undefined });
     setAmount('');
     setNote('');
-    setCustomCategoryName('');
     setSelectedCategoryId(null);
     onSubmitted?.();
   };
@@ -53,63 +37,51 @@ export function ExpenseForm({ onSubmitted }: ExpenseFormProps) {
         Add expense
       </Text>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, marginBottom: 12 }}>
-        {categories.map((cat) => (
-          <TouchableOpacity
-            key={cat.id}
-            onPress={() => setSelectedCategoryId(cat.id)}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 20,
-              backgroundColor: selectedCategoryId === cat.id ? cat.color : theme.surface,
-              borderWidth: 1,
-              borderColor: selectedCategoryId === cat.id ? cat.color : theme.border,
-            }}>
-            <Text
-              style={{ color: selectedCategoryId === cat.id ? '#fff' : theme.textMuted }}
-              className="text-sm font-medium">
-              {cat.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View className="flex-row gap-2 mb-3">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, paddingRight: 8 }}
+          scrollEnabled={true}
+          nestedScrollEnabled={true}
+          className="flex-1">
+          {categories.map((cat) => (
+            <TouchableOpacity
+              key={cat.id}
+              onPress={() => setSelectedCategoryId(cat.id)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+                backgroundColor: selectedCategoryId === cat.id ? cat.color : theme.surface,
+                borderWidth: 1,
+                borderColor: selectedCategoryId === cat.id ? cat.color : theme.border,
+              }}>
+              <Text
+                style={{ color: selectedCategoryId === cat.id ? '#fff' : theme.textMuted }}
+                className="text-sm font-medium">
+                {cat.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         <TouchableOpacity
-          onPress={() => setSelectedCategoryId(CUSTOM_CATEGORY_ID)}
+          onPress={onOpenCategoryModal}
           style={{
             paddingHorizontal: 12,
             paddingVertical: 6,
             borderRadius: 20,
-            backgroundColor: isCustomCategory ? CUSTOM_CATEGORY_COLOR : theme.surface,
-            borderWidth: 1,
-            borderColor: isCustomCategory ? CUSTOM_CATEGORY_COLOR : theme.border,
-          }}>
-          <Text
-            style={{ color: isCustomCategory ? '#fff' : theme.textMuted }}
-            className="text-sm font-medium">
-            Custom
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {isCustomCategory && (
-        <TextInput
-          className="rounded-xl px-4 py-3 text-base mb-2"
-          style={{
-            borderColor: theme.border,
-            borderWidth: 1,
             backgroundColor: theme.surface,
-            color: theme.text,
-          }}
-          placeholder="Custom category name"
-          placeholderTextColor={theme.textSubtle}
-          value={customCategoryName}
-          onChangeText={setCustomCategoryName}
-        />
-      )}
+            borderWidth: 1,
+            borderColor: theme.border,
+            justifyContent: 'center',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}>
+          <Ionicons name="settings-outline" size={18} color={theme.textMuted} />
+        </TouchableOpacity>
+      </View>
 
       <View className="flex-row gap-2 mb-2">
         <TextInput
