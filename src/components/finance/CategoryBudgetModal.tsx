@@ -1,8 +1,17 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Alert, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  Modal as RNModal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { Modal } from '@/components/ui/Modal';
+import { ColorPicker } from '@/components/ui/ColorPicker';
 import { useFinanceStore } from '@/stores/financeStore';
 import { currentMonth } from '@/utils/date';
 
@@ -16,6 +25,163 @@ const PRESET_COLORS = [
   '#14b8a6',
   '#94a3b8',
 ];
+
+interface ColorSwatchPickerProps {
+  value: string;
+  onChange: (color: string) => void;
+  extraColors?: string[];
+}
+
+function ColorSwatchPicker({ value, onChange, extraColors = [] }: ColorSwatchPickerProps) {
+  const theme = useAppTheme();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [draft, setDraft] = useState('#ff0000');
+  const isPreset = PRESET_COLORS.includes(value);
+  const isInExtra = extraColors.includes(value);
+  const showCustomSwatch = !isPreset && !isInExtra;
+
+  const openPicker = () => {
+    setDraft(!isPreset ? value : '#ff0000');
+    setPickerOpen(true);
+  };
+
+  const confirmColor = () => {
+    onChange(draft);
+    setPickerOpen(false);
+  };
+
+  return (
+    <View className="mb-3">
+      <View className="flex-row flex-wrap gap-2 mb-1">
+        {PRESET_COLORS.map((color) => (
+          <TouchableOpacity
+            key={color}
+            onPress={() => onChange(color)}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: color,
+              borderWidth: value === color ? 2 : 0,
+              borderColor: theme.text,
+            }}
+          />
+        ))}
+
+        {/* Extra custom colors from other categories */}
+        {extraColors.map((color) => (
+          <TouchableOpacity
+            key={color}
+            onPress={() => onChange(color)}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: color,
+              borderWidth: value === color ? 2 : 0,
+              borderColor: theme.text,
+            }}
+          />
+        ))}
+
+        {/* Current value swatch — only shown when it's not a preset or in extraColors */}
+        {showCustomSwatch && (
+          <TouchableOpacity
+            onPress={openPicker}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: value,
+              borderWidth: 2,
+              borderColor: theme.text,
+            }}
+          />
+        )}
+
+        {/* + button to open the color picker modal */}
+        <TouchableOpacity
+          onPress={openPicker}
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            backgroundColor: theme.surface,
+            borderWidth: 1,
+            borderColor: theme.border,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          <Text
+            style={{ fontSize: 18, lineHeight: 20, fontWeight: '600', color: theme.textSubtle }}>
+            +
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Color picker modal */}
+      <RNModal
+        visible={pickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickerOpen(false)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <View
+            style={{
+              backgroundColor: theme.surfaceElevated,
+              borderRadius: 20,
+              padding: 20,
+              width: 280,
+            }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: theme.text, marginBottom: 16 }}>
+              Custom color
+            </Text>
+            <ColorPicker value={draft} onChange={setDraft} />
+            {/* Preview + hex */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: draft }} />
+              <Text style={{ fontSize: 14, color: theme.textMuted, fontVariant: ['tabular-nums'] }}>
+                {draft.toUpperCase()}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => setPickerOpen(false)}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  backgroundColor: theme.surface,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                }}>
+                <Text style={{ fontWeight: '600', color: theme.textSubtle }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={confirmColor}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  backgroundColor: theme.primary,
+                }}>
+                <Text style={{ fontWeight: '600', color: '#fff' }}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </RNModal>
+    </View>
+  );
+}
 
 interface Props {
   visible: boolean;
@@ -32,6 +198,14 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState(PRESET_COLORS[0]);
   const month = currentMonth();
+
+  const allExtraColors = [
+    ...new Set([
+      ...categories.map((c) => c.color).filter((c) => !PRESET_COLORS.includes(c)),
+      ...(!PRESET_COLORS.includes(newColor) ? [newColor] : []),
+      ...(!PRESET_COLORS.includes(editColor) ? [editColor] : []),
+    ]),
+  ];
 
   const getBudgetLimit = (categoryId: string) =>
     budgets.find((b) => b.categoryId === categoryId && b.month === month)?.monthlyLimit ?? 0;
@@ -72,18 +246,18 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} onClose={onClose} title="Budgets & Categories">
-      <Text
-        className="text-xs font-semibold uppercase tracking-wide mb-2"
-        style={{ color: theme.textSubtle }}>
-        Monthly budgets ({month})
-      </Text>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: 8 }}>
+        <Text
+          className="text-xs font-semibold uppercase tracking-wide mb-2"
+          style={{ color: theme.textSubtle }}>
+          Monthly budgets ({month})
+        </Text>
 
-      <FlatList
-        data={categories}
-        keyExtractor={(item) => item.id}
-        scrollEnabled={false}
-        renderItem={({ item }) => (
-          <View className="mb-3">
+        {categories.map((item) => (
+          <View key={item.id} className="mb-3">
             {editingId === item.id ? (
               <View
                 className="rounded-xl p-3"
@@ -92,22 +266,11 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
                   borderColor: theme.border,
                   borderWidth: 1,
                 }}>
-                <View className="flex-row flex-wrap gap-2 mb-2">
-                  {PRESET_COLORS.map((color) => (
-                    <TouchableOpacity
-                      key={color}
-                      onPress={() => setEditColor(color)}
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 12,
-                        backgroundColor: color,
-                        borderWidth: editColor === color ? 2 : 0,
-                        borderColor: theme.text,
-                      }}
-                    />
-                  ))}
-                </View>
+                <ColorSwatchPicker
+                  value={editColor}
+                  onChange={setEditColor}
+                  extraColors={allExtraColors}
+                />
                 <View className="flex-row gap-2">
                   <TextInput
                     className="flex-1 rounded-lg px-3 py-2 text-sm"
@@ -199,54 +362,45 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
               </View>
             )}
           </View>
-        )}
-      />
-
-      <View className="h-px my-4" style={{ backgroundColor: theme.border }} />
-
-      <Text
-        className="text-xs font-semibold uppercase tracking-wide mb-2"
-        style={{ color: theme.textSubtle }}>
-        Add category
-      </Text>
-      <View className="flex-row flex-wrap gap-2 mb-2">
-        {PRESET_COLORS.map((color) => (
-          <TouchableOpacity
-            key={color}
-            onPress={() => setNewColor(color)}
-            className={`w-7 h-7 rounded-full ${newColor === color ? 'border-2 border-gray-400' : ''}`}
-            style={{ backgroundColor: color }}
-          />
         ))}
-      </View>
-      <View className="flex-row gap-2">
-        <TextInput
-          className="flex-1 rounded-xl px-3 py-2.5 text-sm"
-          style={{
-            borderColor: theme.border,
-            borderWidth: 1,
-            backgroundColor: theme.surface,
-            color: theme.text,
-          }}
-          placeholder="Category name"
-          placeholderTextColor={theme.textSubtle}
-          value={newName}
-          onChangeText={setNewName}
-          returnKeyType="done"
-          onSubmitEditing={handleAddCategory}
-        />
-        <TouchableOpacity
-          onPress={handleAddCategory}
-          className="px-4 rounded-xl items-center justify-center"
-          style={{ backgroundColor: newName.trim() ? theme.primary : theme.surface }}
-          disabled={!newName.trim()}>
-          <Text
-            className="font-semibold"
-            style={{ color: newName.trim() ? '#fff' : theme.textSubtle }}>
-            Add
-          </Text>
-        </TouchableOpacity>
-      </View>
+
+        <View className="h-px my-4" style={{ backgroundColor: theme.border }} />
+
+        <Text
+          className="text-xs font-semibold uppercase tracking-wide mb-2"
+          style={{ color: theme.textSubtle }}>
+          Add category
+        </Text>
+        <ColorSwatchPicker value={newColor} onChange={setNewColor} extraColors={allExtraColors} />
+        <View className="flex-row gap-2">
+          <TextInput
+            className="flex-1 rounded-xl px-3 py-2.5 text-sm"
+            style={{
+              borderColor: theme.border,
+              borderWidth: 1,
+              backgroundColor: theme.surface,
+              color: theme.text,
+            }}
+            placeholder="Category name"
+            placeholderTextColor={theme.textSubtle}
+            value={newName}
+            onChangeText={setNewName}
+            returnKeyType="done"
+            onSubmitEditing={handleAddCategory}
+          />
+          <TouchableOpacity
+            onPress={handleAddCategory}
+            className="px-4 rounded-xl items-center justify-center"
+            style={{ backgroundColor: newName.trim() ? theme.primary : theme.surface }}
+            disabled={!newName.trim()}>
+            <Text
+              className="font-semibold"
+              style={{ color: newName.trim() ? '#fff' : theme.textSubtle }}>
+              Add
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </Modal>
   );
 }
