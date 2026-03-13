@@ -73,39 +73,48 @@ export function getLocalSnapshot(): AppSnapshot {
   };
 }
 
+// Set to true while applySnapshot is running so store subscriptions
+// don't trigger a redundant push of data we just pulled.
+export let isApplyingSnapshot = false;
+
 export function applySnapshot(snapshot: AppSnapshot) {
-  useTaskStore.setState({
-    tasks: snapshot.taskStore.tasks,
-    lastResetDate: snapshot.taskStore.lastResetDate,
-  });
+  isApplyingSnapshot = true;
+  try {
+    useTaskStore.setState({
+      tasks: snapshot.taskStore.tasks,
+      lastResetDate: snapshot.taskStore.lastResetDate,
+    });
 
-  useFinanceStore.setState({
-    categories: snapshot.financeStore.categories,
-    budgets: snapshot.financeStore.budgets,
-    expenses: snapshot.financeStore.expenses,
-    notifiedBudgetThresholdByKey: snapshot.financeStore.notifiedBudgetThresholdByKey,
-    overallBudgetAmount: snapshot.financeStore.overallBudgetAmount,
-    overallBudgetPeriod: snapshot.financeStore.overallBudgetPeriod,
-  });
+    useFinanceStore.setState({
+      categories: snapshot.financeStore.categories,
+      budgets: snapshot.financeStore.budgets,
+      expenses: snapshot.financeStore.expenses,
+      notifiedBudgetThresholdByKey: snapshot.financeStore.notifiedBudgetThresholdByKey,
+      overallBudgetAmount: snapshot.financeStore.overallBudgetAmount,
+      overallBudgetPeriod: snapshot.financeStore.overallBudgetPeriod,
+    });
 
-  usePomodoroStore.setState({
-    sessions: snapshot.pomodoroStore.sessions,
-    workDuration: snapshot.pomodoroStore.workDuration,
-    breakDuration: snapshot.pomodoroStore.breakDuration,
-    status: snapshot.pomodoroStore.status,
-    phase: snapshot.pomodoroStore.phase,
-    secondsRemaining: snapshot.pomodoroStore.secondsRemaining,
-    cycleCount: snapshot.pomodoroStore.cycleCount,
-    selectedTaskId: snapshot.pomodoroStore.selectedTaskId,
-    cycleStartedAt: snapshot.pomodoroStore.cycleStartedAt,
-  });
+    usePomodoroStore.setState({
+      sessions: snapshot.pomodoroStore.sessions,
+      workDuration: snapshot.pomodoroStore.workDuration,
+      breakDuration: snapshot.pomodoroStore.breakDuration,
+      status: snapshot.pomodoroStore.status,
+      phase: snapshot.pomodoroStore.phase,
+      secondsRemaining: snapshot.pomodoroStore.secondsRemaining,
+      cycleCount: snapshot.pomodoroStore.cycleCount,
+      selectedTaskId: snapshot.pomodoroStore.selectedTaskId,
+      cycleStartedAt: snapshot.pomodoroStore.cycleStartedAt,
+    });
 
-  useSettingsStore.setState({
-    themePreference: snapshot.settingsStore.themePreference,
-  });
+    useSettingsStore.setState({
+      themePreference: snapshot.settingsStore.themePreference,
+    });
 
-  useTaskStore.getState().resetRecurringTasksIfNewDay();
-  usePomodoroStore.getState().reconcileRunningTimer();
+    useTaskStore.getState().resetRecurringTasksIfNewDay();
+    usePomodoroStore.getState().reconcileRunningTimer();
+  } finally {
+    isApplyingSnapshot = false;
+  }
 }
 
 export async function pullCloudSnapshot(userId: string): Promise<AppSnapshot | null> {

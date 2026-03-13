@@ -8,6 +8,13 @@ const mockAppStateAddEventListener = jest.fn(
   })
 );
 
+jest.mock('@react-native-community/netinfo', () => ({
+  __esModule: true,
+  default: {
+    addEventListener: jest.fn(() => jest.fn()),
+  },
+}));
+
 jest.mock('../../global.css', () => ({}));
 jest.mock('expo-constants', () => ({
   __esModule: true,
@@ -91,6 +98,7 @@ jest.mock('@/stores/taskStore', () => ({
     getState: () => ({
       resetRecurringTasksIfNewDay: mockResetRecurringTasksIfNewDay,
     }),
+    subscribe: jest.fn(() => jest.fn()),
   },
 }));
 
@@ -99,10 +107,24 @@ jest.mock('@/stores/pomodoroStore', () => ({
     getState: () => ({
       reconcileRunningTimer: mockReconcileRunningTimer,
     }),
+    subscribe: jest.fn(() => jest.fn()),
+  },
+}));
+
+jest.mock('@/stores/financeStore', () => ({
+  useFinanceStore: {
+    subscribe: jest.fn(() => jest.fn()),
+  },
+}));
+
+jest.mock('@/stores/settingsStore', () => ({
+  useSettingsStore: {
+    subscribe: jest.fn(() => jest.fn()),
   },
 }));
 
 jest.mock('@/services/cloudSync', () => ({
+  isApplyingSnapshot: false,
   pullForCurrentUser: () => mockPullForCurrentUser(),
   pushForCurrentUser: () => mockPushForCurrentUser(),
 }));
