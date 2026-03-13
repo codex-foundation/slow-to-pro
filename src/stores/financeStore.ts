@@ -33,6 +33,7 @@ interface FinanceStore {
   overallBudgetAmount: number;
   overallBudgetPeriod: BudgetPeriod;
   addCategory: (name: string, color: string) => string;
+  updateCategory: (id: string, name: string, color: string) => void;
   deleteCategory: (id: string) => void;
   upsertBudget: (categoryId: string, limit: number, month: string) => void;
   setOverallBudget: (amount: number, period: BudgetPeriod) => void;
@@ -55,6 +56,12 @@ export const useFinanceStore = create<FinanceStore>()(
         const cat: Category = { id: generateId(), name, color };
         set((s) => ({ categories: [...s.categories, cat] }));
         return cat.id;
+      },
+
+      updateCategory: (id, name, color) => {
+        set((s) => ({
+          categories: s.categories.map((c) => (c.id === id ? { ...c, name, color } : c)),
+        }));
       },
 
       deleteCategory: (id) => {

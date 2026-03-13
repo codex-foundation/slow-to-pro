@@ -73,4 +73,48 @@ describe('CategoryBudgetModal', () => {
 
     expect(budget?.monthlyLimit).toBe(125.5);
   });
+
+  it('shows edit form when pencil icon is pressed', () => {
+    const { getAllByText, getByDisplayValue } = render(
+      <CategoryBudgetModal visible onClose={jest.fn()} />
+    );
+
+    // There are multiple 'icon' texts (from MockIonicons). Press the pencil (2nd icon = edit).
+    const icons = getAllByText('icon');
+    // icons order: cash-outline, pencil-outline, trash-outline
+    fireEvent.press(icons[1]);
+
+    expect(getByDisplayValue('Food')).toBeTruthy();
+  });
+
+  it('saves edited category name and color', () => {
+    const { getAllByText, getByDisplayValue, getByText } = render(
+      <CategoryBudgetModal visible onClose={jest.fn()} />
+    );
+
+    const icons = getAllByText('icon');
+    fireEvent.press(icons[1]);
+
+    const nameInput = getByDisplayValue('Food');
+    fireEvent.changeText(nameInput, 'Groceries');
+    fireEvent.press(getByText('Save'));
+
+    expect(useFinanceStore.getState().categories[0].name).toBe('Groceries');
+  });
+
+  it('cancels edit without saving', () => {
+    const { getAllByText, getByDisplayValue, getByText, queryByDisplayValue } = render(
+      <CategoryBudgetModal visible onClose={jest.fn()} />
+    );
+
+    const icons = getAllByText('icon');
+    fireEvent.press(icons[1]);
+
+    const nameInput = getByDisplayValue('Food');
+    fireEvent.changeText(nameInput, 'Changed Name');
+    fireEvent.press(getByText('Cancel'));
+
+    expect(queryByDisplayValue('Changed Name')).toBeNull();
+    expect(useFinanceStore.getState().categories[0].name).toBe('Food');
+  });
 });

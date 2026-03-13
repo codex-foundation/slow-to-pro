@@ -56,7 +56,19 @@ export function ExpenseForm({ onSubmitted, onOpenCategoryModal }: ExpenseFormPro
                 backgroundColor: selectedCategoryId === cat.id ? cat.color : theme.surface,
                 borderWidth: 1,
                 borderColor: selectedCategoryId === cat.id ? cat.color : theme.border,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
               }}>
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor:
+                    selectedCategoryId === cat.id ? 'rgba(255,255,255,0.7)' : cat.color,
+                }}
+              />
               <Text
                 style={{ color: selectedCategoryId === cat.id ? '#fff' : theme.textMuted }}
                 className="text-sm font-medium">
