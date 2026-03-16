@@ -4,7 +4,14 @@ import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -31,6 +38,7 @@ export default function SettingsScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<
     'login' | 'signup' | 'google' | 'apple' | 'logout' | null
@@ -46,11 +54,13 @@ export default function SettingsScreen() {
     void supabase.auth.getUser().then(({ data }) => {
       if (!active) return;
       setUserEmail(data.user?.email ?? null);
+      setAuthLoading(false);
     });
 
     const subscription = supabase.auth.onAuthStateChange((_event, session) => {
       if (!active) return;
       setUserEmail(session?.user?.email ?? null);
+      setAuthLoading(false);
     });
 
     return () => {
@@ -241,163 +251,171 @@ export default function SettingsScreen() {
               </Text>
             ) : (
               <>
-                <Text className="text-xs mb-3" style={{ color: theme.textSubtle }}>
-                  {userEmail
-                    ? `Logged in as ${userEmail}`
-                    : 'Log in or sign up to sync your tasks, finances, focus sessions, and settings across devices.'}
-                </Text>
-
-                {!userEmail && (
+                {authLoading ? (
+                  <ActivityIndicator size="small" color={theme.textSubtle} />
+                ) : (
                   <>
-                    <TextInput
-                      value={email}
-                      onChangeText={setEmail}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                      placeholder="Email"
-                      placeholderTextColor={theme.textSubtle}
-                      className="rounded-xl px-4 py-3 text-sm mb-2"
-                      style={{
-                        borderColor: theme.border,
-                        borderWidth: 1,
-                        backgroundColor: theme.surface,
-                        color: theme.text,
-                      }}
-                    />
-                    <TextInput
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry
-                      placeholder="Password (min 6 chars)"
-                      placeholderTextColor={theme.textSubtle}
-                      className="rounded-xl px-4 py-3 text-sm mb-3"
-                      style={{
-                        borderColor: theme.border,
-                        borderWidth: 1,
-                        backgroundColor: theme.surface,
-                        color: theme.text,
-                      }}
-                    />
+                    <Text className="text-xs mb-3" style={{ color: theme.textSubtle }}>
+                      {userEmail
+                        ? `Logged in as ${userEmail}`
+                        : 'Log in or sign up to sync your tasks, finances, focus sessions, and settings across devices.'}
+                    </Text>
 
-                    <View className="flex-row gap-2 mb-2">
-                      <TouchableOpacity
-                        onPress={handleLogin}
-                        disabled={!canAuthSubmit}
-                        className="flex-1 py-2.5 rounded-xl items-center"
-                        style={{
-                          backgroundColor: canAuthSubmit ? theme.primary : theme.surface,
-                          borderColor: theme.border,
-                          borderWidth: canAuthSubmit ? 0 : 1,
-                        }}>
-                        <Text
-                          className="font-semibold"
-                          style={{ color: canAuthSubmit ? '#fff' : theme.textSubtle }}>
-                          {busyAction === 'login' ? 'Logging in...' : 'Log in'}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={handleSignUp}
-                        disabled={!canAuthSubmit}
-                        className="flex-1 py-2.5 rounded-xl items-center"
-                        style={{
-                          backgroundColor: canAuthSubmit ? theme.surface : theme.surfaceMuted,
-                          borderColor: theme.border,
-                          borderWidth: 1,
-                        }}>
-                        <Text className="font-semibold" style={{ color: theme.textMuted }}>
-                          {busyAction === 'signup' ? 'Signing up...' : 'Sign up'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
+                    {!authLoading && !userEmail && (
+                      <>
+                        <TextInput
+                          value={email}
+                          onChangeText={setEmail}
+                          autoCapitalize="none"
+                          keyboardType="email-address"
+                          placeholder="Email"
+                          placeholderTextColor={theme.textSubtle}
+                          className="rounded-xl px-4 py-3 text-sm mb-2"
+                          style={{
+                            borderColor: theme.border,
+                            borderWidth: 1,
+                            backgroundColor: theme.surface,
+                            color: theme.text,
+                          }}
+                        />
+                        <TextInput
+                          value={password}
+                          onChangeText={setPassword}
+                          secureTextEntry
+                          placeholder="Password (min 6 chars)"
+                          placeholderTextColor={theme.textSubtle}
+                          className="rounded-xl px-4 py-3 text-sm mb-3"
+                          style={{
+                            borderColor: theme.border,
+                            borderWidth: 1,
+                            backgroundColor: theme.surface,
+                            color: theme.text,
+                          }}
+                        />
 
-                    <View className="gap-2 mb-2">
-                      <TouchableOpacity
-                        onPress={() => handleSocialLogin('google')}
-                        disabled={isBusy}
-                        className="py-2.5 rounded-xl items-center"
-                        style={{
-                          backgroundColor: theme.surface,
-                          borderColor: theme.border,
-                          borderWidth: 1,
-                          opacity: isBusy ? 0.65 : 1,
-                        }}>
-                        <Text className="font-semibold" style={{ color: theme.textMuted }}>
-                          {busyAction === 'google' ? 'Opening Google...' : 'Continue with Google'}
-                        </Text>
-                      </TouchableOpacity>
+                        <View className="flex-row gap-2 mb-2">
+                          <TouchableOpacity
+                            onPress={handleLogin}
+                            disabled={!canAuthSubmit}
+                            className="flex-1 py-2.5 rounded-xl items-center"
+                            style={{
+                              backgroundColor: canAuthSubmit ? theme.primary : theme.surface,
+                              borderColor: theme.border,
+                              borderWidth: canAuthSubmit ? 0 : 1,
+                            }}>
+                            <Text
+                              className="font-semibold"
+                              style={{ color: canAuthSubmit ? '#fff' : theme.textSubtle }}>
+                              {busyAction === 'login' ? 'Logging in...' : 'Log in'}
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={handleSignUp}
+                            disabled={!canAuthSubmit}
+                            className="flex-1 py-2.5 rounded-xl items-center"
+                            style={{
+                              backgroundColor: canAuthSubmit ? theme.surface : theme.surfaceMuted,
+                              borderColor: theme.border,
+                              borderWidth: 1,
+                            }}>
+                            <Text className="font-semibold" style={{ color: theme.textMuted }}>
+                              {busyAction === 'signup' ? 'Signing up...' : 'Sign up'}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
 
-                      <TouchableOpacity
-                        onPress={() => handleSocialLogin('apple')}
-                        disabled={isBusy}
-                        className="py-2.5 rounded-xl items-center"
-                        style={{
-                          backgroundColor: theme.surface,
-                          borderColor: theme.border,
-                          borderWidth: 1,
-                          opacity: isBusy ? 0.65 : 1,
-                        }}>
-                        <Text className="font-semibold" style={{ color: theme.textMuted }}>
-                          {busyAction === 'apple' ? 'Opening Apple...' : 'Continue with Apple'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </>
-                )}
+                        <View className="gap-2 mb-2">
+                          <TouchableOpacity
+                            onPress={() => handleSocialLogin('google')}
+                            disabled={isBusy}
+                            className="py-2.5 rounded-xl items-center"
+                            style={{
+                              backgroundColor: theme.surface,
+                              borderColor: theme.border,
+                              borderWidth: 1,
+                              opacity: isBusy ? 0.65 : 1,
+                            }}>
+                            <Text className="font-semibold" style={{ color: theme.textMuted }}>
+                              {busyAction === 'google'
+                                ? 'Opening Google...'
+                                : 'Continue with Google'}
+                            </Text>
+                          </TouchableOpacity>
 
-                {userEmail && (
-                  <>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 8,
-                        marginBottom: 12,
-                      }}>
-                      <View
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: 4,
-                          backgroundColor: isSyncing
-                            ? theme.primary
-                            : syncError
-                              ? '#ef4444'
-                              : lastSyncedAt
-                                ? '#22c55e'
-                                : '#94a3b8',
-                        }}
-                      />
-                      <Text style={{ fontSize: 12, color: theme.textSubtle }}>
-                        {isSyncing
-                          ? 'Syncing…'
-                          : syncError
-                            ? `Sync error: ${syncError}`
-                            : lastSyncedAt
-                              ? `Synced · ${syncTimeAgo(lastSyncedAt)}`
-                              : 'Sync pending…'}
+                          <TouchableOpacity
+                            onPress={() => handleSocialLogin('apple')}
+                            disabled={isBusy}
+                            className="py-2.5 rounded-xl items-center"
+                            style={{
+                              backgroundColor: theme.surface,
+                              borderColor: theme.border,
+                              borderWidth: 1,
+                              opacity: isBusy ? 0.65 : 1,
+                            }}>
+                            <Text className="font-semibold" style={{ color: theme.textMuted }}>
+                              {busyAction === 'apple' ? 'Opening Apple...' : 'Continue with Apple'}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    )}
+
+                    {userEmail && (
+                      <>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 8,
+                            marginBottom: 12,
+                          }}>
+                          <View
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: 4,
+                              backgroundColor: isSyncing
+                                ? theme.primary
+                                : syncError
+                                  ? '#ef4444'
+                                  : lastSyncedAt
+                                    ? '#22c55e'
+                                    : '#94a3b8',
+                            }}
+                          />
+                          <Text style={{ fontSize: 12, color: theme.textSubtle }}>
+                            {isSyncing
+                              ? 'Syncing…'
+                              : syncError
+                                ? `Sync error: ${syncError}`
+                                : lastSyncedAt
+                                  ? `Synced · ${syncTimeAgo(lastSyncedAt)}`
+                                  : 'Sync pending…'}
+                          </Text>
+                        </View>
+
+                        <TouchableOpacity
+                          onPress={handleLogout}
+                          disabled={isBusy}
+                          className="py-2.5 rounded-xl items-center"
+                          style={{
+                            backgroundColor: theme.surface,
+                            borderColor: theme.border,
+                            borderWidth: 1,
+                          }}>
+                          <Text className="font-semibold" style={{ color: theme.textMuted }}>
+                            {busyAction === 'logout' ? 'Logging out…' : 'Log out'}
+                          </Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+
+                    {!!statusMessage && (
+                      <Text className="text-xs mt-3" style={{ color: theme.textSubtle }}>
+                        {statusMessage}
                       </Text>
-                    </View>
-
-                    <TouchableOpacity
-                      onPress={handleLogout}
-                      disabled={isBusy}
-                      className="py-2.5 rounded-xl items-center"
-                      style={{
-                        backgroundColor: theme.surface,
-                        borderColor: theme.border,
-                        borderWidth: 1,
-                      }}>
-                      <Text className="font-semibold" style={{ color: theme.textMuted }}>
-                        {busyAction === 'logout' ? 'Logging out…' : 'Log out'}
-                      </Text>
-                    </TouchableOpacity>
+                    )}
                   </>
-                )}
-
-                {!!statusMessage && (
-                  <Text className="text-xs mt-3" style={{ color: theme.textSubtle }}>
-                    {statusMessage}
-                  </Text>
                 )}
               </>
             )}
