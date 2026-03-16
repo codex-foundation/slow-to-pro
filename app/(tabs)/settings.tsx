@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import * as ExpoLinking from 'expo-linking';
+import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useMemo, useState } from 'react';
@@ -7,18 +8,24 @@ import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-nativ
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
-import {
-  applySnapshot,
-  pullCloudSnapshot,
-  pushCloudSnapshot,
-  syncFromCloudOrSeed,
-} from '@/services/cloudSync';
+import { syncFromCloudOrSeed } from '@/services/cloudSync';
+import { useSyncStore } from '@/stores/syncStore';
 import { type ThemePreference, useSettingsStore } from '@/stores/settingsStore';
 
 const THEME_OPTIONS: ThemePreference[] = ['system', 'light', 'dark'];
 
+function syncTimeAgo(ms: number): string {
+  const secs = Math.floor((Date.now() - ms) / 1000);
+  if (secs < 60) return 'just now';
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+  return `${Math.floor(secs / 86400)}d ago`;
+}
+
 export default function SettingsScreen() {
   const theme = useAppTheme();
+  const router = useRouter();
+  const { lastSyncedAt, isSyncing, syncError } = useSyncStore();
   const themePreference = useSettingsStore((s) => s.themePreference);
   const setThemePreference = useSettingsStore((s) => s.setThemePreference);
   const [email, setEmail] = useState('');
@@ -26,7 +33,7 @@ export default function SettingsScreen() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<
-    'login' | 'signup' | 'google' | 'apple' | 'logout' | 'pull' | 'push' | null
+    'login' | 'signup' | 'google' | 'apple' | 'logout' | null
   >(null);
 
   const appVersion = Constants.expoConfig?.version ?? Constants.nativeAppVersion ?? '1.0.0';
@@ -115,7 +122,7 @@ export default function SettingsScreen() {
     await withBusy('logout', async () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      setStatusMessage('Logged out. Local data remains on this device.');
+      router.replace('/');
     });
   };
 
@@ -164,30 +171,6 @@ export default function SettingsScreen() {
             : 'Logged in and created your first cloud backup.'
         );
       }
-    });
-  };
-
-  const handlePull = async () => {
-    if (!supabase) return;
-    await withBusy('pull', async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error) throw error;
-      if (!data.user) throw new Error('Please log in first.');
-      const snapshot = await pullCloudSnapshot(data.user.id);
-      if (!snapshot) throw new Error('No cloud snapshot found yet for this account.');
-      applySnapshot(snapshot);
-      setStatusMessage('Pulled latest cloud data to this device.');
-    });
-  };
-
-  const handlePush = async () => {
-    if (!supabase) return;
-    await withBusy('push', async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error) throw error;
-      if (!data.user) throw new Error('Please log in first.');
-      await pushCloudSnapshot(data.user.id);
-      setStatusMessage('Pushed local data to cloud backup.');
     });
   };
 
@@ -363,29 +346,36 @@ export default function SettingsScreen() {
 
                 {userEmail && (
                   <>
-                    <View className="flex-row gap-2 mb-2">
-                      <TouchableOpacity
-                        onPress={handlePull}
-                        disabled={isBusy}
-                        className="flex-1 py-2.5 rounded-xl items-center"
-                        style={{ backgroundColor: theme.primary }}>
-                        <Text className="font-semibold text-white">
-                          {busyAction === 'pull' ? 'Syncing...' : 'Pull from cloud'}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={handlePush}
-                        disabled={isBusy}
-                        className="flex-1 py-2.5 rounded-xl items-center"
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 8,
+                        marginBottom: 12,
+                      }}>
+                      <View
                         style={{
-                          backgroundColor: theme.surface,
-                          borderColor: theme.border,
-                          borderWidth: 1,
-                        }}>
-                        <Text className="font-semibold" style={{ color: theme.textMuted }}>
-                          {busyAction === 'push' ? 'Backing up...' : 'Push to cloud'}
-                        </Text>
-                      </TouchableOpacity>
+                          width: 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: isSyncing
+                            ? theme.primary
+                            : syncError
+                              ? '#ef4444'
+                              : lastSyncedAt
+                                ? '#22c55e'
+                                : '#94a3b8',
+                        }}
+                      />
+                      <Text style={{ fontSize: 12, color: theme.textSubtle }}>
+                        {isSyncing
+                          ? 'Syncing…'
+                          : syncError
+                            ? `Sync error: ${syncError}`
+                            : lastSyncedAt
+                              ? `Synced · ${syncTimeAgo(lastSyncedAt)}`
+                              : 'Sync pending…'}
+                      </Text>
                     </View>
 
                     <TouchableOpacity
@@ -398,7 +388,7 @@ export default function SettingsScreen() {
                         borderWidth: 1,
                       }}>
                       <Text className="font-semibold" style={{ color: theme.textMuted }}>
-                        {busyAction === 'logout' ? 'Logging out...' : 'Log out'}
+                        {busyAction === 'logout' ? 'Logging out…' : 'Log out'}
                       </Text>
                     </TouchableOpacity>
                   </>

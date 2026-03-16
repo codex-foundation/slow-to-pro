@@ -1,6 +1,7 @@
 import { useFinanceStore } from '@/stores/financeStore';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useSyncStore } from '@/stores/syncStore';
 import { useTaskStore } from '@/stores/taskStore';
 import { CLOUD_SYNC_TABLE, supabase } from '@/lib/supabase';
 
@@ -187,6 +188,14 @@ export async function pushForCurrentUser(): Promise<boolean> {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return false;
 
-  await pushCloudSnapshot(data.user.id);
-  return true;
+  const { setSyncing, setSynced, setSyncError } = useSyncStore.getState();
+  setSyncing(true);
+  try {
+    await pushCloudSnapshot(data.user.id);
+    setSynced();
+    return true;
+  } catch (err) {
+    setSyncError(err instanceof Error ? err.message : 'Sync failed');
+    return false;
+  }
 }

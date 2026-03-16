@@ -13,9 +13,7 @@ const mockCreateURL = jest.fn();
 const mockParse = jest.fn();
 const mockOpenAuthSessionAsync = jest.fn();
 const mockSyncFromCloudOrSeed = jest.fn();
-const mockPullCloudSnapshot = jest.fn();
-const mockPushCloudSnapshot = jest.fn();
-const mockApplySnapshot = jest.fn();
+const mockReplace = jest.fn();
 
 jest.mock('expo-constants', () => ({
   __esModule: true,
@@ -28,6 +26,10 @@ jest.mock('expo-constants', () => ({
 jest.mock('expo-linking', () => ({
   createURL: (...args: unknown[]) => mockCreateURL(...args),
   parse: (...args: unknown[]) => mockParse(...args),
+}));
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ replace: mockReplace }),
 }));
 
 jest.mock('expo-web-browser', () => ({
@@ -61,10 +63,11 @@ jest.mock('@/stores/settingsStore', () => ({
     }),
 }));
 
+jest.mock('@/stores/syncStore', () => ({
+  useSyncStore: () => ({ lastSyncedAt: null, isSyncing: false, syncError: null }),
+}));
+
 jest.mock('@/services/cloudSync', () => ({
-  applySnapshot: (...args: unknown[]) => mockApplySnapshot(...args),
-  pullCloudSnapshot: (...args: unknown[]) => mockPullCloudSnapshot(...args),
-  pushCloudSnapshot: (...args: unknown[]) => mockPushCloudSnapshot(...args),
   syncFromCloudOrSeed: (...args: unknown[]) => mockSyncFromCloudOrSeed(...args),
 }));
 
@@ -96,9 +99,7 @@ describe('SettingsScreen social auth', () => {
     mockParse.mockReset();
     mockOpenAuthSessionAsync.mockReset();
     mockSyncFromCloudOrSeed.mockReset();
-    mockPullCloudSnapshot.mockReset();
-    mockPushCloudSnapshot.mockReset();
-    mockApplySnapshot.mockReset();
+    mockReplace.mockReset();
 
     mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
     mockOnAuthStateChange.mockReturnValue({
