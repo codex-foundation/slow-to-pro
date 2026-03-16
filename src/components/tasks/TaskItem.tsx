@@ -1,6 +1,7 @@
 import { createElement, useState } from 'react';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
 import {
   Keyboard,
   Modal as RNModal,
@@ -24,6 +25,7 @@ import Animated, {
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Priority, Task } from '@/models/task';
+import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useTaskStore } from '@/stores/taskStore';
 import { Modal } from '../ui/Modal';
 
@@ -99,7 +101,9 @@ export function TaskItem({
   onCompleted,
 }: Props) {
   const theme = useAppTheme();
+  const router = useRouter();
   const { toggleTask, deleteTask, updateTask } = useTaskStore();
+  const startWorkForTask = usePomodoroStore((s) => s.startWorkForTask);
   const [showEdit, setShowEdit] = useState(false);
 
   // Animation values
@@ -129,6 +133,8 @@ export function TaskItem({
   });
   const [showEditReminderDatePicker, setShowEditReminderDatePicker] = useState(false);
   const [showEditReminderTimePicker, setShowEditReminderTimePicker] = useState(false);
+  const [editRecurring, setEditRecurring] = useState(item.recurring.enabled);
+  const [editDays, setEditDays] = useState<number[]>(item.recurring.days);
   const dueDateText = item.dueDate ? new Date(item.dueDate).toLocaleDateString() : null;
   const reminderText = item.reminderAt ? new Date(item.reminderAt).toLocaleString() : null;
 
@@ -189,8 +195,14 @@ export function TaskItem({
     }
     setShowEditReminderDatePicker(false);
     setShowEditReminderTimePicker(false);
+    setEditRecurring(item.recurring.enabled);
+    setEditDays(item.recurring.days);
 
     setShowEdit(true);
+  };
+
+  const toggleEditDay = (day: number) => {
+    setEditDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
   };
 
   const onChangeEditDueDate = (_event: DateTimePickerEvent, selected?: Date) => {
@@ -232,7 +244,10 @@ export function TaskItem({
 
     const reminderAtMs = editReminderEnabled
       ? Platform.OS === 'web'
-        ? parseReminderDateTime(editReminderDateInput, editReminderTimeInput)
+        ? parseReminderDateTime(
+            editRecurring ? new Date().toISOString().slice(0, 10) : editReminderDateInput,
+            editReminderTimeInput
+          )
         : editReminderDateTime
           ? editReminderDateTime.getTime()
           : undefined
@@ -245,6 +260,7 @@ export function TaskItem({
       priority: editPriority,
       dueDate: dueDateMs,
       reminderAt: reminderAtMs,
+      recurring: { enabled: editRecurring, days: editDays },
     });
     setShowEdit(false);
   };
@@ -306,8 +322,32 @@ export function TaskItem({
     return '#f59e0b';
   };
 
+  const handleStartFocus = () => {
+    startWorkForTask(item.id);
+    router.replace('/(tabs)/pomodoro');
+  };
+
+  const focusBg = theme.isDark ? '#065f46' : '#d1fae5';
+  const editBg = theme.isDark ? '#1e3a6e' : '#dbeafe';
+  const deleteBg = theme.isDark ? '#7f1d1d' : '#fee2e2';
+
   const renderSwipeActions = () => (
     <View className="flex-row items-stretch">
+      {!item.completed && (
+        <TouchableOpacity
+          testID="focus-task-start"
+          onPress={handleStartFocus}
+          className="w-20 items-center justify-center"
+          accessibilityRole="button"
+          accessibilityLabel={`Start focus on ${item.title}`}
+          style={{ backgroundColor: focusBg }}>
+          <Ionicons name="timer-outline" size={18} color={theme.success} />
+          <Text className="text-xs mt-0.5" style={{ color: theme.success }}>
+            Focus
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {!item.completed && (
         <TouchableOpacity
           testID="edit-task-open"
@@ -316,7 +356,7 @@ export function TaskItem({
           accessibilityRole="button"
           accessibilityLabel={`Edit task ${item.title}`}
           accessibilityHint="Opens task edit form"
-          style={{ backgroundColor: theme.primarySoft }}>
+          style={{ backgroundColor: editBg }}>
           <Ionicons name="create-outline" size={18} color={theme.primary} />
           <Text className="text-xs mt-0.5" style={{ color: theme.primary }}>
             Edit
@@ -331,7 +371,7 @@ export function TaskItem({
         accessibilityRole="button"
         accessibilityLabel={`Delete task ${item.title}`}
         accessibilityHint="Removes this task"
-        style={{ backgroundColor: '#fee2e2' }}>
+        style={{ backgroundColor: deleteBg }}>
         <Ionicons name="trash-outline" size={18} color={theme.danger} />
         <Text className="text-xs mt-0.5" style={{ color: theme.danger }}>
           Delete
@@ -498,6 +538,17 @@ export function TaskItem({
         <View className="flex-row items-center">
           {!item.completed && (
             <TouchableOpacity
+              onPress={handleStartFocus}
+              testID="focus-task-start"
+              className="pl-2 py-1"
+              accessibilityRole="button"
+              accessibilityLabel={`Start focus on ${item.title}`}>
+              <Ionicons name="timer-outline" size={16} color={theme.success} />
+            </TouchableOpacity>
+          )}
+
+          {!item.completed && (
+            <TouchableOpacity
               onPress={openEdit}
               testID="edit-task-open"
               className="pl-2 py-1"
@@ -571,10 +622,49 @@ export function TaskItem({
           ))}
         </View>
 
-        <View className="flex-row items-center justify-between mb-2">
+        <View className="flex-row items-center justify-between mb-3">
           <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
-            Due date
+            Recurring task
           </Text>
+          <Switch
+            testID="edit-recurring-switch"
+            value={editRecurring}
+            onValueChange={setEditRecurring}
+            trackColor={{ true: '#6366f1' }}
+          />
+        </View>
+
+        {editRecurring && (
+          <View className="flex-row gap-1 mb-4 flex-wrap">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label, i) => (
+              <TouchableOpacity
+                key={i}
+                testID={`edit-day-${i}`}
+                onPress={() => toggleEditDay(i)}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: editDays.includes(i) ? '#6366f1' : theme.surface,
+                  borderWidth: 1,
+                  borderColor: editDays.includes(i) ? '#6366f1' : theme.border,
+                }}>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: '600',
+                    color: editDays.includes(i) ? '#fff' : theme.textMuted,
+                  }}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        <View className="flex-row items-center justify-between mb-2">
           {hasEditDueDateValue && (
             <TouchableOpacity onPress={clearEditDueDate}>
               <Text className="text-xs font-medium" style={{ color: theme.textSubtle }}>
@@ -646,16 +736,18 @@ export function TaskItem({
         {editReminderEnabled &&
           (Platform.OS === 'web' ? (
             <View className="flex-row gap-2 mb-4 items-center">
-              <View className="flex-1">
-                {createElement('input', {
-                  type: 'date',
-                  value: editReminderDateInput,
-                  onChange: (e: { target: { value: string } }) =>
-                    setEditReminderDateInput(e.target.value),
-                  style: webInputStyle,
-                })}
-              </View>
-              <View style={{ width: 120 }}>
+              {!editRecurring && (
+                <View className="flex-1">
+                  {createElement('input', {
+                    type: 'date',
+                    value: editReminderDateInput,
+                    onChange: (e: { target: { value: string } }) =>
+                      setEditReminderDateInput(e.target.value),
+                    style: webInputStyle,
+                  })}
+                </View>
+              )}
+              <View style={editRecurring ? { flex: 1 } : { width: 120 }}>
                 {createElement('input', {
                   type: 'time',
                   value: editReminderTimeInput,
@@ -667,19 +759,39 @@ export function TaskItem({
             </View>
           ) : (
             <View className="mb-4 gap-2">
-              <TouchableOpacity
-                testID="edit-reminder-date-open"
-                onPress={openEditReminderDatePicker}
-                className="rounded-xl px-4 py-3"
-                style={{
-                  borderColor: theme.border,
-                  borderWidth: 1,
-                  backgroundColor: theme.surface,
-                }}>
-                <Text className="text-base" style={{ color: theme.text }}>
-                  Reminder date: {formatDate(editReminderDateTime)}
-                </Text>
-              </TouchableOpacity>
+              {!editRecurring && (
+                <>
+                  <TouchableOpacity
+                    testID="edit-reminder-date-open"
+                    onPress={openEditReminderDatePicker}
+                    className="rounded-xl px-4 py-3"
+                    style={{
+                      borderColor: theme.border,
+                      borderWidth: 1,
+                      backgroundColor: theme.surface,
+                    }}>
+                    <Text className="text-base" style={{ color: theme.text }}>
+                      Reminder date: {formatDate(editReminderDateTime)}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <PickerSheet
+                    visible={showEditReminderDatePicker}
+                    title="Select reminder date"
+                    testID="edit-reminder-date-picker-modal"
+                    onClose={() => setShowEditReminderDatePicker(false)}
+                    onConfirm={() => setShowEditReminderDatePicker(false)}>
+                    <DateTimePicker
+                      value={editReminderDateTime ?? new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={onChangeEditReminderDate}
+                      {...nativePickerThemeProps}
+                    />
+                  </PickerSheet>
+                </>
+              )}
+
               <TouchableOpacity
                 testID="edit-reminder-time-open"
                 onPress={openEditReminderTimePicker}
@@ -693,21 +805,6 @@ export function TaskItem({
                   Reminder time: {formatTime(editReminderDateTime)}
                 </Text>
               </TouchableOpacity>
-
-              <PickerSheet
-                visible={showEditReminderDatePicker}
-                title="Select reminder date"
-                testID="edit-reminder-date-picker-modal"
-                onClose={() => setShowEditReminderDatePicker(false)}
-                onConfirm={() => setShowEditReminderDatePicker(false)}>
-                <DateTimePicker
-                  value={editReminderDateTime ?? new Date()}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={onChangeEditReminderDate}
-                  {...nativePickerThemeProps}
-                />
-              </PickerSheet>
 
               <PickerSheet
                 visible={showEditReminderTimePicker}

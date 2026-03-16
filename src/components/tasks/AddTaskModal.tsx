@@ -253,7 +253,10 @@ export function AddTaskModal({ visible, onClose }: Props) {
 
     const reminderAtMs = reminderEnabled
       ? Platform.OS === 'web'
-        ? parseReminderDateTime(reminderDateInput, reminderTimeInput)
+        ? parseReminderDateTime(
+            recurring ? new Date().toISOString().slice(0, 10) : reminderDateInput,
+            reminderTimeInput
+          )
         : reminderDateTime
           ? reminderDateTime.getTime()
           : undefined
@@ -410,16 +413,18 @@ export function AddTaskModal({ visible, onClose }: Props) {
       {reminderEnabled &&
         (Platform.OS === 'web' ? (
           <View className="flex-row gap-2 mb-4 items-center">
-            <View className="flex-1">
-              {createElement('input', {
-                type: 'date',
-                value: reminderDateInput,
-                onChange: (e: { target: { value: string } }) =>
-                  setReminderDateInput(e.target.value),
-                style: webInputStyle,
-              })}
-            </View>
-            <View style={{ width: 120 }}>
+            {!recurring && (
+              <View className="flex-1">
+                {createElement('input', {
+                  type: 'date',
+                  value: reminderDateInput,
+                  onChange: (e: { target: { value: string } }) =>
+                    setReminderDateInput(e.target.value),
+                  style: webInputStyle,
+                })}
+              </View>
+            )}
+            <View style={recurring ? { flex: 1 } : { width: 120 }}>
               {createElement('input', {
                 type: 'time',
                 value: reminderTimeInput,
@@ -431,15 +436,35 @@ export function AddTaskModal({ visible, onClose }: Props) {
           </View>
         ) : (
           <View className="mb-4 gap-2">
-            <TouchableOpacity
-              testID="reminder-date-open"
-              onPress={openReminderDatePicker}
-              className="border rounded-xl px-4 py-3"
-              style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
-              <Text className="text-base" style={{ color: theme.text }}>
-                Reminder date: {formatDate(reminderDateTime)}
-              </Text>
-            </TouchableOpacity>
+            {!recurring && (
+              <>
+                <TouchableOpacity
+                  testID="reminder-date-open"
+                  onPress={openReminderDatePicker}
+                  className="border rounded-xl px-4 py-3"
+                  style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
+                  <Text className="text-base" style={{ color: theme.text }}>
+                    Reminder date: {formatDate(reminderDateTime)}
+                  </Text>
+                </TouchableOpacity>
+
+                <PickerSheet
+                  visible={showReminderDatePicker}
+                  title="Select reminder date"
+                  testID="reminder-date-picker-modal"
+                  onClose={() => setShowReminderDatePicker(false)}
+                  onConfirm={() => setShowReminderDatePicker(false)}>
+                  <DateTimePicker
+                    value={reminderDateTime ?? new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={onChangeReminderDate}
+                    {...nativePickerThemeProps}
+                  />
+                </PickerSheet>
+              </>
+            )}
+
             <TouchableOpacity
               testID="reminder-time-open"
               onPress={openReminderTimePicker}
@@ -449,21 +474,6 @@ export function AddTaskModal({ visible, onClose }: Props) {
                 Reminder time: {formatTime(reminderDateTime)}
               </Text>
             </TouchableOpacity>
-
-            <PickerSheet
-              visible={showReminderDatePicker}
-              title="Select reminder date"
-              testID="reminder-date-picker-modal"
-              onClose={() => setShowReminderDatePicker(false)}
-              onConfirm={() => setShowReminderDatePicker(false)}>
-              <DateTimePicker
-                value={reminderDateTime ?? new Date()}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={onChangeReminderDate}
-                {...nativePickerThemeProps}
-              />
-            </PickerSheet>
 
             <PickerSheet
               visible={showReminderTimePicker}
