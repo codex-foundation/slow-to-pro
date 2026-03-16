@@ -25,9 +25,11 @@ import Animated, {
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Priority, Task } from '@/models/task';
+import { useEntitlementStore } from '@/stores/entitlementStore';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useTaskStore } from '@/stores/taskStore';
 import { Modal } from '../ui/Modal';
+import { PaywallModal } from '../ui/PaywallModal';
 
 const PRIORITIES: Priority[] = ['high', 'medium', 'low'];
 const PRIORITY_LABELS: Record<Priority, string> = { high: 'High', medium: 'Medium', low: 'Low' };
@@ -104,7 +106,9 @@ export function TaskItem({
   const router = useRouter();
   const { toggleTask, deleteTask, updateTask } = useTaskStore();
   const startWorkForTask = usePomodoroStore((s) => s.startWorkForTask);
+  const isPro = useEntitlementStore((s) => s.isPro);
   const [showEdit, setShowEdit] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Animation values
   const checkboxScale = useSharedValue(1);
@@ -623,13 +627,22 @@ export function TaskItem({
         </View>
 
         <View className="flex-row items-center justify-between mb-3">
-          <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
-            Recurring task
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
+              Recurring task
+            </Text>
+            {!isPro && <Ionicons name="lock-closed-outline" size={12} color={theme.textSubtle} />}
+          </View>
           <Switch
             testID="edit-recurring-switch"
             value={editRecurring}
-            onValueChange={setEditRecurring}
+            onValueChange={(v) => {
+              if (!isPro) {
+                setShowPaywall(true);
+                return;
+              }
+              setEditRecurring(v);
+            }}
             trackColor={{ true: '#6366f1' }}
           />
         </View>
@@ -713,9 +726,12 @@ export function TaskItem({
         )}
 
         <View className="flex-row items-center justify-between mb-3">
-          <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
-            Reminder
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
+              Reminder
+            </Text>
+            {!isPro && <Ionicons name="lock-closed-outline" size={12} color={theme.textSubtle} />}
+          </View>
           <View className="flex-row items-center gap-3">
             {hasEditReminderValue && (
               <TouchableOpacity onPress={clearEditReminder}>
@@ -727,7 +743,13 @@ export function TaskItem({
             <Switch
               testID="edit-reminder-enabled-switch"
               value={editReminderEnabled}
-              onValueChange={enableEditReminder}
+              onValueChange={(v) => {
+                if (!isPro) {
+                  setShowPaywall(true);
+                  return;
+                }
+                enableEditReminder(v);
+              }}
               trackColor={{ true: '#6366f1' }}
             />
           </View>
@@ -841,6 +863,11 @@ export function TaskItem({
           </TouchableOpacity>
         </View>
       </Modal>
+      <PaywallModal
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onUpgraded={() => setShowPaywall(false)}
+      />
     </>
   );
 }

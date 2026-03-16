@@ -60,6 +60,10 @@ jest.mock('@expo/vector-icons/Ionicons', () => {
   };
 });
 
+jest.mock('@/stores/entitlementStore', () => ({
+  useEntitlementStore: (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: true }),
+}));
+
 describe('TaskItem', () => {
   const baseTask = {
     id: 'task-1',

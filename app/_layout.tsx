@@ -13,10 +13,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { WebNotificationFallbackToast } from '@/components/ui/WebNotificationFallbackToast';
 import { isApplyingSnapshot, pullForCurrentUser, pushForCurrentUser } from '@/services/cloudSync';
+import { useEntitlementStore } from '@/stores/entitlementStore';
 import { useFinanceStore } from '@/stores/financeStore';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useTaskStore } from '@/stores/taskStore';
+import { initializePurchases, readProStatusFromDb } from '@/utils/purchases';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -39,6 +41,10 @@ export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS !== 'web') {
       Notifications.requestPermissionsAsync();
+      void initializePurchases();
+    } else {
+      // On web RevenueCat isn't available — still load DB Pro flag
+      void readProStatusFromDb().then((isPro) => useEntitlementStore.getState().setIsPro(isPro));
     }
     useTaskStore.getState().resetRecurringTasksIfNewDay();
     usePomodoroStore.getState().reconcileRunningTimer();

@@ -16,8 +16,10 @@ import {
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { syncFromCloudOrSeed } from '@/services/cloudSync';
+import { useEntitlementStore } from '@/stores/entitlementStore';
 import { useSyncStore } from '@/stores/syncStore';
 import { type ThemePreference, useSettingsStore } from '@/stores/settingsStore';
+import { PaywallModal } from '@/components/ui/PaywallModal';
 
 const THEME_OPTIONS: ThemePreference[] = ['system', 'light', 'dark'];
 
@@ -43,6 +45,8 @@ export default function SettingsScreen() {
   const [busyAction, setBusyAction] = useState<
     'login' | 'signup' | 'google' | 'apple' | 'logout' | null
   >(null);
+  const isPro = useEntitlementStore((s) => s.isPro);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const appVersion = Constants.expoConfig?.version ?? Constants.nativeAppVersion ?? '1.0.0';
   const currentYear = new Date().getFullYear();
@@ -431,6 +435,39 @@ export default function SettingsScreen() {
               borderWidth: 1,
             }}>
             <Text className="text-sm font-semibold mb-2" style={{ color: theme.textMuted }}>
+              Pro
+            </Text>
+            {isPro ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text className="text-sm font-semibold" style={{ color: '#22c55e' }}>
+                  ✓ You're on Pro
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Text className="text-xs mb-3" style={{ color: theme.textSubtle }}>
+                  Unlock recurring tasks, reminders, unlimited categories, and more.
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowPaywall(true)}
+                  className="py-2.5 rounded-xl items-center"
+                  style={{ backgroundColor: theme.primary }}>
+                  <Text className="font-semibold text-white">Upgrade to Pro</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+
+        <View className="px-4 mt-4">
+          <View
+            className="rounded-2xl p-4"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              borderWidth: 1,
+            }}>
+            <Text className="text-sm font-semibold mb-2" style={{ color: theme.textMuted }}>
               About
             </Text>
 
@@ -450,6 +487,11 @@ export default function SettingsScreen() {
             </Text>
           </View>
         </View>
+        <PaywallModal
+          visible={showPaywall}
+          onClose={() => setShowPaywall(false)}
+          onUpgraded={() => setShowPaywall(false)}
+        />
       </ScrollView>
     </SafeAreaView>
   );

@@ -1,6 +1,7 @@
 import { createElement, useState } from 'react';
 import { useRouter } from 'expo-router';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   Keyboard,
   Modal as RNModal,
@@ -12,8 +13,10 @@ import {
   View,
 } from 'react-native';
 import { Modal } from '@/components/ui/Modal';
+import { PaywallModal } from '@/components/ui/PaywallModal';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Priority } from '@/models/task';
+import { useEntitlementStore } from '@/stores/entitlementStore';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useTaskStore } from '@/stores/taskStore';
 
@@ -101,8 +104,10 @@ function PickerSheet({ visible, title, testID, onClose, onConfirm, children }: P
 export function AddTaskModal({ visible, onClose }: Props) {
   const theme = useAppTheme();
   const router = useRouter();
+  const isPro = useEntitlementStore((s) => s.isPro);
   const addTask = useTaskStore((s) => s.addTask);
   const startWorkForTask = usePomodoroStore((s) => s.startWorkForTask);
+  const [showPaywall, setShowPaywall] = useState(false);
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<Priority>('medium');
   const [recurring, setRecurring] = useState(false);
@@ -295,229 +300,259 @@ export function AddTaskModal({ visible, onClose }: Props) {
   };
 
   return (
-    <Modal visible={visible} onClose={onClose} title="New Task">
-      <TextInput
-        testID="task-title-input"
-        className="border rounded-xl px-4 py-3 text-base mb-4"
-        placeholder="What needs to be done?"
-        placeholderTextColor={theme.textSubtle}
-        style={{
-          borderColor: theme.border,
-          color: theme.text,
-          backgroundColor: theme.surface,
-        }}
-        value={title}
-        onChangeText={setTitle}
-        autoFocus
-        returnKeyType="done"
-        onSubmitEditing={Keyboard.dismiss}
-      />
-
-      <Text className="text-sm font-medium text-gray-600 mb-2">Priority</Text>
-      <View className="flex-row gap-2 mb-4">
-        {PRIORITIES.map((p) => (
-          <TouchableOpacity
-            key={p}
-            onPress={() => setPriority(p)}
-            className={`flex-1 py-2 rounded-lg border ${priority === p ? PRIORITY_ACTIVE[p] : PRIORITY_COLORS[p]}`}>
-            <Text
-              className={`text-center text-sm font-medium ${priority === p ? 'text-white' : 'text-gray-700'}`}>
-              {PRIORITY_LABELS[p]}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View className="flex-row items-center justify-between mb-3">
-        <Text className="text-sm font-medium text-gray-600">Recurring task</Text>
-        <Switch value={recurring} onValueChange={setRecurring} trackColor={{ true: '#6366f1' }} />
-      </View>
-
-      <View className="flex-row items-center justify-between mb-4">
-        <Text className="text-sm font-medium text-gray-600">Start focus immediately</Text>
-        <Switch
-          testID="start-focus-switch"
-          value={startFocusNow}
-          onValueChange={setStartFocusNow}
-          trackColor={{ true: '#6366f1' }}
+    <>
+      <Modal visible={visible} onClose={onClose} title="New Task">
+        <TextInput
+          testID="task-title-input"
+          className="border rounded-xl px-4 py-3 text-base mb-4"
+          placeholder="What needs to be done?"
+          placeholderTextColor={theme.textSubtle}
+          style={{
+            borderColor: theme.border,
+            color: theme.text,
+            backgroundColor: theme.surface,
+          }}
+          value={title}
+          onChangeText={setTitle}
+          autoFocus
+          returnKeyType="done"
+          onSubmitEditing={Keyboard.dismiss}
         />
-      </View>
 
-      <View className="flex-row items-center justify-between mb-2">
-        <Text className="text-sm font-medium text-gray-600">Due date</Text>
-        {hasDueDateValue ? (
-          <TouchableOpacity onPress={clearDueDate}>
-            <Text className="text-xs font-medium text-gray-400">Clear</Text>
-          </TouchableOpacity>
-        ) : (
-          <View />
-        )}
-      </View>
-      {Platform.OS === 'web' ? (
-        <View className="mb-4">
-          {createElement('input', {
-            type: 'date',
-            value: dueDateInput,
-            onChange: (e: { target: { value: string } }) => setDueDateInput(e.target.value),
-            style: webInputStyle,
-          })}
+        <Text className="text-sm font-medium text-gray-600 mb-2">Priority</Text>
+        <View className="flex-row gap-2 mb-4">
+          {PRIORITIES.map((p) => (
+            <TouchableOpacity
+              key={p}
+              onPress={() => setPriority(p)}
+              className={`flex-1 py-2 rounded-lg border ${priority === p ? PRIORITY_ACTIVE[p] : PRIORITY_COLORS[p]}`}>
+              <Text
+                className={`text-center text-sm font-medium ${priority === p ? 'text-white' : 'text-gray-700'}`}>
+                {PRIORITY_LABELS[p]}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      ) : (
-        <>
-          <TouchableOpacity
-            testID="due-date-open"
-            onPress={openDueDatePicker}
-            className="border rounded-xl px-4 py-3 mb-4"
-            style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
-            <Text className="text-base" style={{ color: theme.text }}>
-              {formatDate(dueDate)}
-            </Text>
-          </TouchableOpacity>
 
-          <PickerSheet
-            visible={showDueDatePicker}
-            title="Select due date"
-            testID="due-date-picker-modal"
-            onClose={() => setShowDueDatePicker(false)}
-            onConfirm={() => setShowDueDatePicker(false)}>
-            <DateTimePicker
-              value={dueDate ?? new Date()}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={onChangeDueDate}
-              {...nativePickerThemeProps}
-            />
-          </PickerSheet>
-        </>
-      )}
+        <View className="flex-row items-center justify-between mb-3">
+          <View className="flex-row items-center gap-1">
+            <Text className="text-sm font-medium text-gray-600">Recurring task</Text>
+            {!isPro && <Ionicons name="lock-closed-outline" size={12} color={theme.textSubtle} />}
+          </View>
+          <Switch
+            testID="recurring-enabled-switch"
+            value={recurring}
+            onValueChange={(v) => {
+              if (!isPro) {
+                setShowPaywall(true);
+                return;
+              }
+              setRecurring(v);
+            }}
+            trackColor={{ true: '#6366f1' }}
+          />
+        </View>
 
-      <View className="flex-row items-center justify-between mb-3">
-        <Text className="text-sm font-medium text-gray-600">Reminder</Text>
-        <View className="flex-row items-center gap-3">
-          {hasReminderValue ? (
-            <TouchableOpacity onPress={clearReminder}>
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-sm font-medium text-gray-600">Start focus immediately</Text>
+          <Switch
+            testID="start-focus-switch"
+            value={startFocusNow}
+            onValueChange={setStartFocusNow}
+            trackColor={{ true: '#6366f1' }}
+          />
+        </View>
+
+        <View className="flex-row items-center justify-between mb-2">
+          <Text className="text-sm font-medium text-gray-600">Due date</Text>
+          {hasDueDateValue ? (
+            <TouchableOpacity onPress={clearDueDate}>
               <Text className="text-xs font-medium text-gray-400">Clear</Text>
             </TouchableOpacity>
           ) : (
             <View />
           )}
-          <Switch
-            testID="reminder-enabled-switch"
-            value={reminderEnabled}
-            onValueChange={enableReminder}
-            trackColor={{ true: '#6366f1' }}
-          />
         </View>
-      </View>
-
-      {reminderEnabled &&
-        (Platform.OS === 'web' ? (
-          <View className="flex-row gap-2 mb-4 items-center">
-            {!recurring && (
-              <View className="flex-1">
-                {createElement('input', {
-                  type: 'date',
-                  value: reminderDateInput,
-                  onChange: (e: { target: { value: string } }) =>
-                    setReminderDateInput(e.target.value),
-                  style: webInputStyle,
-                })}
-              </View>
-            )}
-            <View style={recurring ? { flex: 1 } : { width: 120 }}>
-              {createElement('input', {
-                type: 'time',
-                value: reminderTimeInput,
-                onChange: (e: { target: { value: string } }) =>
-                  setReminderTimeInput(e.target.value),
-                style: webInputStyle,
-              })}
-            </View>
+        {Platform.OS === 'web' ? (
+          <View className="mb-4">
+            {createElement('input', {
+              type: 'date',
+              value: dueDateInput,
+              onChange: (e: { target: { value: string } }) => setDueDateInput(e.target.value),
+              style: webInputStyle,
+            })}
           </View>
         ) : (
-          <View className="mb-4 gap-2">
-            {!recurring && (
-              <>
-                <TouchableOpacity
-                  testID="reminder-date-open"
-                  onPress={openReminderDatePicker}
-                  className="border rounded-xl px-4 py-3"
-                  style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
-                  <Text className="text-base" style={{ color: theme.text }}>
-                    Reminder date: {formatDate(reminderDateTime)}
-                  </Text>
-                </TouchableOpacity>
-
-                <PickerSheet
-                  visible={showReminderDatePicker}
-                  title="Select reminder date"
-                  testID="reminder-date-picker-modal"
-                  onClose={() => setShowReminderDatePicker(false)}
-                  onConfirm={() => setShowReminderDatePicker(false)}>
-                  <DateTimePicker
-                    value={reminderDateTime ?? new Date()}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={onChangeReminderDate}
-                    {...nativePickerThemeProps}
-                  />
-                </PickerSheet>
-              </>
-            )}
-
+          <>
             <TouchableOpacity
-              testID="reminder-time-open"
-              onPress={openReminderTimePicker}
-              className="border rounded-xl px-4 py-3"
+              testID="due-date-open"
+              onPress={openDueDatePicker}
+              className="border rounded-xl px-4 py-3 mb-4"
               style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
               <Text className="text-base" style={{ color: theme.text }}>
-                Reminder time: {formatTime(reminderDateTime)}
+                {formatDate(dueDate)}
               </Text>
             </TouchableOpacity>
 
             <PickerSheet
-              visible={showReminderTimePicker}
-              title="Select reminder time"
-              testID="reminder-time-picker-modal"
-              onClose={() => setShowReminderTimePicker(false)}
-              onConfirm={() => setShowReminderTimePicker(false)}>
+              visible={showDueDatePicker}
+              title="Select due date"
+              testID="due-date-picker-modal"
+              onClose={() => setShowDueDatePicker(false)}
+              onConfirm={() => setShowDueDatePicker(false)}>
               <DateTimePicker
-                value={reminderDateTime ?? new Date()}
-                mode="time"
+                value={dueDate ?? new Date()}
+                mode="date"
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={onChangeReminderTime}
+                onChange={onChangeDueDate}
                 {...nativePickerThemeProps}
               />
             </PickerSheet>
+          </>
+        )}
+
+        <View className="flex-row items-center justify-between mb-3">
+          <View className="flex-row items-center gap-1">
+            <Text className="text-sm font-medium text-gray-600">Reminder</Text>
+            {!isPro && <Ionicons name="lock-closed-outline" size={12} color={theme.textSubtle} />}
           </View>
-        ))}
-
-      {recurring && (
-        <View className="flex-row gap-1 mb-4 flex-wrap">
-          {DAYS.map((label, i) => (
-            <TouchableOpacity
-              key={i}
-              onPress={() => toggleDay(i)}
-              className={`w-10 h-10 rounded-full items-center justify-center ${days.includes(i) ? 'bg-indigo-500' : 'bg-gray-100'}`}>
-              <Text
-                className={`text-xs font-medium ${days.includes(i) ? 'text-white' : 'text-gray-600'}`}>
-                {label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          <View className="flex-row items-center gap-3">
+            {hasReminderValue ? (
+              <TouchableOpacity onPress={clearReminder}>
+                <Text className="text-xs font-medium text-gray-400">Clear</Text>
+              </TouchableOpacity>
+            ) : (
+              <View />
+            )}
+            <Switch
+              testID="reminder-enabled-switch"
+              value={reminderEnabled}
+              onValueChange={(v) => {
+                if (!isPro) {
+                  setShowPaywall(true);
+                  return;
+                }
+                enableReminder(v);
+              }}
+              trackColor={{ true: '#6366f1' }}
+            />
+          </View>
         </View>
-      )}
 
-      <TouchableOpacity
-        testID="add-task-submit"
-        onPress={handleAdd}
-        className="bg-indigo-500 py-3.5 rounded-xl items-center mt-1"
-        style={{ opacity: title.trim() ? 1 : 0.55 }}
-        disabled={!title.trim()}>
-        <Text className="text-white font-semibold text-base">
-          {startFocusNow ? 'Add & Start Focus' : 'Add Task'}
-        </Text>
-      </TouchableOpacity>
-    </Modal>
+        {reminderEnabled &&
+          (Platform.OS === 'web' ? (
+            <View className="flex-row gap-2 mb-4 items-center">
+              {!recurring && (
+                <View className="flex-1">
+                  {createElement('input', {
+                    type: 'date',
+                    value: reminderDateInput,
+                    onChange: (e: { target: { value: string } }) =>
+                      setReminderDateInput(e.target.value),
+                    style: webInputStyle,
+                  })}
+                </View>
+              )}
+              <View style={recurring ? { flex: 1 } : { width: 120 }}>
+                {createElement('input', {
+                  type: 'time',
+                  value: reminderTimeInput,
+                  onChange: (e: { target: { value: string } }) =>
+                    setReminderTimeInput(e.target.value),
+                  style: webInputStyle,
+                })}
+              </View>
+            </View>
+          ) : (
+            <View className="mb-4 gap-2">
+              {!recurring && (
+                <>
+                  <TouchableOpacity
+                    testID="reminder-date-open"
+                    onPress={openReminderDatePicker}
+                    className="border rounded-xl px-4 py-3"
+                    style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
+                    <Text className="text-base" style={{ color: theme.text }}>
+                      Reminder date: {formatDate(reminderDateTime)}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <PickerSheet
+                    visible={showReminderDatePicker}
+                    title="Select reminder date"
+                    testID="reminder-date-picker-modal"
+                    onClose={() => setShowReminderDatePicker(false)}
+                    onConfirm={() => setShowReminderDatePicker(false)}>
+                    <DateTimePicker
+                      value={reminderDateTime ?? new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={onChangeReminderDate}
+                      {...nativePickerThemeProps}
+                    />
+                  </PickerSheet>
+                </>
+              )}
+
+              <TouchableOpacity
+                testID="reminder-time-open"
+                onPress={openReminderTimePicker}
+                className="border rounded-xl px-4 py-3"
+                style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
+                <Text className="text-base" style={{ color: theme.text }}>
+                  Reminder time: {formatTime(reminderDateTime)}
+                </Text>
+              </TouchableOpacity>
+
+              <PickerSheet
+                visible={showReminderTimePicker}
+                title="Select reminder time"
+                testID="reminder-time-picker-modal"
+                onClose={() => setShowReminderTimePicker(false)}
+                onConfirm={() => setShowReminderTimePicker(false)}>
+                <DateTimePicker
+                  value={reminderDateTime ?? new Date()}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onChangeReminderTime}
+                  {...nativePickerThemeProps}
+                />
+              </PickerSheet>
+            </View>
+          ))}
+
+        {recurring && (
+          <View className="flex-row gap-1 mb-4 flex-wrap">
+            {DAYS.map((label, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => toggleDay(i)}
+                className={`w-10 h-10 rounded-full items-center justify-center ${days.includes(i) ? 'bg-indigo-500' : 'bg-gray-100'}`}>
+                <Text
+                  className={`text-xs font-medium ${days.includes(i) ? 'text-white' : 'text-gray-600'}`}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        <TouchableOpacity
+          testID="add-task-submit"
+          onPress={handleAdd}
+          className="bg-indigo-500 py-3.5 rounded-xl items-center mt-1"
+          style={{ opacity: title.trim() ? 1 : 0.55 }}
+          disabled={!title.trim()}>
+          <Text className="text-white font-semibold text-base">
+            {startFocusNow ? 'Add & Start Focus' : 'Add Task'}
+          </Text>
+        </TouchableOpacity>
+      </Modal>
+      <PaywallModal
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onUpgraded={() => setShowPaywall(false)}
+      />
+    </>
   );
 }

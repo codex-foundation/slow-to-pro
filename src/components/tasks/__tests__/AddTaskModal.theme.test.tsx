@@ -62,6 +62,10 @@ jest.mock('@/stores/pomodoroStore', () => ({
     selector({ startWorkForTask: mockStartWorkForTask }),
 }));
 
+jest.mock('@/stores/entitlementStore', () => ({
+  useEntitlementStore: (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: true }),
+}));
+
 import { AddTaskModal } from '../AddTaskModal';
 
 describe('AddTaskModal dark theme input', () => {

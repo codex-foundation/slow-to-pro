@@ -12,8 +12,10 @@ import {
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { Modal } from '@/components/ui/Modal';
 import { ColorPicker } from '@/components/ui/ColorPicker';
+import { useEntitlementStore } from '@/stores/entitlementStore';
 import { useFinanceStore } from '@/stores/financeStore';
 import { currentMonth } from '@/utils/date';
+import { PaywallModal } from '@/components/ui/PaywallModal';
 
 const PRESET_COLORS = [
   '#f97316',
@@ -197,6 +199,8 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState(PRESET_COLORS[0]);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const isPro = useEntitlementStore((s) => s.isPro);
   const month = currentMonth();
 
   const allExtraColors = [
@@ -212,6 +216,10 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
 
   const handleAddCategory = () => {
     if (!newName.trim()) return;
+    if (!isPro && categories.length >= 3) {
+      setShowPaywall(true);
+      return;
+    }
     addCategory(newName.trim(), newColor);
     setNewName('');
     setNewColor(PRESET_COLORS[0]);
@@ -245,162 +253,171 @@ export function CategoryBudgetModal({ visible, onClose }: Props) {
   };
 
   return (
-    <Modal visible={visible} onClose={onClose} title="Budgets & Categories">
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 8 }}>
-        <Text
-          className="text-xs font-semibold uppercase tracking-wide mb-2"
-          style={{ color: theme.textSubtle }}>
-          Monthly budgets ({month})
-        </Text>
+    <>
+      <Modal visible={visible} onClose={onClose} title="Budgets & Categories">
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 8 }}>
+          <Text
+            className="text-xs font-semibold uppercase tracking-wide mb-2"
+            style={{ color: theme.textSubtle }}>
+            Monthly budgets ({month})
+          </Text>
 
-        {categories.map((item) => (
-          <View key={item.id} className="mb-3">
-            {editingId === item.id ? (
-              <View
-                className="rounded-xl p-3"
-                style={{
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                  borderWidth: 1,
-                }}>
-                <ColorSwatchPicker
-                  value={editColor}
-                  onChange={setEditColor}
-                  extraColors={allExtraColors}
-                />
-                <View className="flex-row gap-2">
-                  <TextInput
-                    className="flex-1 rounded-lg px-3 py-2 text-sm"
-                    style={{
-                      borderColor: theme.border,
-                      borderWidth: 1,
-                      backgroundColor: theme.surfaceMuted,
-                      color: theme.text,
-                    }}
-                    value={editName}
-                    onChangeText={setEditName}
-                    returnKeyType="done"
-                    onSubmitEditing={handleSaveEdit}
-                    autoFocus
-                  />
-                  <TouchableOpacity
-                    onPress={handleSaveEdit}
-                    className="px-3 rounded-lg items-center justify-center"
-                    style={{ backgroundColor: editName.trim() ? theme.primary : theme.surface }}>
-                    <Text
-                      className="text-sm font-semibold"
-                      style={{ color: editName.trim() ? '#fff' : theme.textSubtle }}>
-                      Save
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleCancelEdit}
-                    className="px-3 rounded-lg items-center justify-center"
-                    style={{
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      borderWidth: 1,
-                    }}>
-                    <Text className="text-sm" style={{ color: theme.textSubtle }}>
-                      Cancel
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              <View className="flex-row items-center gap-2">
-                <View className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                <Text className="flex-1 text-sm" style={{ color: theme.textMuted }}>
-                  {item.name}
-                </Text>
-                <Ionicons
-                  name="cash-outline"
-                  size={14}
-                  color={theme.textSubtle}
-                  style={{ marginRight: 4 }}
-                />
-                <TextInput
+          {categories.map((item) => (
+            <View key={item.id} className="mb-3">
+              {editingId === item.id ? (
+                <View
+                  className="rounded-xl p-3"
                   style={{
-                    width: 80,
-                    borderRadius: 8,
-                    paddingHorizontal: 8,
-                    paddingVertical: 6,
-                    fontSize: 14,
-                    textAlign: 'right',
+                    backgroundColor: theme.surface,
                     borderColor: theme.border,
                     borderWidth: 1,
-                    backgroundColor: theme.surface,
-                    color: theme.text,
-                  }}
-                  keyboardType="decimal-pad"
-                  defaultValue={getBudgetLimit(item.id) > 0 ? String(getBudgetLimit(item.id)) : ''}
-                  placeholder="0"
-                  placeholderTextColor={theme.textSubtle}
-                  onEndEditing={(e) => {
-                    const val = parseFloat(e.nativeEvent.text);
-                    if (!isNaN(val) && val >= 0) upsertBudget(item.id, val, month);
-                  }}
-                />
-                <TouchableOpacity
-                  onPress={() => handleStartEdit(item.id, item.name, item.color)}
-                  className="pl-1"
-                  accessibilityRole="button"
-                  accessibilityLabel={`Edit category ${item.name}`}>
-                  <Ionicons name="pencil-outline" size={16} color={theme.textSubtle} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDeleteCategory(item.id, item.name)}
-                  className="pl-1"
-                  accessibilityRole="button"
-                  accessibilityLabel={`Delete category ${item.name}`}
-                  accessibilityHint="Removes this category and related data">
-                  <Ionicons name="trash-outline" size={16} color={theme.textSubtle} />
-                </TouchableOpacity>
-              </View>
-            )}
+                  }}>
+                  <ColorSwatchPicker
+                    value={editColor}
+                    onChange={setEditColor}
+                    extraColors={allExtraColors}
+                  />
+                  <View className="flex-row gap-2">
+                    <TextInput
+                      className="flex-1 rounded-lg px-3 py-2 text-sm"
+                      style={{
+                        borderColor: theme.border,
+                        borderWidth: 1,
+                        backgroundColor: theme.surfaceMuted,
+                        color: theme.text,
+                      }}
+                      value={editName}
+                      onChangeText={setEditName}
+                      returnKeyType="done"
+                      onSubmitEditing={handleSaveEdit}
+                      autoFocus
+                    />
+                    <TouchableOpacity
+                      onPress={handleSaveEdit}
+                      className="px-3 rounded-lg items-center justify-center"
+                      style={{ backgroundColor: editName.trim() ? theme.primary : theme.surface }}>
+                      <Text
+                        className="text-sm font-semibold"
+                        style={{ color: editName.trim() ? '#fff' : theme.textSubtle }}>
+                        Save
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleCancelEdit}
+                      className="px-3 rounded-lg items-center justify-center"
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        borderWidth: 1,
+                      }}>
+                      <Text className="text-sm" style={{ color: theme.textSubtle }}>
+                        Cancel
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View className="flex-row items-center gap-2">
+                  <View className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                  <Text className="flex-1 text-sm" style={{ color: theme.textMuted }}>
+                    {item.name}
+                  </Text>
+                  <Ionicons
+                    name="cash-outline"
+                    size={14}
+                    color={theme.textSubtle}
+                    style={{ marginRight: 4 }}
+                  />
+                  <TextInput
+                    style={{
+                      width: 80,
+                      borderRadius: 8,
+                      paddingHorizontal: 8,
+                      paddingVertical: 6,
+                      fontSize: 14,
+                      textAlign: 'right',
+                      borderColor: theme.border,
+                      borderWidth: 1,
+                      backgroundColor: theme.surface,
+                      color: theme.text,
+                    }}
+                    keyboardType="decimal-pad"
+                    defaultValue={
+                      getBudgetLimit(item.id) > 0 ? String(getBudgetLimit(item.id)) : ''
+                    }
+                    placeholder="0"
+                    placeholderTextColor={theme.textSubtle}
+                    onEndEditing={(e) => {
+                      const val = parseFloat(e.nativeEvent.text);
+                      if (!isNaN(val) && val >= 0) upsertBudget(item.id, val, month);
+                    }}
+                  />
+                  <TouchableOpacity
+                    onPress={() => handleStartEdit(item.id, item.name, item.color)}
+                    className="pl-1"
+                    accessibilityRole="button"
+                    accessibilityLabel={`Edit category ${item.name}`}>
+                    <Ionicons name="pencil-outline" size={16} color={theme.textSubtle} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteCategory(item.id, item.name)}
+                    className="pl-1"
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete category ${item.name}`}
+                    accessibilityHint="Removes this category and related data">
+                    <Ionicons name="trash-outline" size={16} color={theme.textSubtle} />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          ))}
+
+          <View className="h-px my-4" style={{ backgroundColor: theme.border }} />
+
+          <Text
+            className="text-xs font-semibold uppercase tracking-wide mb-2"
+            style={{ color: theme.textSubtle }}>
+            Add category
+          </Text>
+          <ColorSwatchPicker value={newColor} onChange={setNewColor} extraColors={allExtraColors} />
+          <View className="flex-row gap-2">
+            <TextInput
+              className="flex-1 rounded-xl px-3 py-2.5 text-sm"
+              style={{
+                borderColor: theme.border,
+                borderWidth: 1,
+                backgroundColor: theme.surface,
+                color: theme.text,
+              }}
+              placeholder="Category name"
+              placeholderTextColor={theme.textSubtle}
+              value={newName}
+              onChangeText={setNewName}
+              returnKeyType="done"
+              onSubmitEditing={handleAddCategory}
+            />
+            <TouchableOpacity
+              onPress={handleAddCategory}
+              className="px-4 rounded-xl items-center justify-center"
+              style={{ backgroundColor: newName.trim() ? theme.primary : theme.surface }}
+              disabled={!newName.trim()}>
+              <Text
+                className="font-semibold"
+                style={{ color: newName.trim() ? '#fff' : theme.textSubtle }}>
+                Add
+              </Text>
+            </TouchableOpacity>
           </View>
-        ))}
-
-        <View className="h-px my-4" style={{ backgroundColor: theme.border }} />
-
-        <Text
-          className="text-xs font-semibold uppercase tracking-wide mb-2"
-          style={{ color: theme.textSubtle }}>
-          Add category
-        </Text>
-        <ColorSwatchPicker value={newColor} onChange={setNewColor} extraColors={allExtraColors} />
-        <View className="flex-row gap-2">
-          <TextInput
-            className="flex-1 rounded-xl px-3 py-2.5 text-sm"
-            style={{
-              borderColor: theme.border,
-              borderWidth: 1,
-              backgroundColor: theme.surface,
-              color: theme.text,
-            }}
-            placeholder="Category name"
-            placeholderTextColor={theme.textSubtle}
-            value={newName}
-            onChangeText={setNewName}
-            returnKeyType="done"
-            onSubmitEditing={handleAddCategory}
-          />
-          <TouchableOpacity
-            onPress={handleAddCategory}
-            className="px-4 rounded-xl items-center justify-center"
-            style={{ backgroundColor: newName.trim() ? theme.primary : theme.surface }}
-            disabled={!newName.trim()}>
-            <Text
-              className="font-semibold"
-              style={{ color: newName.trim() ? '#fff' : theme.textSubtle }}>
-              Add
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </Modal>
+        </ScrollView>
+      </Modal>
+      <PaywallModal
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onUpgraded={() => setShowPaywall(false)}
+      />
+    </>
   );
 }

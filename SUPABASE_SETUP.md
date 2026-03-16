@@ -1,6 +1,6 @@
 # Supabase setup for auth + cross-device sync
 
-This app uses Supabase Auth (email/password) and one table for syncing snapshots.
+This app uses Supabase Auth (email/password) and two tables: one for syncing snapshots and one for user profiles (Pro status).
 
 ## 1) Configure environment variables
 
@@ -72,3 +72,33 @@ Also add this callback URL in your Google and Apple developer console app config
   - If not → seeds cloud with local snapshot.
 - After login:
   - Use **Pull from cloud** or **Push to cloud** in Settings.
+
+## 7) Create user profiles table (Pro status)
+
+Run in Supabase SQL editor:
+
+```sql
+create table if not exists public.user_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  is_pro boolean not null default false,
+  pro_expires_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.user_profiles enable row level security;
+
+create policy "Users can read own profile"
+  on public.user_profiles for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own profile"
+  on public.user_profiles for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own profile"
+  on public.user_profiles for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+```
+
+The app writes to this table automatically whenever a RevenueCat purchase, restore, or entitlement refresh updates the Pro status. You can query `user_profiles` in the Supabase dashboard to see who has an active subscription.

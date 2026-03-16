@@ -41,6 +41,10 @@ jest.mock('@/stores/pomodoroStore', () => ({
     selector({ startWorkForTask: mockStartWorkForTask }),
 }));
 
+jest.mock('@/stores/entitlementStore', () => ({
+  useEntitlementStore: (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: true }),
+}));
+
 describe('AddTaskModal date/reminder picker modals', () => {
   let dismissSpy: jest.SpyInstance;
 
