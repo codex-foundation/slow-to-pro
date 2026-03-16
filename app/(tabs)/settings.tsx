@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -46,6 +47,7 @@ export default function SettingsScreen() {
     'login' | 'signup' | 'google' | 'apple' | 'logout' | null
   >(null);
   const isPro = useEntitlementStore((s) => s.isPro);
+  const isRcPro = useEntitlementStore((s) => s.isRcPro);
   const [showPaywall, setShowPaywall] = useState(false);
 
   const appVersion = Constants.expoConfig?.version ?? Constants.nativeAppVersion ?? '1.0.0';
@@ -438,10 +440,32 @@ export default function SettingsScreen() {
               Pro
             </Text>
             {isPro ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text className="text-sm font-semibold" style={{ color: '#22c55e' }}>
-                  ✓ You're on Pro
-                </Text>
+              <View style={{ gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text className="text-sm font-semibold" style={{ color: '#22c55e' }}>
+                    ✓ You're on Pro
+                  </Text>
+                </View>
+                {isRcPro && (
+                  <TouchableOpacity
+                    onPress={() =>
+                      void ExpoLinking.openURL(
+                        Platform.OS === 'android'
+                          ? 'https://play.google.com/store/account/subscriptions'
+                          : 'itms-apps://apps.apple.com/account/subscriptions'
+                      )
+                    }
+                    className="py-2.5 rounded-xl items-center"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      borderWidth: 1,
+                    }}>
+                    <Text className="font-semibold" style={{ color: theme.textMuted }}>
+                      Manage Subscription
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : (
               <>

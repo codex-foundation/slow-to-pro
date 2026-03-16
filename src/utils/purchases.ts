@@ -97,6 +97,7 @@ export async function purchasePackage(
   try {
     const { customerInfo } = await Purchases.purchasePackage(pkg);
     const isPro = customerInfo.entitlements.active[PRO_ENTITLEMENT] !== undefined;
+    useEntitlementStore.getState().setIsRcPro(isPro);
     useEntitlementStore.getState().setIsPro(isPro);
     void syncProStatusToDb(isPro);
     return { success: isPro };
@@ -113,6 +114,7 @@ export async function restorePurchases(): Promise<{ success: boolean; error?: st
   try {
     const info = await Purchases.restorePurchases();
     const isPro = info.entitlements.active[PRO_ENTITLEMENT] !== undefined;
+    useEntitlementStore.getState().setIsRcPro(isPro);
     useEntitlementStore.getState().setIsPro(isPro);
     void syncProStatusToDb(isPro);
     return { success: isPro };
