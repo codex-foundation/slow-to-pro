@@ -65,15 +65,30 @@ export async function initializePurchases(): Promise<void> {
 
 export async function refreshEntitlements(): Promise<void> {
   if (!isRevenueCatConfigured()) return;
-  const { setIsPro, setLoading } = useEntitlementStore.getState();
+  const { setIsPro, setIsRcPro, setLoading } = useEntitlementStore.getState();
   try {
     const [info, dbIsPro] = await Promise.all([Purchases.getCustomerInfo(), readProStatusFromDb()]);
     const rcIsPro = info.entitlements.active[PRO_ENTITLEMENT] !== undefined;
     const isPro = rcIsPro || dbIsPro;
+    setIsRcPro(rcIsPro);
     setIsPro(isPro);
     void syncProStatusToDb(isPro);
   } finally {
     setLoading(false);
+  }
+}
+
+/**
+ * Refresh Pro status from both RevenueCat and DB.
+ * Safe to call after login — handles both RC and non-RC environments.
+ */
+export async function refreshProStatus(): Promise<void> {
+  if (isRevenueCatConfigured()) {
+    await refreshEntitlements();
+  } else {
+    const dbIsPro = await readProStatusFromDb();
+    useEntitlementStore.getState().setIsPro(dbIsPro);
+    useEntitlementStore.getState().setLoading(false);
   }
 }
 

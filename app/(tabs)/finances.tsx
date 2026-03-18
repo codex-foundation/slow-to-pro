@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,9 +10,12 @@ import { CategoryBudgetModal } from '@/components/finance/CategoryBudgetModal';
 import { ExpenseForm } from '@/components/finance/ExpenseForm';
 import { ExpenseItem } from '@/components/finance/ExpenseItem';
 import { Modal } from '@/components/ui/Modal';
+import { PaywallModal } from '@/components/ui/PaywallModal';
 import type { BudgetPeriod } from '@/models/finance';
+import { useEntitlementStore } from '@/stores/entitlementStore';
 import { useFinanceStore } from '@/stores/financeStore';
 import { currentMonth, todayString } from '@/utils/date';
+import { exportFinancesAsCsv, exportFinancesAsPdf } from '@/utils/financeExport';
 
 export default function FinancesScreen() {
   const theme = useAppTheme();
@@ -28,7 +31,10 @@ export default function FinancesScreen() {
   const [showSettings, setShowSettings] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showSetBudget, setShowSetBudget] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
+  const isPro = useEntitlementStore((s) => s.isPro);
   const [budgetInput, setBudgetInput] = useState(
     overallBudgetAmount > 0 ? String(overallBudgetAmount) : ''
   );
@@ -68,6 +74,38 @@ export default function FinancesScreen() {
     setShowSetBudget(false);
   };
 
+  const handleExport = () => {
+    if (!isPro) {
+      setShowPaywall(true);
+      return;
+    }
+    if (Platform.OS === 'web') {
+      void exportFinancesAsCsv(expenses, categories, budgets);
+      return;
+    }
+    Alert.alert('Export Finance Data', 'Choose format', [
+      {
+        text: 'CSV',
+        onPress: () => {
+          setExporting(true);
+          void exportFinancesAsCsv(expenses, categories, budgets).finally(() =>
+            setExporting(false)
+          );
+        },
+      },
+      {
+        text: 'PDF',
+        onPress: () => {
+          setExporting(true);
+          void exportFinancesAsPdf(expenses, categories, budgets).finally(() =>
+            setExporting(false)
+          );
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   const handleChangePeriod = (period: BudgetPeriod) => {
     setOverallBudget(overallBudgetAmount, period);
   };
@@ -95,11 +133,20 @@ export default function FinancesScreen() {
           <Text className="text-2xl font-bold" style={{ color: theme.text }}>
             Money
           </Text>
-          <TouchableOpacity onPress={() => setShowSettings(true)} className="p-1">
-            <Text className="font-medium" style={{ color: theme.primary }}>
-              Budgets
-            </Text>
-          </TouchableOpacity>
+          <View className="flex-row items-center gap-3">
+            <TouchableOpacity onPress={handleExport} disabled={exporting} className="p-1">
+              <Text
+                className="font-medium"
+                style={{ color: exporting ? theme.textSubtle : theme.primary }}>
+                {exporting ? 'Exporting…' : 'Export'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowSettings(true)} className="p-1">
+              <Text className="font-medium" style={{ color: theme.primary }}>
+                Budgets
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <Animated.View
@@ -328,6 +375,11 @@ export default function FinancesScreen() {
           </View>
         </View>
       </Modal>
+      <PaywallModal
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onUpgraded={() => setShowPaywall(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -17,10 +17,14 @@ import {
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { syncFromCloudOrSeed } from '@/services/cloudSync';
+import { loadSpaces } from '@/services/spaceSync';
 import { useEntitlementStore } from '@/stores/entitlementStore';
+import { useSpaceStore } from '@/stores/spaceStore';
 import { useSyncStore } from '@/stores/syncStore';
 import { type ThemePreference, useSettingsStore } from '@/stores/settingsStore';
 import { PaywallModal } from '@/components/ui/PaywallModal';
+import { SharedSpaceModal } from '@/components/ui/SharedSpaceModal';
+import { refreshProStatus } from '@/utils/purchases';
 
 const THEME_OPTIONS: ThemePreference[] = ['system', 'light', 'dark'];
 
@@ -49,6 +53,10 @@ export default function SettingsScreen() {
   const isPro = useEntitlementStore((s) => s.isPro);
   const isRcPro = useEntitlementStore((s) => s.isRcPro);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showSpaces, setShowSpaces] = useState(false);
+  const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
+  const spaces = useSpaceStore((s) => s.spaces);
+  const pendingInvites = useSpaceStore((s) => s.pendingInvites);
 
   const appVersion = Constants.expoConfig?.version ?? Constants.nativeAppVersion ?? '1.0.0';
   const currentYear = new Date().getFullYear();
@@ -108,6 +116,8 @@ export default function SettingsScreen() {
       if (!data.user) throw new Error('No user returned from login.');
 
       const result = await syncFromCloudOrSeed(data.user.id);
+      void loadSpaces();
+      void refreshProStatus();
       setStatusMessage(
         result === 'pulled'
           ? 'Logged in and synced your latest cloud data.'
@@ -127,6 +137,8 @@ export default function SettingsScreen() {
 
       if (data.user) {
         await syncFromCloudOrSeed(data.user.id);
+        void loadSpaces();
+        void refreshProStatus();
       }
 
       setStatusMessage('Account created. Check email to confirm if prompted, then log in.');
@@ -181,6 +193,8 @@ export default function SettingsScreen() {
 
       if (exchangeData.user) {
         const syncResult = await syncFromCloudOrSeed(exchangeData.user.id);
+        void loadSpaces();
+        void refreshProStatus();
         setStatusMessage(
           syncResult === 'pulled'
             ? 'Logged in and synced your latest cloud data.'
@@ -483,6 +497,63 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Shared Spaces */}
+        <View className="px-4 mt-4">
+          <View
+            className="rounded-2xl p-4"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              borderWidth: 1,
+            }}>
+            <Text className="text-sm font-semibold mb-2" style={{ color: theme.textMuted }}>
+              Shared Spaces
+            </Text>
+            {!isPro ? (
+              <>
+                <Text className="text-xs mb-3" style={{ color: theme.textSubtle }}>
+                  Share tasks and budgets with family or team. Pro feature.
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowPaywall(true)}
+                  className="py-2.5 rounded-xl items-center"
+                  style={{ backgroundColor: theme.primary }}>
+                  <Text className="font-semibold text-white">Upgrade to Pro</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text
+                  className="text-xs mb-2"
+                  style={{ color: activeSpaceId ? theme.primary : theme.textSubtle }}>
+                  {activeSpaceId
+                    ? `Space: ${spaces.find((s) => s.id === activeSpaceId)?.name ?? 'Unknown'}`
+                    : 'Personal (no space selected)'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowSpaces(true)}
+                  className="py-2.5 rounded-xl items-center flex-row justify-center gap-2"
+                  style={{ backgroundColor: theme.primary }}>
+                  <Text className="font-semibold text-white">Manage Spaces</Text>
+                  {pendingInvites.length > 0 && (
+                    <View
+                      style={{
+                        backgroundColor: '#ef4444',
+                        borderRadius: 8,
+                        paddingHorizontal: 6,
+                        paddingVertical: 1,
+                      }}>
+                      <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>
+                        {pendingInvites.length}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+
         <View className="px-4 mt-4">
           <View
             className="rounded-2xl p-4"
@@ -516,6 +587,7 @@ export default function SettingsScreen() {
           onClose={() => setShowPaywall(false)}
           onUpgraded={() => setShowPaywall(false)}
         />
+        <SharedSpaceModal visible={showSpaces} onClose={() => setShowSpaces(false)} />
       </ScrollView>
     </SafeAreaView>
   );

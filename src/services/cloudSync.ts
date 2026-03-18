@@ -175,11 +175,21 @@ export async function pullForCurrentUser(): Promise<boolean> {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return false;
 
-  const snapshot = await pullCloudSnapshot(data.user.id);
-  if (!snapshot) return false;
-
-  applySnapshot(snapshot);
-  return true;
+  const { setSyncing, setSynced, setSyncError } = useSyncStore.getState();
+  setSyncing(true);
+  try {
+    const snapshot = await pullCloudSnapshot(data.user.id);
+    if (!snapshot) {
+      setSyncError('No cloud data found');
+      return false;
+    }
+    applySnapshot(snapshot);
+    setSynced();
+    return true;
+  } catch (err) {
+    setSyncError(err instanceof Error ? err.message : 'Pull failed');
+    return false;
+  }
 }
 
 export async function pushForCurrentUser(): Promise<boolean> {

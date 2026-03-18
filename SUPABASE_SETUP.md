@@ -102,3 +102,59 @@ create policy "Users can update own profile"
 ```
 
 The app writes to this table automatically whenever a RevenueCat purchase, restore, or entitlement refresh updates the Pro status. You can query `user_profiles` in the Supabase dashboard to see who has an active subscription.
+
+## 8) Create Shared Spaces tables (Pro feature)
+
+Run in Supabase SQL editor:
+
+```sql
+create table if not exists public.spaces (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+alter table public.spaces enable row level security;
+
+create table if not exists public.space_members (
+  id uuid primary key default gen_random_uuid(),
+  space_id uuid not null references public.spaces(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
+  invited_email text not null,
+  role text not null default 'member' check (role in ('owner', 'member')),
+  status text not null default 'pending' check (status in ('pending', 'accepted', 'declined')),
+  invited_at timestamptz not null default now(),
+  accepted_at timestamptz,
+  unique(space_id, invited_email)
+);
+alter table public.space_members enable row level security;
+
+create table if not exists public.space_finance_snapshots (
+  space_id uuid primary key references public.spaces(id) on delete cascade,
+  data jsonb not null,
+  updated_at timestamptz not null default now(),
+  updated_by uuid references auth.users(id)
+);
+alter table public.space_finance_snapshots enable row level security;
+
+create table if not exists public.space_task_snapshots (
+  space_id uuid primary key references public.spaces(id) on delete cascade,
+  data jsonb not null,
+  updated_at timestamptz not null default now(),
+  updated_by uuid references auth.users(id)
+);
+alter table public.space_task_snapshots enable row level security;
+
+-- RLS policies
+create policy "Space owner full access" on public.spaces for all using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+create policy "Accepted members can read space" on public.spaces for select using (exists (select 1 from public.space_members sm where sm.space_id = id and sm.user_id = auth.uid() and sm.status = 'accepted'));
+
+create policy "Owner manages members" on public.space_members for all using (exists (select 1 from public.spaces s where s.id = space_id and s.owner_id = auth.uid())) with check (exists (select 1 from public.spaces s where s.id = space_id and s.owner_id = auth.uid()));
+create policy "Invitee can see and update own membership" on public.space_members for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+create policy "Space members read finance snapshot" on public.space_finance_snapshots for select using (exists (select 1 from public.space_members sm where sm.space_id = space_id and sm.user_id = auth.uid() and sm.status = 'accepted') or exists (select 1 from public.spaces s where s.id = space_id and s.owner_id = auth.uid()));
+create policy "Space members write finance snapshot" on public.space_finance_snapshots for all using (exists (select 1 from public.space_members sm where sm.space_id = space_id and sm.user_id = auth.uid() and sm.status = 'accepted') or exists (select 1 from public.spaces s where s.id = space_id and s.owner_id = auth.uid())) with check (exists (select 1 from public.space_members sm where sm.space_id = space_id and sm.user_id = auth.uid() and sm.status = 'accepted') or exists (select 1 from public.spaces s where s.id = space_id and s.owner_id = auth.uid()));
+
+create policy "Space members read task snapshot" on public.space_task_snapshots for select using (exists (select 1 from public.space_members sm where sm.space_id = space_id and sm.user_id = auth.uid() and sm.status = 'accepted') or exists (select 1 from public.spaces s where s.id = space_id and s.owner_id = auth.uid()));
+create policy "Space members write task snapshot" on public.space_task_snapshots for all using (exists (select 1 from public.space_members sm where sm.space_id = space_id and sm.user_id = auth.uid() and sm.status = 'accepted') or exists (select 1 from public.spaces s where s.id = space_id and s.owner_id = auth.uid())) with check (exists (select 1 from public.space_members sm where sm.space_id = space_id and sm.user_id = auth.uid() and sm.status = 'accepted') or exists (select 1 from public.spaces s where s.id = space_id and s.owner_id = auth.uid()));
+```

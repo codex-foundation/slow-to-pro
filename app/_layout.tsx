@@ -13,12 +13,15 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { WebNotificationFallbackToast } from '@/components/ui/WebNotificationFallbackToast';
 import { isApplyingSnapshot, pullForCurrentUser, pushForCurrentUser } from '@/services/cloudSync';
+import { isApplyingSpaceSnapshot, pushToSharedSpace } from '@/services/spaceSync';
 import { useEntitlementStore } from '@/stores/entitlementStore';
 import { useFinanceStore } from '@/stores/financeStore';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useSpaceStore } from '@/stores/spaceStore';
 import { useTaskStore } from '@/stores/taskStore';
-import { initializePurchases, readProStatusFromDb } from '@/utils/purchases';
+import { supabase } from '@/lib/supabase';
+import { initializePurchases, readProStatusFromDb, refreshProStatus } from '@/utils/purchases';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -44,21 +47,44 @@ export default function RootLayout() {
       void initializePurchases();
     } else {
       // On web RevenueCat isn't available — still load DB Pro flag
-      void readProStatusFromDb().then((isPro) => useEntitlementStore.getState().setIsPro(isPro));
+      void readProStatusFromDb().then((isPro) => {
+        useEntitlementStore.getState().setIsPro(isPro);
+        useEntitlementStore.getState().setLoading(false);
+      });
     }
+
+    // Refresh Pro status whenever the auth session changes:
+    // - SIGNED_IN covers cold-start session restore (session restored from MMKV after initializePurchases runs)
+    // - TOKEN_REFRESHED covers silent token renewal on long sessions
+    // - SIGNED_OUT clears the Pro flag immediately
+    const authSubscription = supabase?.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        void refreshProStatus();
+      } else if (event === 'SIGNED_OUT') {
+        useEntitlementStore.getState().setIsPro(false);
+        useEntitlementStore.getState().setIsRcPro(false);
+      }
+    });
     useTaskStore.getState().resetRecurringTasksIfNewDay();
     usePomodoroStore.getState().reconcileRunningTimer();
     void pullForCurrentUser();
 
-    // Debounced push triggered on any store mutation
+    // Debounced push triggered on any store mutation.
+    // When a shared space is active, push to the space instead of personal cloud
+    // so space data never overwrites the personal backup.
     let pushTimer: ReturnType<typeof setTimeout> | null = null;
     const schedulePush = () => {
-      if (isApplyingSnapshot) return;
+      if (isApplyingSnapshot || isApplyingSpaceSnapshot) return;
       if (pushTimer) clearTimeout(pushTimer);
       pushTimer = setTimeout(async () => {
-        const ok = await pushForCurrentUser();
-        if (!ok) pendingPush.current = true;
-        else pendingPush.current = false;
+        const { activeSpaceId } = useSpaceStore.getState();
+        if (activeSpaceId) {
+          await pushToSharedSpace(activeSpaceId);
+        } else {
+          const ok = await pushForCurrentUser();
+          if (!ok) pendingPush.current = true;
+          else pendingPush.current = false;
+        }
       }, 1500);
     };
 
@@ -99,6 +125,7 @@ export default function RootLayout() {
       unsubscribes.forEach((u) => u());
       netUnsubscribe();
       appStateSub.remove();
+      authSubscription?.data.subscription.unsubscribe();
     };
   }, []);
 

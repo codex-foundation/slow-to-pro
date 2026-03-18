@@ -71,6 +71,22 @@ jest.mock('@/services/cloudSync', () => ({
   syncFromCloudOrSeed: (...args: unknown[]) => mockSyncFromCloudOrSeed(...args),
 }));
 
+jest.mock('@/services/spaceSync', () => ({
+  loadSpaces: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@/utils/purchases', () => ({
+  isRevenueCatConfigured: jest.fn().mockReturnValue(false),
+  refreshProStatus: jest.fn().mockResolvedValue(undefined),
+  readProStatusFromDb: jest.fn().mockResolvedValue(false),
+  initializePurchases: jest.fn().mockResolvedValue(undefined),
+  refreshEntitlements: jest.fn().mockResolvedValue(undefined),
+  getOfferings: jest.fn().mockResolvedValue(null),
+  purchasePackage: jest.fn().mockResolvedValue({ success: false }),
+  restorePurchases: jest.fn().mockResolvedValue({ success: false }),
+  PRO_ENTITLEMENT: 'pro',
+}));
+
 jest.mock('@/lib/supabase', () => ({
   isSupabaseConfigured: true,
   supabase: {
