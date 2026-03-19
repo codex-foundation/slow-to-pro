@@ -103,46 +103,50 @@ export default function TasksScreen() {
         </View>
 
         {categories.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="mt-2"
-            contentContainerStyle={{ gap: 8 }}>
-            <TouchableOpacity
-              onPress={() => setCategoryFilter(null)}
-              className="px-3 py-1 rounded-full"
-              style={{
-                backgroundColor: categoryFilter === null ? theme.primary : theme.surface,
-                borderWidth: 1,
-                borderColor: categoryFilter === null ? theme.primary : theme.border,
-              }}>
-              <Text
-                className="text-xs font-medium"
-                style={{ color: categoryFilter === null ? '#fff' : theme.textMuted }}>
-                All
-              </Text>
-            </TouchableOpacity>
-            {categories.map((cat) => (
+          <>
+            <Text className="text-xs font-semibold uppercase mt-3 mb-1" style={{ color: theme.textSubtle }}>
+              Categories
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8 }}>
               <TouchableOpacity
-                key={cat.id}
-                onPress={() => setCategoryFilter(categoryFilter === cat.id ? null : cat.id)}
-                className="flex-row items-center gap-1.5 px-3 py-1 rounded-full"
+                onPress={() => setCategoryFilter(null)}
+                className="px-3 py-1 rounded-full"
                 style={{
-                  backgroundColor: categoryFilter === cat.id ? cat.color + '22' : theme.surface,
+                  backgroundColor: categoryFilter === null ? theme.primary : theme.surface,
                   borderWidth: 1,
-                  borderColor: categoryFilter === cat.id ? cat.color : theme.border,
+                  borderColor: categoryFilter === null ? theme.primary : theme.border,
                 }}>
-                <View
-                  style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: cat.color }}
-                />
                 <Text
                   className="text-xs font-medium"
-                  style={{ color: categoryFilter === cat.id ? cat.color : theme.textMuted }}>
-                  {cat.name}
+                  style={{ color: categoryFilter === null ? '#fff' : theme.textMuted }}>
+                  All
                 </Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+              {categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  onPress={() => setCategoryFilter(categoryFilter === cat.id ? null : cat.id)}
+                  className="flex-row items-center gap-1.5 px-3 py-1 rounded-full"
+                  style={{
+                    backgroundColor: categoryFilter === cat.id ? cat.color + '22' : theme.surface,
+                    borderWidth: 1,
+                    borderColor: categoryFilter === cat.id ? cat.color : theme.border,
+                  }}>
+                  <View
+                    style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: cat.color }}
+                  />
+                  <Text
+                    className="text-xs font-medium"
+                    style={{ color: categoryFilter === cat.id ? cat.color : theme.textMuted }}>
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </>
         )}
       </View>
 
