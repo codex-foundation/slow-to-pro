@@ -299,4 +299,78 @@ describe('financeStore', () => {
       expect(expenses[0].amount).toBe(20);
     });
   });
+
+  describe('updateCategory', () => {
+    it('updates the name and color of an existing category', () => {
+      useFinanceStore.getState().updateCategory(FOOD_ID, 'Groceries', '#00ff00');
+      const { categories } = useFinanceStore.getState();
+      const cat = categories.find((c) => c.id === FOOD_ID);
+      expect(cat?.name).toBe('Groceries');
+      expect(cat?.color).toBe('#00ff00');
+    });
+
+    it('leaves other categories unchanged', () => {
+      const before = useFinanceStore.getState().categories.filter((c) => c.id !== FOOD_ID);
+      useFinanceStore.getState().updateCategory(FOOD_ID, 'Groceries', '#00ff00');
+      const after = useFinanceStore.getState().categories.filter((c) => c.id !== FOOD_ID);
+      expect(after).toEqual(before);
+    });
+  });
+
+  describe('deleteCategory - notifiedBudgetThresholdByKey cleanup', () => {
+    it('removes threshold keys matching the deleted category', () => {
+      useFinanceStore.setState((s) => ({
+        ...s,
+        notifiedBudgetThresholdByKey: {
+          [`${FOOD_ID}:2026-04`]: 80,
+          'other-cat:2026-04': 80,
+        },
+      }));
+
+      useFinanceStore.getState().deleteCategory(FOOD_ID);
+
+      const { notifiedBudgetThresholdByKey } = useFinanceStore.getState();
+      expect(Object.keys(notifiedBudgetThresholdByKey)).not.toContain(`${FOOD_ID}:2026-04`);
+      expect(Object.keys(notifiedBudgetThresholdByKey)).toContain('other-cat:2026-04');
+    });
+  });
+
+  describe('upsertBudget - update path', () => {
+    it('preserves other budgets when updating one', () => {
+      const month = currentMonth();
+      useFinanceStore.getState().upsertBudget(FOOD_ID, 100, month);
+      useFinanceStore.getState().upsertBudget('other-id', 200, month);
+      // Update FOOD_ID budget
+      useFinanceStore.getState().upsertBudget(FOOD_ID, 150, month);
+      const budgets = useFinanceStore.getState().budgets;
+      const foodBudget = budgets.find((b) => b.categoryId === FOOD_ID);
+      const otherBudget = budgets.find((b) => b.categoryId === 'other-id');
+      expect(foodBudget?.monthlyLimit).toBe(150);
+      expect(otherBudget?.monthlyLimit).toBe(200);
+    });
+  });
+
+  describe('getTotalSpentForPeriod - default referenceDate', () => {
+    it('uses current date when referenceDate is not provided', () => {
+      useFinanceStore.getState().addExpense({ categoryId: FOOD_ID, amount: 50 });
+      const total = useFinanceStore.getState().getTotalSpentForPeriod('monthly');
+      expect(total).toBe(50);
+    });
+  });
+
+  describe('addExpense - category not found', () => {
+    it('does not fire notification when category is not found', () => {
+      const { scheduleOverBudgetNotification } = jest.requireMock('@/utils/notifications');
+      jest.clearAllMocks();
+      // Add a budget for the category, but category is not in store
+      useFinanceStore.setState((s) => ({
+        ...s,
+        categories: [],
+        budgets: [{ id: 'b1', categoryId: FOOD_ID, monthlyLimit: 10, month: currentMonth() }],
+      }));
+      useFinanceStore.getState().addExpense({ categoryId: FOOD_ID, amount: 50 });
+      // cat is undefined → if (cat) is false → no notification
+      expect(scheduleOverBudgetNotification).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -180,6 +180,16 @@ describe('pomodoroStore', () => {
       expect(scheduleTimerEndNotification).toHaveBeenCalledWith('work');
     });
 
+    it('uses fallback startedAt when cycleStartedAt is null', () => {
+      // completeCycle without cycleStartedAt set — hits the `??` fallback on line 125
+      usePomodoroStore.setState({ ...INITIAL_STATE, cycleStartedAt: null });
+      const before = Date.now();
+      usePomodoroStore.getState().completeCycle();
+      const session = usePomodoroStore.getState().sessions[0];
+      expect(session).toBeDefined();
+      expect(session.startedAt).toBeLessThanOrEqual(before);
+    });
+
     it('links the active task in the session', () => {
       usePomodoroStore.setState({ ...INITIAL_STATE, selectedTaskId: 'task-abc' });
       usePomodoroStore.getState().start();
@@ -267,6 +277,12 @@ describe('pomodoroStore', () => {
       expect(usePomodoroStore.getState().secondsRemaining).toBe(50 * 60);
     });
 
+    it('resets secondsRemaining to new break duration when in break phase', () => {
+      usePomodoroStore.setState({ ...INITIAL_STATE, phase: 'break', secondsRemaining: 5 * 60 });
+      usePomodoroStore.getState().updateDurations(30, 8);
+      expect(usePomodoroStore.getState().secondsRemaining).toBe(8 * 60);
+    });
+
     it('resets status to idle', () => {
       usePomodoroStore.getState().start();
       usePomodoroStore.getState().updateDurations(50, 10);
@@ -319,6 +335,107 @@ describe('pomodoroStore', () => {
       expect(state.phase).toBe('break');
       expect(state.sessions).toHaveLength(1);
       expect(scheduleTimerEndNotification).toHaveBeenCalledWith('work');
+    });
+
+    it('infers startedAt from secondsRemaining when cycleStartedAt is null', () => {
+      // Covers lines 178-179: the `??` fallback in reconcileRunningTimer
+      usePomodoroStore.setState({
+        ...INITIAL_STATE,
+        status: 'running',
+        phase: 'work',
+        secondsRemaining: 24 * 60, // 1 minute elapsed
+        cycleStartedAt: null,
+      });
+
+      usePomodoroStore.getState().reconcileRunningTimer();
+
+      const state = usePomodoroStore.getState();
+      expect(state.status).toBe('running');
+      expect(state.cycleStartedAt).not.toBeNull();
+    });
+
+    it('uses break duration when running in break phase', () => {
+      // Covers line 177 false branch: phase === 'break'
+      const now = Date.now();
+      usePomodoroStore.setState({
+        ...INITIAL_STATE,
+        status: 'running',
+        phase: 'break',
+        secondsRemaining: 5 * 60,
+        cycleStartedAt: now - 30 * 1000, // 30 seconds into break
+      });
+
+      usePomodoroStore.getState().reconcileRunningTimer();
+
+      const state = usePomodoroStore.getState();
+      expect(state.status).toBe('running');
+      expect(state.secondsRemaining).toBeLessThan(5 * 60);
+    });
+  });
+
+  describe('interval stops when status becomes non-running (line 25-26)', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+      usePomodoroStore.getState().reset();
+    });
+
+    it('stops the interval when status is set to non-running externally', () => {
+      usePomodoroStore.getState().start();
+      expect(usePomodoroStore.getState().status).toBe('running');
+
+      // Directly mutate status to paused without calling stopPomodoroInterval
+      usePomodoroStore.setState({ status: 'paused' });
+
+      // Interval fires and detects non-running → stops itself
+      jest.advanceTimersByTime(1000);
+
+      // secondsRemaining should NOT have changed (interval stopped itself)
+      expect(usePomodoroStore.getState().secondsRemaining).toBe(25 * 60);
+    });
+  });
+
+  describe('completeCycle with a linked task that has a title', () => {
+    it('records taskTitle from useTaskStore when selectedTaskId matches a task', () => {
+      const taskId = 'task-with-title';
+      useTaskStore.setState({
+        tasks: [
+          {
+            id: taskId,
+            title: 'My Important Task',
+            completed: false,
+            priority: 'high',
+            order: 0,
+            recurring: { enabled: false, days: [] },
+            createdAt: Date.now(),
+          },
+        ],
+        lastResetDate: new Date().toISOString().slice(0, 10),
+      });
+
+      usePomodoroStore.setState({ ...INITIAL_STATE, selectedTaskId: taskId });
+      usePomodoroStore.getState().start();
+      usePomodoroStore.getState().completeCycle();
+
+      const session = usePomodoroStore.getState().sessions[0];
+      expect(session.taskId).toBe(taskId);
+      expect(session.taskTitle).toBe('My Important Task');
+    });
+  });
+
+  describe('onRehydrateStorage null guard', () => {
+    it('does not throw when rehydration state is null', () => {
+      // Access Zustand persist API to invoke the rehydrate handler with null
+      const store = usePomodoroStore as unknown as {
+        persist: {
+          onFinishHydration: (cb: () => void) => () => void;
+          getOptions: () => { onRehydrateStorage?: () => (state: unknown) => void };
+        };
+      };
+      const options = store.persist?.getOptions?.();
+      const outerHandler = options?.onRehydrateStorage?.();
+      expect(() => outerHandler?.(null)).not.toThrow();
     });
   });
 });

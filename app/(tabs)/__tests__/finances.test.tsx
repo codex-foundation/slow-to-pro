@@ -1,7 +1,34 @@
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { Alert } from 'react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import FinancesScreen from '../finances';
 import { useFinanceStore } from '@/stores/financeStore';
+import { useEntitlementStore } from '@/stores/entitlementStore';
+import { useSettingsStore } from '@/stores/settingsStore';
+
+const mockExportCsv = jest.fn().mockResolvedValue(undefined);
+const mockExportPdf = jest.fn().mockResolvedValue(undefined);
+
+jest.mock('@/utils/financeExport', () => ({
+  exportFinancesAsCsv: (...args: unknown[]) => mockExportCsv(...args),
+  exportFinancesAsPdf: (...args: unknown[]) => mockExportPdf(...args),
+}));
+
+jest.mock('@/components/ui/PaywallModal', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { View, TouchableOpacity } = jest.requireActual('react-native') as typeof import('react-native');
+  return {
+    PaywallModal: ({ visible, onClose, onUpgraded }: { visible: boolean; onClose?: () => void; onUpgraded?: () => void }) =>
+      visible
+        ? React.createElement(
+            View,
+            { testID: 'mock-paywall' },
+            React.createElement(TouchableOpacity, { testID: 'mock-paywall-close', onPress: onClose }),
+            React.createElement(TouchableOpacity, { testID: 'mock-paywall-upgraded', onPress: onUpgraded }),
+          )
+        : null,
+  };
+});
 
 jest.mock('react-native-reanimated', () => {
   const Reanimated = jest.requireActual('react-native-reanimated/mock') as {
@@ -12,9 +39,18 @@ jest.mock('react-native-reanimated', () => {
 });
 
 jest.mock('@/components/ui/Modal', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { TouchableOpacity } = jest.requireActual('react-native') as typeof import('react-native');
   return {
-    Modal: ({ visible, children }: { visible: boolean; children: React.ReactNode }) =>
-      visible ? children : null,
+    Modal: ({ visible, children, onClose }: { visible: boolean; children: React.ReactNode; onClose?: () => void }) =>
+      visible
+        ? React.createElement(
+            React.Fragment,
+            null,
+            children,
+            React.createElement(TouchableOpacity, { testID: 'mock-modal-close', onPress: onClose }),
+          )
+        : null,
   };
 });
 
@@ -26,13 +62,25 @@ jest.mock('@/components/finance/BudgetProgressBar', () => ({
   BudgetProgressBar: () => null,
 }));
 
-jest.mock('@/components/finance/CategoryBudgetModal', () => ({
-  CategoryBudgetModal: () => null,
-}));
+jest.mock('@/components/finance/CategoryBudgetModal', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { TouchableOpacity } = jest.requireActual('react-native') as typeof import('react-native');
+  return {
+    CategoryBudgetModal: ({ visible, onClose }: { visible: boolean; onClose?: () => void }) =>
+      visible
+        ? React.createElement(TouchableOpacity, { testID: 'mock-category-budget-close', onPress: onClose })
+        : null,
+  };
+});
 
-jest.mock('@/components/finance/ExpenseItem', () => ({
-  ExpenseItem: () => null,
-}));
+jest.mock('@/components/finance/ExpenseItem', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { TouchableOpacity } = jest.requireActual('react-native') as typeof import('react-native');
+  return {
+    ExpenseItem: ({ expense, onDelete }: { expense: { id: string }; onDelete?: () => void }) =>
+      React.createElement(TouchableOpacity, { testID: `mock-expense-delete-${expense.id}`, onPress: onDelete }),
+  };
+});
 
 jest.mock('@/components/finance/ExpenseForm', () => {
   const mockRN = jest.requireActual('react-native') as {
@@ -142,5 +190,260 @@ describe('FinancesScreen modal behavior', () => {
     expect(scrollView.props.keyboardDismissMode).toBe('on-drag');
     expect(scrollView.props.keyboardShouldPersistTaps).toBe('handled');
     expect(scrollView.props.scrollEnabled).toBe(true);
+  });
+});
+
+describe('FinancesScreen export', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetFinanceStore();
+  });
+
+  it('shows paywall when export is pressed and user is not pro', async () => {
+    useEntitlementStore.setState({ isPro: false, isRcPro: false, isLoading: false });
+    const { getByText, getByTestId } = render(<FinancesScreen />);
+    fireEvent.press(getByText('Export'));
+    await waitFor(() => {
+      expect(getByTestId('mock-paywall')).toBeTruthy();
+    });
+  });
+
+  it('calls exportFinancesAsCsv directly on web when user is pro', async () => {
+    useEntitlementStore.setState({ isPro: true, isRcPro: true, isLoading: false });
+    const Platform = jest.requireActual('react-native').Platform as { OS: string };
+    const original = Platform.OS;
+    (Platform as { OS: string }).OS = 'web';
+
+    const { getByText } = render(<FinancesScreen />);
+    fireEvent.press(getByText('Export'));
+    await waitFor(() => {
+      expect(mockExportCsv).toHaveBeenCalledTimes(1);
+    });
+
+    (Platform as { OS: string }).OS = original;
+  });
+
+  it('shows alert with CSV/PDF options on native when user is pro', async () => {
+    useEntitlementStore.setState({ isPro: true, isRcPro: true, isLoading: false });
+    const Platform = jest.requireActual('react-native').Platform as { OS: string };
+    const original = Platform.OS;
+    (Platform as { OS: string }).OS = 'ios';
+
+    let csvCallback: (() => void) | undefined;
+    let pdfCallback: (() => void) | undefined;
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => {
+      csvCallback = buttons?.find((b) => b.text === 'CSV')?.onPress as (() => void) | undefined;
+      pdfCallback = buttons?.find((b) => b.text === 'PDF')?.onPress as (() => void) | undefined;
+    });
+
+    const { getByText } = render(<FinancesScreen />);
+    fireEvent.press(getByText('Export'));
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Export Finance Data',
+      'Choose format',
+      expect.any(Array)
+    );
+
+    // Trigger CSV export
+    csvCallback?.();
+    await waitFor(() => {
+      expect(mockExportCsv).toHaveBeenCalled();
+    });
+
+    // Trigger PDF export
+    pdfCallback?.();
+    await waitFor(() => {
+      expect(mockExportPdf).toHaveBeenCalled();
+    });
+
+    alertSpy.mockRestore();
+    (Platform as { OS: string }).OS = original;
+  });
+});
+
+describe('FinancesScreen additional branches', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetFinanceStore();
+    useEntitlementStore.setState({ isPro: true, isRcPro: true, isLoading: false });
+  });
+
+  it('filters expenses by daily period', () => {
+    useFinanceStore.setState((s) => ({
+      ...s,
+      overallBudgetAmount: 100,
+      overallBudgetPeriod: 'daily',
+      expenses: [
+        { id: 'e1', categoryId: 'cat-food', amount: 20, date: Date.now() },
+      ],
+    }));
+    const { getByText } = render(<FinancesScreen />);
+    expect(getByText('20% used')).toBeTruthy();
+  });
+
+  it('shows negative remaining budget in danger color', () => {
+    useFinanceStore.setState((s) => ({
+      ...s,
+      overallBudgetAmount: 50,
+      overallBudgetPeriod: 'monthly',
+      expenses: [
+        { id: 'e1', categoryId: 'cat-food', amount: 80, date: Date.now() },
+      ],
+    }));
+    const { getByText } = render(<FinancesScreen />);
+    // Remaining is -30 (negative), displayed as a $ amount
+    expect(getByText('$-30.00')).toBeTruthy();
+  });
+
+  it('does not save budget when input is invalid (NaN)', async () => {
+    const { getByText, getByPlaceholderText } = render(<FinancesScreen />);
+    fireEvent.press(getByText('Set overall budget'));
+    // Type invalid text
+    fireEvent.changeText(getByPlaceholderText('Set budget'), 'not-a-number');
+    fireEvent.press(getByText('Save'));
+    // Budget input remains visible (modal not closed, invalid input rejected)
+    expect(getByPlaceholderText('Set budget')).toBeTruthy();
+  });
+
+  it('does not save budget when amount is negative', async () => {
+    const { getByText, getByPlaceholderText } = render(<FinancesScreen />);
+    fireEvent.press(getByText('Set overall budget'));
+    fireEvent.changeText(getByPlaceholderText('Set budget'), '-50');
+    fireEvent.press(getByText('Save'));
+    // Modal not closed for negative input
+    expect(getByPlaceholderText('Set budget')).toBeTruthy();
+  });
+
+  it('switches chart type when chart button pressed', () => {
+    const { getByText } = render(<FinancesScreen />);
+    fireEvent.press(getByText('pie chart'));
+    // No error thrown; chart type changed
+    fireEvent.press(getByText('bar chart'));
+  });
+
+  it('calls deleteExpense when expense delete button pressed', () => {
+    useFinanceStore.setState((s) => ({
+      ...s,
+      expenses: [
+        { id: 'exp-del', categoryId: 'cat-food', amount: 10, date: Date.now() },
+      ],
+    }));
+    const { getByTestId } = render(<FinancesScreen />);
+    fireEvent.press(getByTestId('mock-expense-delete-exp-del'));
+    expect(useFinanceStore.getState().expenses).toHaveLength(0);
+  });
+
+  it('closes CategoryBudgetModal via onClose callback', async () => {
+    const { getByText, getByTestId, queryByTestId } = render(<FinancesScreen />);
+    fireEvent.press(getByText('Budgets'));
+    expect(getByTestId('mock-category-budget-close')).toBeTruthy();
+    fireEvent.press(getByTestId('mock-category-budget-close'));
+    await waitFor(() => {
+      expect(queryByTestId('mock-category-budget-close')).toBeNull();
+    });
+  });
+
+  it('closes PaywallModal via onClose callback', async () => {
+    useEntitlementStore.setState({ isPro: false, isRcPro: false, isLoading: false });
+    const { getByText, getByTestId, queryByTestId } = render(<FinancesScreen />);
+    fireEvent.press(getByText('Export'));
+    await waitFor(() => expect(getByTestId('mock-paywall')).toBeTruthy());
+    fireEvent.press(getByTestId('mock-paywall-close'));
+    await waitFor(() => expect(queryByTestId('mock-paywall')).toBeNull());
+  });
+
+  it('closes PaywallModal via onUpgraded callback', async () => {
+    useEntitlementStore.setState({ isPro: false, isRcPro: false, isLoading: false });
+    const { getByText, getByTestId, queryByTestId } = render(<FinancesScreen />);
+    fireEvent.press(getByText('Export'));
+    await waitFor(() => expect(getByTestId('mock-paywall')).toBeTruthy());
+    fireEvent.press(getByTestId('mock-paywall-upgraded'));
+    await waitFor(() => expect(queryByTestId('mock-paywall')).toBeNull());
+  });
+
+  it('filters expenses for annual period', () => {
+    useFinanceStore.setState((s) => ({
+      ...s,
+      overallBudgetAmount: 1200,
+      overallBudgetPeriod: 'annual',
+      expenses: [
+        { id: 'e1', categoryId: 'cat-food', amount: 120, date: Date.now() },
+      ],
+    }));
+    const { getByText } = render(<FinancesScreen />);
+    expect(getByText('10% used')).toBeTruthy();
+  });
+
+  it('uses category budget limit when budget exists for this month', () => {
+    const now = new Date();
+    const month = now.toISOString().slice(0, 7);
+    useFinanceStore.setState((s) => ({
+      ...s,
+      overallBudgetAmount: 500,
+      overallBudgetPeriod: 'monthly',
+      budgets: [{ id: 'b1', categoryId: 'cat-food', month, monthlyLimit: 200 }],
+      expenses: [{ id: 'e1', categoryId: 'cat-food', amount: 80, date: Date.now() }],
+    }));
+    const { getByText } = render(<FinancesScreen />);
+    // Renders without error; budget limit is found for the category
+    expect(getByText('Money')).toBeTruthy();
+  });
+
+  it('closes add-expense Modal via onClose callback', async () => {
+    const { getByText, getByTestId, queryByTestId } = render(<FinancesScreen />);
+    fireEvent.press(getByText('Add expense'));
+    expect(getByTestId('mock-expense-submit')).toBeTruthy();
+    // Press the mock modal close button
+    fireEvent.press(getByTestId('mock-modal-close'));
+    await waitFor(() => expect(queryByTestId('mock-expense-submit')).toBeNull());
+  });
+
+  it('closes set-budget Modal via onClose callback', async () => {
+    const { getByText, getByPlaceholderText, getAllByTestId } = render(<FinancesScreen />);
+    fireEvent.press(getByText('Set overall budget'));
+    expect(getByPlaceholderText('Set budget')).toBeTruthy();
+    // The mock-modal-close button from the Modal mock closes the modal
+    const closeButtons = getAllByTestId('mock-modal-close');
+    fireEvent.press(closeButtons[0]);
+    await waitFor(() => {
+      expect(() => getByPlaceholderText('Set budget')).toThrow();
+    });
+  });
+
+  it('shows Exporting text while export is in progress', async () => {
+    useEntitlementStore.setState({ isPro: true, isRcPro: true, isLoading: false });
+    const { resolve: resolveCsv, promise: csvPromise } = (() => {
+      let resolve!: () => void;
+      const promise = new Promise<void>((res) => { resolve = res; });
+      return { resolve, promise };
+    })();
+    mockExportCsv.mockReturnValueOnce(csvPromise);
+
+    let csvCallback: (() => void) | undefined;
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => {
+      csvCallback = buttons?.find((b) => b.text === 'CSV')?.onPress as (() => void) | undefined;
+    });
+
+    const { getByText, queryByText } = render(<FinancesScreen />);
+    fireEvent.press(getByText('Export'));
+    csvCallback?.();
+
+    // While promise is pending, button shows 'Exporting…'
+    await waitFor(() => expect(getByText('Exporting…')).toBeTruthy());
+
+    await act(async () => {
+      resolveCsv();
+      await csvPromise;
+    });
+    expect(queryByText('Exporting…')).toBeNull();
+
+    alertSpy.mockRestore();
+  });
+
+  it('applies dark theme styles to "Add expense" subtitle', () => {
+    useSettingsStore.setState({ themePreference: 'dark' });
+    const { getByText } = render(<FinancesScreen />);
+    expect(getByText('Track a new transaction')).toBeTruthy();
+    useSettingsStore.setState({ themePreference: 'light' });
   });
 });

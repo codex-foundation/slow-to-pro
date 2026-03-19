@@ -15,7 +15,7 @@ function yesterday(): string {
 }
 
 beforeEach(() => {
-  useTaskStore.setState({ tasks: [], lastResetDate: todayString() });
+  useTaskStore.setState({ tasks: [], categories: [], lastResetDate: todayString() });
   jest.clearAllMocks();
 });
 
@@ -72,6 +72,16 @@ describe('taskStore', () => {
 
       expect(typeof id).toBe('string');
       expect(useTaskStore.getState().tasks.some((t) => t.id === id)).toBe(true);
+    });
+
+    it('stores categoryId when provided', () => {
+      const { addCategory, addTask } = useTaskStore.getState();
+      addCategory('Work', '#6366f1');
+      const catId = useTaskStore.getState().categories[0].id;
+
+      addTask({ title: 'Tagged', priority: 'medium', recurring: { enabled: false, days: [] }, categoryId: catId });
+
+      expect(useTaskStore.getState().tasks[0].categoryId).toBe(catId);
     });
 
     it('persists due date and reminder when provided', () => {
@@ -145,6 +155,21 @@ describe('taskStore', () => {
       expect(task.completed).toBe(false);
       expect(task.completedAt).toBeUndefined();
     });
+
+    it('only toggles the matched task and leaves others unchanged', () => {
+      useTaskStore
+        .getState()
+        .addTask({ title: 'A', priority: 'low', recurring: { enabled: false, days: [] } });
+      useTaskStore
+        .getState()
+        .addTask({ title: 'B', priority: 'low', recurring: { enabled: false, days: [] } });
+      const idA = useTaskStore.getState().tasks[0].id;
+
+      useTaskStore.getState().toggleTask(idA);
+
+      expect(useTaskStore.getState().tasks[0].completed).toBe(true);
+      expect(useTaskStore.getState().tasks[1].completed).toBe(false);
+    });
   });
 
   describe('updateTask', () => {
@@ -183,6 +208,54 @@ describe('taskStore', () => {
       useTaskStore.getState().updateTask(id, { reminderAt });
 
       expect(scheduleTaskReminderNotification).toHaveBeenCalledWith('Edit me', reminderAt);
+    });
+
+    it('schedules reminder using current task title when updates.title is not provided', () => {
+      const id = useTaskStore.getState().addTask({
+        title: 'Existing title',
+        priority: 'low',
+        recurring: { enabled: false, days: [] },
+      });
+      const reminderAt = Date.now() + 10 * 60 * 1000;
+
+      // No title in updates — should fall back to current task's title
+      useTaskStore.getState().updateTask(id, { reminderAt });
+
+      expect(scheduleTaskReminderNotification).toHaveBeenCalledWith('Existing title', reminderAt);
+    });
+
+    it('does not schedule reminder when reminderAt is in the past', () => {
+      const id = useTaskStore.getState().addTask({
+        title: 'Past task',
+        priority: 'low',
+        recurring: { enabled: false, days: [] },
+      });
+      const reminderAt = Date.now() - 5 * 60 * 1000;
+
+      useTaskStore.getState().updateTask(id, { reminderAt });
+
+      expect(scheduleTaskReminderNotification).not.toHaveBeenCalled();
+    });
+
+    it('does not schedule reminder when task id does not exist and no title in updates', () => {
+      useTaskStore.getState().updateTask('non-existent-id', { reminderAt: Date.now() + 5000 });
+
+      expect(scheduleTaskReminderNotification).not.toHaveBeenCalled();
+    });
+
+    it('leaves other tasks unchanged when updating one task', () => {
+      useTaskStore
+        .getState()
+        .addTask({ title: 'A', priority: 'low', recurring: { enabled: false, days: [] } });
+      useTaskStore
+        .getState()
+        .addTask({ title: 'B', priority: 'low', recurring: { enabled: false, days: [] } });
+      const idA = useTaskStore.getState().tasks[0].id;
+
+      useTaskStore.getState().updateTask(idA, { title: 'A updated' });
+
+      expect(useTaskStore.getState().tasks[0].title).toBe('A updated');
+      expect(useTaskStore.getState().tasks[1].title).toBe('B');
     });
   });
 
@@ -274,6 +347,108 @@ describe('taskStore', () => {
       useTaskStore.getState().resetRecurringTasksIfNewDay();
 
       expect(useTaskStore.getState().tasks[0].completed).toBe(true);
+    });
+    it('does not reset non-recurring completed tasks', () => {
+      useTaskStore.setState({ lastResetDate: yesterday() });
+      useTaskStore.getState().addTask({
+        title: 'One-off task',
+        priority: 'high',
+        recurring: { enabled: false, days: [] },
+      });
+      const id = useTaskStore.getState().tasks[0].id;
+      useTaskStore.getState().toggleTask(id);
+
+      useTaskStore.getState().resetRecurringTasksIfNewDay();
+
+      expect(useTaskStore.getState().tasks[0].completed).toBe(true);
+    });
+  });
+
+  describe('categories', () => {
+    it('addCategory creates a category with a unique id, name, and color', () => {
+      useTaskStore.getState().addCategory('Work', '#6366f1');
+
+      const { categories } = useTaskStore.getState();
+      expect(categories).toHaveLength(1);
+      expect(categories[0].name).toBe('Work');
+      expect(categories[0].color).toBe('#6366f1');
+      expect(typeof categories[0].id).toBe('string');
+    });
+
+    it('addCategory generates unique ids for each category', () => {
+      useTaskStore.getState().addCategory('Work', '#6366f1');
+      useTaskStore.getState().addCategory('Personal', '#22c55e');
+
+      const ids = useTaskStore.getState().categories.map((c) => c.id);
+      expect(new Set(ids).size).toBe(2);
+    });
+
+    it('updateCategory renames a category', () => {
+      useTaskStore.getState().addCategory('Old Name', '#ef4444');
+      const id = useTaskStore.getState().categories[0].id;
+
+      useTaskStore.getState().updateCategory(id, { name: 'New Name' });
+
+      expect(useTaskStore.getState().categories[0].name).toBe('New Name');
+    });
+
+    it('updateCategory changes a category color', () => {
+      useTaskStore.getState().addCategory('Work', '#ef4444');
+      const id = useTaskStore.getState().categories[0].id;
+
+      useTaskStore.getState().updateCategory(id, { color: '#6366f1' });
+
+      expect(useTaskStore.getState().categories[0].color).toBe('#6366f1');
+    });
+
+    it('updateCategory leaves other categories unchanged', () => {
+      useTaskStore.getState().addCategory('A', '#ef4444');
+      useTaskStore.getState().addCategory('B', '#22c55e');
+      const idA = useTaskStore.getState().categories[0].id;
+
+      useTaskStore.getState().updateCategory(idA, { name: 'A updated' });
+
+      expect(useTaskStore.getState().categories[1].name).toBe('B');
+    });
+
+    it('deleteCategory removes the category', () => {
+      useTaskStore.getState().addCategory('Work', '#6366f1');
+      const id = useTaskStore.getState().categories[0].id;
+
+      useTaskStore.getState().deleteCategory(id);
+
+      expect(useTaskStore.getState().categories).toHaveLength(0);
+    });
+
+    it('deleteCategory clears categoryId from tasks that used it', () => {
+      useTaskStore.getState().addCategory('Work', '#6366f1');
+      const catId = useTaskStore.getState().categories[0].id;
+      useTaskStore.getState().addTask({
+        title: 'Tagged task',
+        priority: 'medium',
+        recurring: { enabled: false, days: [] },
+        categoryId: catId,
+      });
+
+      useTaskStore.getState().deleteCategory(catId);
+
+      expect(useTaskStore.getState().tasks[0].categoryId).toBeUndefined();
+    });
+
+    it('deleteCategory does not affect tasks with a different category', () => {
+      useTaskStore.getState().addCategory('Work', '#6366f1');
+      useTaskStore.getState().addCategory('Personal', '#22c55e');
+      const [catWork, catPersonal] = useTaskStore.getState().categories;
+      useTaskStore.getState().addTask({
+        title: 'Personal task',
+        priority: 'low',
+        recurring: { enabled: false, days: [] },
+        categoryId: catPersonal.id,
+      });
+
+      useTaskStore.getState().deleteCategory(catWork.id);
+
+      expect(useTaskStore.getState().tasks[0].categoryId).toBe(catPersonal.id);
     });
   });
 });

@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 
 import TasksScreen from '../tasks';
 import { useTaskStore } from '@/stores/taskStore';
@@ -36,14 +36,27 @@ jest.mock('@/components/tasks/NextReminderDebugPanel', () => ({
 
 jest.mock('@/components/tasks/TaskList', () => {
   const React = jest.requireActual('react') as typeof import('react');
-  const { View, Text } = jest.requireActual('react-native') as typeof import('react-native');
+  const { View, Text, Pressable } = jest.requireActual(
+    'react-native'
+  ) as typeof import('react-native');
 
   return {
-    TaskList: ({ tasks }: { tasks: Array<{ id: string; title: string }> }) =>
+    TaskList: ({
+      tasks,
+      onTaskCompleted,
+    }: {
+      tasks: Array<{ id: string; title: string }>;
+      onTaskCompleted?: () => void;
+    }) =>
       React.createElement(
         View,
         { testID: 'mock-task-list' },
-        tasks.map((task) => React.createElement(Text, { key: task.id }, task.title))
+        tasks.map((task) => React.createElement(Text, { key: task.id }, task.title)),
+        React.createElement(
+          Pressable,
+          { testID: 'mock-task-completed', onPress: onTaskCompleted },
+          React.createElement(Text, null, 'Complete task')
+        )
       ),
   };
 });
@@ -85,9 +98,34 @@ jest.mock('@/components/tasks/AddTaskModal', () => {
   };
 });
 
+jest.mock('react-native-confetti-cannon', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { View } = jest.requireActual('react-native') as typeof import('react-native');
+  return {
+    __esModule: true,
+    default: () => React.createElement(View, { testID: 'mock-confetti-cannon' }),
+  };
+});
+
+const mockFireConfetti = jest.fn();
+jest.mock('@/utils/confetti', () => ({
+  fireConfetti: (...args: unknown[]) => mockFireConfetti(...args),
+}));
+
+jest.mock('@/components/tasks/ManageCategoriesModal', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { View, Text } = jest.requireActual('react-native') as typeof import('react-native');
+
+  return {
+    ManageCategoriesModal: ({ visible }: { visible: boolean; onClose: () => void }) =>
+      visible ? React.createElement(View, { testID: 'mock-manage-categories-modal' }, React.createElement(Text, null, 'Manage categories')) : null,
+  };
+});
+
 function resetTaskStore() {
   useTaskStore.setState({
     lastResetDate: new Date().toISOString().slice(0, 10),
+    categories: [],
     tasks: [
       {
         id: 'task-1',
@@ -145,6 +183,22 @@ describe('TasksScreen UI', () => {
     expect(queryByText('Write tests')).toBeNull();
   });
 
+  it('shows category filter row when categories exist', () => {
+    useTaskStore.setState((s) => ({
+      ...s,
+      categories: [{ id: 'cat-1', name: 'Work', color: '#6366f1' }],
+    }));
+
+    const { getByText } = render(<TasksScreen />);
+    expect(getByText('Categories')).toBeTruthy();
+    expect(getByText('Work')).toBeTruthy();
+  });
+
+  it('does not show category filter row when no categories', () => {
+    const { queryByText } = render(<TasksScreen />);
+    expect(queryByText('Categories')).toBeNull();
+  });
+
   it('opens and closes add task modal from FAB', () => {
     const { getByTestId, queryByTestId } = render(<TasksScreen />);
 
@@ -155,5 +209,64 @@ describe('TasksScreen UI', () => {
 
     fireEvent.press(getByTestId('mock-add-task-close'));
     expect(queryByTestId('mock-add-task-modal')).toBeNull();
+  });
+});
+
+describe('TasksScreen handleTaskCompleted', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+    resetTaskStore();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('calls fireConfetti on web platform', () => {
+    const Platform = jest.requireActual('react-native').Platform as { OS: string };
+    const original = Platform.OS;
+    (Platform as { OS: string }).OS = 'web';
+
+    const { getByTestId } = render(<TasksScreen />);
+    fireEvent.press(getByTestId('mock-task-completed'));
+    expect(mockFireConfetti).toHaveBeenCalledTimes(1);
+
+    (Platform as { OS: string }).OS = original;
+  });
+
+  it('shows confetti cannon on native platform after task completion', () => {
+    const Platform = jest.requireActual('react-native').Platform as { OS: string };
+    const original = Platform.OS;
+    (Platform as { OS: string }).OS = 'ios';
+
+    const { getByTestId, queryByTestId } = render(<TasksScreen />);
+    expect(queryByTestId('mock-confetti-cannon')).toBeNull();
+    fireEvent.press(getByTestId('mock-task-completed'));
+    expect(getByTestId('mock-confetti-cannon')).toBeTruthy();
+
+    // After the timeout, confetti hides
+    act(() => {
+      jest.advanceTimersByTime(2400);
+    });
+    expect(queryByTestId('mock-confetti-cannon')).toBeNull();
+
+    (Platform as { OS: string }).OS = original;
+  });
+
+  it('clears confetti timeout on unmount', () => {
+    const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+    const Platform = jest.requireActual('react-native').Platform as { OS: string };
+    const original = Platform.OS;
+    (Platform as { OS: string }).OS = 'ios';
+
+    const { getByTestId, unmount } = render(<TasksScreen />);
+    fireEvent.press(getByTestId('mock-task-completed'));
+    // Timeout is pending; unmount should clear it
+    unmount();
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+
+    clearTimeoutSpy.mockRestore();
+    (Platform as { OS: string }).OS = original;
   });
 });

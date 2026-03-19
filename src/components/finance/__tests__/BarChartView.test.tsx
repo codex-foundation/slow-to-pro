@@ -28,8 +28,18 @@ jest.mock('react-native-gifted-charts', () => {
   return {
     BarChart: ({ testID }: { testID?: string }) =>
       React.createElement(View, { testID: testID ?? 'mock-bar-chart' }),
-    PieChart: ({ testID }: { testID?: string }) =>
-      React.createElement(View, { testID: testID ?? 'mock-pie-chart' }),
+    PieChart: ({
+      testID,
+      centerLabelComponent,
+    }: {
+      testID?: string;
+      centerLabelComponent?: () => React.ReactNode;
+    }) =>
+      React.createElement(
+        View,
+        { testID: testID ?? 'mock-pie-chart' },
+        centerLabelComponent ? centerLabelComponent() : null
+      ),
   };
 });
 
@@ -69,5 +79,39 @@ describe('BarChartView', () => {
     );
 
     expect(getByTestId('finance-pie-chart')).toBeTruthy();
+  });
+
+  it('renders gifted-charts BarChart on non-iOS platform (bar type)', () => {
+    const { Platform } = jest.requireActual('react-native') as typeof import('react-native');
+    const origOS = Platform.OS;
+    Object.defineProperty(Platform, 'OS', { value: 'android', configurable: true });
+
+    const { getByTestId } = render(
+      <BarChartView
+        categories={categories}
+        spentByCategory={(id) => (id === 'cat-food' ? 50 : 20)}
+        type="bar"
+      />
+    );
+
+    expect(getByTestId('finance-bar-chart')).toBeTruthy();
+    Object.defineProperty(Platform, 'OS', { value: origOS, configurable: true });
+  });
+
+  it('renders gifted-charts PieChart on non-iOS platform (pie type)', () => {
+    const { Platform } = jest.requireActual('react-native') as typeof import('react-native');
+    const origOS = Platform.OS;
+    Object.defineProperty(Platform, 'OS', { value: 'android', configurable: true });
+
+    const { getByTestId } = render(
+      <BarChartView
+        categories={categories}
+        spentByCategory={(id) => (id === 'cat-food' ? 50 : 20)}
+        type="pie"
+      />
+    );
+
+    expect(getByTestId('finance-pie-chart')).toBeTruthy();
+    Object.defineProperty(Platform, 'OS', { value: origOS, configurable: true });
   });
 });

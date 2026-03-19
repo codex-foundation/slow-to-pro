@@ -166,4 +166,36 @@ describe('TaskList ordering controls', () => {
 
     expect(onTaskCompleted).toHaveBeenCalledTimes(1);
   });
+
+  it('reorders tasks when move up is pressed on non-first task', () => {
+    const tasks = [...useTaskStore.getState().tasks].sort((a, b) => a.order - b.order);
+    const { getByTestId } = render(<TaskList tasks={tasks} />);
+
+    // t2 is at index 1 — pressing move-up calls moveVisibleTask(1, 0)
+    fireEvent.press(getByTestId('move-up-t2'));
+
+    const orderedTitles = [...useTaskStore.getState().tasks]
+      .sort((a, b) => a.order - b.order)
+      .map((t) => t.title);
+
+    expect(orderedTitles).toEqual(['Second', 'First', 'Third']);
+  });
+
+  it('renders empty state when tasks list is empty', () => {
+    const { getByText } = render(<TaskList tasks={[]} />);
+    expect(getByText('No tasks yet — tap + to add one')).toBeTruthy();
+  });
+
+  it('renders DraggableFlatList on android platform', () => {
+    const { Platform } = jest.requireActual('react-native') as typeof import('react-native');
+    const origOS = Platform.OS;
+    Object.defineProperty(Platform, 'OS', { value: 'android', configurable: true });
+
+    const tasks = [...useTaskStore.getState().tasks].sort((a, b) => a.order - b.order);
+    const { getByText } = render(<TaskList tasks={tasks} />);
+
+    expect(getByText('First')).toBeTruthy();
+
+    Object.defineProperty(Platform, 'OS', { value: origOS, configurable: true });
+  });
 });

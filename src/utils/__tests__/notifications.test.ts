@@ -68,5 +68,17 @@ describe('notifications utils', () => {
         trigger: null,
       });
     });
+
+    it('scheduleTimerEndNotification uses break messages when phase is not work', async () => {
+      await scheduleTimerEndNotification('break');
+
+      expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledWith({
+        content: {
+          title: 'Break time over!',
+          body: 'Ready to focus again?',
+        },
+        trigger: null,
+      });
+    });
   });
 });
