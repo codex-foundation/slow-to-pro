@@ -24,7 +24,6 @@ import { useSyncStore } from '@/stores/syncStore';
 import { type ThemePreference, useSettingsStore } from '@/stores/settingsStore';
 import { PaywallModal } from '@/components/ui/PaywallModal';
 import { SharedSpaceModal } from '@/components/ui/SharedSpaceModal';
-import { refreshProStatus } from '@/utils/purchases';
 
 const THEME_OPTIONS: ThemePreference[] = ['system', 'light', 'dark'];
 
@@ -117,7 +116,6 @@ export default function SettingsScreen() {
 
       const result = await syncFromCloudOrSeed(data.user.id);
       void loadSpaces();
-      void refreshProStatus();
       setStatusMessage(
         result === 'pulled'
           ? 'Logged in and synced your latest cloud data.'
@@ -138,7 +136,6 @@ export default function SettingsScreen() {
       if (data.user) {
         await syncFromCloudOrSeed(data.user.id);
         void loadSpaces();
-        void refreshProStatus();
       }
 
       setStatusMessage('Account created. Check email to confirm if prompted, then log in.');
@@ -194,7 +191,6 @@ export default function SettingsScreen() {
       if (exchangeData.user) {
         const syncResult = await syncFromCloudOrSeed(exchangeData.user.id);
         void loadSpaces();
-        void refreshProStatus();
         setStatusMessage(
           syncResult === 'pulled'
             ? 'Logged in and synced your latest cloud data.'

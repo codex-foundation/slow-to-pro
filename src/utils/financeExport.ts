@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 
 import type { Budget, Category, Expense } from '@/models/finance';
+import { todayString } from '@/utils/date';
 
 function escapeCsv(value: string | number | undefined): string {
   const str = String(value ?? '');
@@ -17,8 +18,12 @@ function formatDate(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
+function buildCategoryMap(categories: Category[]): Record<string, string> {
+  return Object.fromEntries(categories.map((c) => [c.id, c.name]));
+}
+
 export function buildCsv(expenses: Expense[], categories: Category[], budgets: Budget[]): string {
-  const catMap = Object.fromEntries(categories.map((c) => [c.id, c.name]));
+  const catMap = buildCategoryMap(categories);
 
   const expenseRows = [
     ['Date', 'Category', 'Amount', 'Note'],
@@ -50,7 +55,7 @@ export function buildCsv(expenses: Expense[], categories: Category[], budgets: B
 }
 
 function buildHtml(expenses: Expense[], categories: Category[], budgets: Budget[]): string {
-  const catMap = Object.fromEntries(categories.map((c) => [c.id, c.name]));
+  const catMap = buildCategoryMap(categories);
   const sorted = [...expenses].sort((a, b) => b.date - a.date);
 
   const expenseRows = sorted
@@ -124,7 +129,7 @@ export async function exportFinancesAsCsv(
   budgets: Budget[]
 ): Promise<void> {
   const csv = buildCsv(expenses, categories, budgets);
-  const fileName = `finances_${new Date().toISOString().slice(0, 10)}.csv`;
+  const fileName = `finances_${todayString()}.csv`;
 
   if (Platform.OS === 'web') {
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -152,7 +157,7 @@ export async function exportFinancesAsPdf(
 ): Promise<void> {
   const html = buildHtml(expenses, categories, budgets);
   const { uri } = await Print.printToFileAsync({ html });
-  const dest = new File(Paths.cache, `finances_${new Date().toISOString().slice(0, 10)}.pdf`);
+  const dest = new File(Paths.cache, `finances_${todayString()}.pdf`);
   new File(uri).move(dest);
   await Sharing.shareAsync(dest.uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
 }

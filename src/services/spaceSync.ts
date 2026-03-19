@@ -49,22 +49,14 @@ export async function loadSpaces(): Promise<void> {
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Spaces the user owns
-    const { data: ownedSpaces } = await supabase.from('spaces').select('*').eq('owner_id', user.id);
-
-    // Spaces the user is an accepted member of
-    const { data: memberRows } = await supabase
-      .from('space_members')
-      .select('space_id, spaces(*)')
-      .eq('user_id', user.id)
-      .eq('status', 'accepted');
-
-    // Pending invites (by email)
-    const { data: pendingRows } = await supabase
-      .from('space_members')
-      .select('id, space_id, spaces(*)')
-      .eq('invited_email', user.email ?? '')
-      .eq('status', 'pending');
+    const [{ data: ownedSpaces }, { data: memberRows }, { data: pendingRows }] = await Promise.all([
+      // Spaces the user owns
+      supabase.from('spaces').select('*').eq('owner_id', user.id),
+      // Spaces the user is an accepted member of
+      supabase.from('space_members').select('space_id, spaces(*)').eq('user_id', user.id).eq('status', 'accepted'),
+      // Pending invites (by email)
+      supabase.from('space_members').select('id, space_id, spaces(*)').eq('invited_email', user.email ?? '').eq('status', 'pending'),
+    ]);
 
     const owned: Space[] = (ownedSpaces ?? []).map(toSpace);
     const joined: Space[] = ((memberRows ?? []) as unknown[])
