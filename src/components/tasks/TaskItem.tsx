@@ -6,6 +6,7 @@ import {
   Keyboard,
   Modal as RNModal,
   Platform,
+  ScrollView,
   Switch,
   Text,
   TextInput,
@@ -105,6 +106,7 @@ export function TaskItem({
   const theme = useAppTheme();
   const router = useRouter();
   const { toggleTask, deleteTask, updateTask } = useTaskStore();
+  const categories = useTaskStore((s) => s.categories);
   const startWorkForTask = usePomodoroStore((s) => s.startWorkForTask);
   const isPro = useEntitlementStore((s) => s.isPro);
   const [showEdit, setShowEdit] = useState(false);
@@ -139,6 +141,7 @@ export function TaskItem({
   const [showEditReminderTimePicker, setShowEditReminderTimePicker] = useState(false);
   const [editRecurring, setEditRecurring] = useState(item.recurring.enabled);
   const [editDays, setEditDays] = useState<number[]>(item.recurring.days);
+  const [editCategoryId, setEditCategoryId] = useState<string | null>(item.categoryId ?? null);
   const dueDateText = item.dueDate ? new Date(item.dueDate).toLocaleDateString() : null;
   const reminderText = item.reminderAt ? new Date(item.reminderAt).toLocaleString() : null;
 
@@ -201,6 +204,7 @@ export function TaskItem({
     setShowEditReminderTimePicker(false);
     setEditRecurring(item.recurring.enabled);
     setEditDays(item.recurring.days);
+    setEditCategoryId(item.categoryId ?? null);
 
     setShowEdit(true);
   };
@@ -262,6 +266,7 @@ export function TaskItem({
     updateTask(item.id, {
       title: next,
       priority: editPriority,
+      categoryId: editCategoryId ?? undefined,
       dueDate: dueDateMs,
       reminderAt: reminderAtMs,
       recurring: { enabled: editRecurring, days: editDays },
@@ -514,6 +519,16 @@ export function TaskItem({
           </Text>
         </View>
 
+        {item.categoryId && (() => {
+          const cat = categories.find((c) => c.id === item.categoryId);
+          return cat ? (
+            <View className="flex-row items-center gap-1 mt-1">
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: cat.color }} />
+              <Text className="text-xs" style={{ color: cat.color }}>{cat.name}</Text>
+            </View>
+          ) : null;
+        })()}
+
         {(item.recurring.enabled || dueDateText || reminderText) && (
           <View className="mt-1 gap-0.5">
             {item.recurring.enabled && (
@@ -625,6 +640,52 @@ export function TaskItem({
             </TouchableOpacity>
           ))}
         </View>
+
+        {categories.length > 0 && (
+          <>
+            <Text className="text-sm font-medium mb-2" style={{ color: theme.textMuted }}>
+              Category
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="mb-4"
+              contentContainerStyle={{ gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => setEditCategoryId(null)}
+                className="px-3 py-1.5 rounded-full border"
+                style={{
+                  backgroundColor: editCategoryId === null ? theme.primary : theme.surface,
+                  borderColor: editCategoryId === null ? theme.primary : theme.border,
+                }}>
+                <Text
+                  className="text-xs font-medium"
+                  style={{ color: editCategoryId === null ? '#fff' : theme.textMuted }}>
+                  None
+                </Text>
+              </TouchableOpacity>
+              {categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  onPress={() => setEditCategoryId(cat.id)}
+                  className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border"
+                  style={{
+                    backgroundColor: editCategoryId === cat.id ? cat.color + '22' : theme.surface,
+                    borderColor: editCategoryId === cat.id ? cat.color : theme.border,
+                  }}>
+                  <View
+                    style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: cat.color }}
+                  />
+                  <Text
+                    className="text-xs font-medium"
+                    style={{ color: editCategoryId === cat.id ? cat.color : theme.textMuted }}>
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </>
+        )}
 
         <View className="flex-row items-center justify-between mb-3">
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

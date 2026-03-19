@@ -6,6 +6,7 @@ import {
   Keyboard,
   Modal as RNModal,
   Platform,
+  ScrollView,
   Switch,
   Text,
   TextInput,
@@ -106,8 +107,10 @@ export function AddTaskModal({ visible, onClose }: Props) {
   const router = useRouter();
   const isPro = useEntitlementStore((s) => s.isPro);
   const addTask = useTaskStore((s) => s.addTask);
+  const categories = useTaskStore((s) => s.categories);
   const startWorkForTask = usePomodoroStore((s) => s.startWorkForTask);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<Priority>('medium');
   const [recurring, setRecurring] = useState(false);
@@ -272,6 +275,7 @@ export function AddTaskModal({ visible, onClose }: Props) {
     const taskId = addTask({
       title: title.trim(),
       priority,
+      categoryId: categoryId ?? undefined,
       recurring: { enabled: recurring, days },
       dueDate: dueDateMs,
       reminderAt: reminderAtMs,
@@ -280,6 +284,7 @@ export function AddTaskModal({ visible, onClose }: Props) {
       startWorkForTask(taskId);
     }
     setTitle('');
+    setCategoryId(null);
     setPriority('medium');
     setRecurring(false);
     setDays([]);
@@ -535,6 +540,52 @@ export function AddTaskModal({ visible, onClose }: Props) {
               </TouchableOpacity>
             ))}
           </View>
+        )}
+
+        {categories.length > 0 && (
+          <>
+            <Text className="text-sm font-medium text-gray-600 mb-2">Category</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="mb-4"
+              contentContainerStyle={{ gap: 8 }}>
+              <TouchableOpacity
+                testID="category-none"
+                onPress={() => setCategoryId(null)}
+                className="px-3 py-1.5 rounded-full border"
+                style={{
+                  backgroundColor: categoryId === null ? theme.primary : theme.surface,
+                  borderColor: categoryId === null ? theme.primary : theme.border,
+                }}>
+                <Text
+                  className="text-xs font-medium"
+                  style={{ color: categoryId === null ? '#fff' : theme.textMuted }}>
+                  None
+                </Text>
+              </TouchableOpacity>
+              {categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  testID={`category-chip-${cat.id}`}
+                  onPress={() => setCategoryId(cat.id)}
+                  className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border"
+                  style={{
+                    backgroundColor: categoryId === cat.id ? cat.color + '22' : theme.surface,
+                    borderColor: categoryId === cat.id ? cat.color : theme.border,
+                  }}>
+                  <View
+                    style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: cat.color }}
+                  />
+                  <Text
+                    className="text-xs font-medium"
+                    style={{ color: categoryId === cat.id ? cat.color : theme.textMuted }}>
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </>
         )}
 
         <TouchableOpacity

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { Priority, Task } from '@/models/task';
+import type { Priority, Task, TaskCategory } from '@/models/task';
 import { todayString, todayWeekday } from '@/utils/date';
 import { generateId } from '@/utils/id';
 import { mmkvStorage } from '@/utils/mmkv';
@@ -9,11 +9,13 @@ import { scheduleTaskReminderNotification } from '@/utils/notifications';
 
 interface TaskStore {
   tasks: Task[];
+  categories: TaskCategory[];
   lastResetDate: string;
   addTask: (data: {
     title: string;
     priority: Priority;
     recurring: Task['recurring'];
+    categoryId?: string;
     dueDate?: number;
     reminderAt?: number;
   }) => string;
@@ -22,15 +24,19 @@ interface TaskStore {
   updateTask: (id: string, updates: Partial<Task>) => void;
   reorderTasks: (tasks: Task[]) => void;
   resetRecurringTasksIfNewDay: () => void;
+  addCategory: (name: string, color: string) => void;
+  updateCategory: (id: string, updates: Partial<Omit<TaskCategory, 'id'>>) => void;
+  deleteCategory: (id: string) => void;
 }
 
 export const useTaskStore = create<TaskStore>()(
   persist(
     (set, get) => ({
       tasks: [],
+      categories: [],
       lastResetDate: todayString(),
 
-      addTask: ({ title, priority, recurring, dueDate, reminderAt }) => {
+      addTask: ({ title, priority, recurring, categoryId, dueDate, reminderAt }) => {
         const tasks = get().tasks;
         const maxOrder = tasks.length > 0 ? Math.max(...tasks.map((t) => t.order)) : -1;
         const task: Task = {
@@ -39,6 +45,7 @@ export const useTaskStore = create<TaskStore>()(
           completed: false,
           priority,
           order: maxOrder + 1,
+          categoryId,
           dueDate,
           reminderAt,
           recurring,
@@ -90,6 +97,24 @@ export const useTaskStore = create<TaskStore>()(
         set({
           tasks: reordered.map((t, i) => ({ ...t, order: i })),
         });
+      },
+
+      addCategory: (name, color) => {
+        const category: TaskCategory = { id: generateId(), name, color };
+        set((s) => ({ categories: [...s.categories, category] }));
+      },
+
+      updateCategory: (id, updates) => {
+        set((s) => ({
+          categories: s.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+        }));
+      },
+
+      deleteCategory: (id) => {
+        set((s) => ({
+          categories: s.categories.filter((c) => c.id !== id),
+          tasks: s.tasks.map((t) => (t.categoryId === id ? { ...t, categoryId: undefined } : t)),
+        }));
       },
 
       resetRecurringTasksIfNewDay: () => {

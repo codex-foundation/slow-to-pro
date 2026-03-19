@@ -53,8 +53,8 @@ const mockAddTask = jest.fn(() => 'task-id');
 const mockStartWorkForTask = jest.fn();
 
 jest.mock('@/stores/taskStore', () => ({
-  useTaskStore: (selector: (s: { addTask: typeof mockAddTask }) => unknown) =>
-    selector({ addTask: mockAddTask }),
+  useTaskStore: (selector: (s: { addTask: typeof mockAddTask; categories: [] }) => unknown) =>
+    selector({ addTask: mockAddTask, categories: [] }),
 }));
 
 jest.mock('@/stores/pomodoroStore', () => ({
