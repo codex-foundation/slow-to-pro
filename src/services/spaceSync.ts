@@ -214,7 +214,7 @@ export async function pushToSharedSpace(spaceId: string): Promise<void> {
     supabase.from('space_task_snapshots').upsert(
       {
         space_id: spaceId,
-        data: { tasks: taskState.tasks },
+        data: { tasks: taskState.tasks, categories: taskState.categories },
         updated_at: new Date().toISOString(),
         updated_by: user.id,
       },
@@ -245,7 +245,7 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
       budgets: [],
       expenses: [],
     }));
-    useTaskStore.setState((s) => ({ ...s, tasks: [] }));
+    useTaskStore.setState((s) => ({ ...s, tasks: [], categories: [] }));
 
     if (finData?.data) {
       const d = finData.data as {
@@ -262,11 +262,14 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
     }
 
     if (taskData?.data) {
-      const d = taskData.data as { tasks?: unknown[] };
+      const d = taskData.data as { tasks?: unknown[]; categories?: unknown[] };
       useTaskStore.setState((s) => ({
         ...s,
         tasks: (d.tasks as typeof s.tasks) ?? s.tasks,
+        categories: (d.categories as typeof s.categories) ?? [],
       }));
+    } else {
+      useTaskStore.setState((s) => ({ ...s, categories: [] }));
     }
   } finally {
     isApplyingSpaceSnapshot = false;

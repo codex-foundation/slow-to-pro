@@ -8,6 +8,7 @@ import { CLOUD_SYNC_TABLE, supabase } from '@/lib/supabase';
 export interface AppSnapshot {
   taskStore: {
     tasks: ReturnType<typeof useTaskStore.getState>['tasks'];
+    categories: ReturnType<typeof useTaskStore.getState>['categories'];
     lastResetDate: string;
   };
   financeStore: Pick<
@@ -46,6 +47,7 @@ export function getLocalSnapshot(): AppSnapshot {
   return {
     taskStore: {
       tasks: taskStore.tasks,
+      categories: taskStore.categories,
       lastResetDate: taskStore.lastResetDate,
     },
     financeStore: {
@@ -83,6 +85,7 @@ export function applySnapshot(snapshot: AppSnapshot) {
   try {
     useTaskStore.setState({
       tasks: snapshot.taskStore.tasks,
+      categories: snapshot.taskStore.categories ?? [],
       lastResetDate: snapshot.taskStore.lastResetDate,
     });
 
