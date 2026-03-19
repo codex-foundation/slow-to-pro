@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { syncFromCloudOrSeed } from '@/services/cloudSync';
+import { loadSpaces } from '@/services/spaceSync';
 import { authenticateWithBiometrics, isBiometricAvailable } from '@/utils/biometrics';
 import { appStorage } from '@/utils/mmkv';
 
@@ -154,6 +155,7 @@ export default function AuthScreen() {
       if (error) throw error;
       if (!data.user) throw new Error('No user returned from login.');
       await syncFromCloudOrSeed(data.user.id);
+      void loadSpaces();
       appStorage.setItem(TC_ACCEPTED_KEY, 'true');
       router.replace('/(tabs)/tasks');
     });
@@ -167,7 +169,10 @@ export default function AuthScreen() {
         password,
       });
       if (error) throw error;
-      if (data.user) await syncFromCloudOrSeed(data.user.id);
+      if (data.user) {
+        await syncFromCloudOrSeed(data.user.id);
+        void loadSpaces();
+      }
       appStorage.setItem(TC_ACCEPTED_KEY, 'true');
       router.replace('/(tabs)/tasks');
     });
@@ -198,6 +203,7 @@ export default function AuthScreen() {
 
       if (exchangeData?.user) {
         await syncFromCloudOrSeed(exchangeData.user.id);
+        void loadSpaces();
         appStorage.setItem(TC_ACCEPTED_KEY, 'true');
         router.replace('/(tabs)/tasks');
       }
