@@ -27,4 +27,3 @@ android
 # Claude agent skills
 .agents/
 .claude/
-skills-lock.json
