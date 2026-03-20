@@ -85,10 +85,10 @@ describe('PomodoroScreen UI', () => {
     jest.useRealTimers();
   });
 
-  it('applies theme bg to ScrollView style to prevent white background in dark mode', () => {
+  it('applies theme bg to ScrollView contentContainerStyle to prevent white background in dark mode', () => {
     const { UNSAFE_getByType } = render(<PomodoroScreen />);
     const scrollView = UNSAFE_getByType(ScrollView);
-    expect(scrollView.props.style).toMatchObject({ backgroundColor: '#ffffff' });
+    expect(scrollView.props.contentContainerStyle).toMatchObject({ backgroundColor: '#ffffff' });
   });
 
   it('renders key pomodoro sections', () => {
