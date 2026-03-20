@@ -87,7 +87,6 @@ export default function TabLayout() {
           borderTopColor: theme.border,
           backgroundColor: theme.surfaceElevated,
         },
-        sceneStyle: { backgroundColor: theme.bg },
       }}>
       <Tabs.Screen
         name="tasks"
