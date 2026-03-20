@@ -49,7 +49,7 @@ export default function PomodoroScreen() {
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: theme.bg }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: theme.bg }} showsVerticalScrollIndicator={false}>
         <View className="px-4 pt-4 pb-2">
           <Text className="text-2xl font-bold" style={{ color: theme.text }}>
             Focus
