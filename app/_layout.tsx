@@ -3,6 +3,7 @@ import '../global.css';
 import NetInfo from '@react-native-community/netinfo';
 import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Slot, Stack } from 'expo-router';
@@ -22,6 +23,10 @@ import { useSpaceStore } from '@/stores/spaceStore';
 import { useTaskStore } from '@/stores/taskStore';
 import { supabase } from '@/lib/supabase';
 import { initializePurchases, readProStatusFromDb, refreshProStatus } from '@/utils/purchases';
+
+if (Platform.OS !== 'web') {
+  void SplashScreen.preventAutoHideAsync();
+}
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -128,6 +133,12 @@ export default function RootLayout() {
       authSubscription?.data.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (fontsLoaded || fontsError) {
+      void SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontsError]);
 
   if (!fontsLoaded && !fontsError) {
     return null;
