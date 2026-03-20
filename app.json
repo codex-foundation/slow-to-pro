@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "slow-to-pro",
+    "name": "Slow to Pro",
     "slug": "slow-to-pro",
     "version": "1.0.0",
     "web": {
@@ -12,6 +12,15 @@
     "scheme": "slow-to-pro",
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#2563eb"
+        }
+      ],
       [
         "expo-notifications",
         {
@@ -31,9 +40,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#2563eb"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.slowtopro"
