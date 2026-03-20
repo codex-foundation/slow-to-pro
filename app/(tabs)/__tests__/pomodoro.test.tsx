@@ -1,4 +1,5 @@
 import { act, render } from '@testing-library/react-native';
+import { ScrollView } from 'react-native';
 
 import PomodoroScreen from '../pomodoro';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
@@ -82,6 +83,12 @@ describe('PomodoroScreen UI', () => {
       jest.runOnlyPendingTimers();
     });
     jest.useRealTimers();
+  });
+
+  it('applies theme bg to ScrollView style to prevent white background in dark mode', () => {
+    const { UNSAFE_getByType } = render(<PomodoroScreen />);
+    const scrollView = UNSAFE_getByType(ScrollView);
+    expect(scrollView.props.style).toMatchObject({ backgroundColor: '#ffffff' });
   });
 
   it('renders key pomodoro sections', () => {
