@@ -1,8 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Slot, usePathname, useRouter } from 'expo-router';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { appStorage } from '@/utils/mmkv';
+
+const TC_ACCEPTED_KEY = 'tc-accepted-v1';
 
 const NAV_ITEMS = [
   {
@@ -30,9 +35,38 @@ export default function WebTabLayout() {
   const theme = useAppTheme();
   const pathname = usePathname();
   const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    const guard = async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        if (appStorage.getItem(TC_ACCEPTED_KEY) !== 'true') {
+          router.replace('/');
+          return;
+        }
+      } else {
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) {
+          router.replace('/');
+          return;
+        }
+      }
+      setAuthChecked(true);
+    };
+    void guard();
+  }, [router]);
 
   const isActive = (key: string) =>
     pathname === `/${key}` || pathname === `/(tabs)/${key}` || pathname.endsWith(`/${key}`);
+
+  if (!authChecked) {
+    return (
+      <View
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.bg }}>
+        <ActivityIndicator color={theme.primary} size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, flexDirection: 'row', backgroundColor: theme.bg }}>
