@@ -37,6 +37,7 @@ const API_KEY_IOS = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS ?? '';
 const API_KEY_ANDROID = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID ?? '';
 
 export function isRevenueCatConfigured(): boolean {
+  if (Platform.OS === 'web') return false;
   return Platform.OS === 'ios' ? API_KEY_IOS.length > 0 : API_KEY_ANDROID.length > 0;
 }
 

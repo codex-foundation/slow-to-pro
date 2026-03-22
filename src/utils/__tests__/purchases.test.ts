@@ -396,6 +396,21 @@ describe('Android platform paths (via jest.isolateModules with android OS)', () 
     delete process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID;
   });
 
+  it('isRevenueCatConfigured returns false on web even when Android key is set', () => {
+    process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID = 'test-key-android';
+    let result = true;
+    jest.isolateModules(() => {
+      jest.mock('react-native', () => ({ Platform: { OS: 'web' } }));
+      // biome-ignore lint/style/noCommonJs: isolateModules requires sync require
+      const { isRevenueCatConfigured: isConfigured } = require('../purchases') as {
+        isRevenueCatConfigured: () => boolean;
+      };
+      result = isConfigured();
+    });
+    expect(result).toBe(false);
+    delete process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID;
+  });
+
   it('initializePurchases on android uses android key', async () => {
     process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID = 'test-key-android';
     let initFn: (() => Promise<void>) | undefined;
