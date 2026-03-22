@@ -35,7 +35,7 @@ export default function AuthScreenWeb() {
       <View
         style={{
           flex: 1,
-          backgroundColor: theme.bg,
+          backgroundColor: '#0f172a',
           justifyContent: 'center',
           alignItems: 'center',
         }}>
@@ -45,7 +45,7 @@ export default function AuthScreenWeb() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.primary, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+    <View style={{ flex: 1, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
       {/* Centered card */}
       <View
         style={{
@@ -55,9 +55,9 @@ export default function AuthScreenWeb() {
           borderRadius: 20,
           overflow: 'hidden',
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.18,
-          shadowRadius: 24,
+          shadowOffset: { width: 0, height: 16 },
+          shadowOpacity: 0.4,
+          shadowRadius: 40,
         }}>
 
         {/* Left column — branding */}
