@@ -18,6 +18,7 @@ import { useTaskStore } from '@/stores/taskStore';
 // Mock supabase with a chainable query builder
 // ---------------------------------------------------------------------------
 const mockGetUser = jest.fn();
+const mockInvokeEmail = jest.fn();
 const mockInsert = jest.fn();
 const mockUpsert = jest.fn();
 const mockDelete = jest.fn();
@@ -68,6 +69,7 @@ jest.mock('@/lib/supabase', () => ({
   supabase: {
     auth: { getUser: (...a: unknown[]) => mockGetUser(...a) },
     from: () => mockQueryBuilder(),
+    functions: { invoke: (...a: unknown[]) => mockInvokeEmail(...a) },
   },
 }));
 
@@ -116,6 +118,7 @@ function resetStores() {
 
 beforeEach(() => {
   mockGetUser.mockReset();
+  mockInvokeEmail.mockReset();
   mockInsert.mockReset();
   mockUpsert.mockReset();
   mockDelete.mockReset();
@@ -762,9 +765,7 @@ describe('respondToInvite', () => {
 
 // ---------------------------------------------------------------------------
 describe('inviteMember success path', () => {
-  it('calls loadSpaces after successful insert', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1', email: 'a@a.com' } } });
-
+  function setupSuccessBuilder() {
     const successBuilder = {
       insert: (...a: unknown[]) => {
         mockInsert(...a);
@@ -773,7 +774,6 @@ describe('inviteMember success path', () => {
       then: (resolve: (v: unknown) => unknown) =>
         Promise.resolve({ data: [{ id: 'm1' }], error: null }).then(resolve),
     };
-    // loadSpaces will need supabase.from after the insert — return empty builders for that
     let callCount = 0;
     jest.requireMock('@/lib/supabase').supabase.from = jest.fn().mockImplementation(() => {
       callCount++;
@@ -782,9 +782,53 @@ describe('inviteMember success path', () => {
         select: () => ({ eq: () => ({ eq: () => Promise.resolve({ data: [], error: null }) }) }),
       };
     });
+  }
+
+  it('calls loadSpaces after successful insert', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1', email: 'a@a.com' } } });
+    setupSuccessBuilder();
 
     const result = await inviteMember('space-1', 'b@b.com');
     expect(result.error).toBeUndefined();
+  });
+
+  it('invokes send-invite-email with correct params on success', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1', email: 'owner@example.com' } } });
+    mockInvokeEmail.mockResolvedValue({ data: { sent: true }, error: null });
+    useSpaceStore.setState({
+      spaces: [{ id: 'space-1', name: 'Family', ownerId: 'user-1', createdAt: '' }],
+      members: [],
+      pendingInvites: [],
+      activeSpaceId: null,
+      isLoading: false,
+    });
+    setupSuccessBuilder();
+
+    await inviteMember('space-1', 'friend@example.com');
+
+    expect(mockInvokeEmail).toHaveBeenCalledWith('send-invite-email', {
+      body: {
+        inviteeEmail: 'friend@example.com',
+        spaceName: 'Family',
+        inviterEmail: 'owner@example.com',
+      },
+    });
+  });
+
+  it('still succeeds when getUser fails (inviter email falls back to empty string)', async () => {
+    // First call (in inviteMember) rejects; second call (in loadSpaces) returns null user so it exits early
+    mockGetUser
+      .mockRejectedValueOnce(new Error('auth error'))
+      .mockResolvedValue({ data: { user: null } });
+    mockInvokeEmail.mockResolvedValue({ data: { sent: true }, error: null });
+    setupSuccessBuilder();
+
+    const result = await inviteMember('space-1', 'friend@example.com');
+    expect(result.error).toBeUndefined();
+    expect(mockInvokeEmail).toHaveBeenCalledWith(
+      'send-invite-email',
+      expect.objectContaining({ body: expect.objectContaining({ inviterEmail: '' }) })
+    );
   });
 });
 

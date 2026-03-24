@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import * as ExpoLinking from 'expo-linking';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useMemo, useState } from 'react';
@@ -19,6 +19,7 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { syncFromCloudOrSeed } from '@/services/cloudSync';
 import { loadSpaces } from '@/services/spaceSync';
 import { useEntitlementStore } from '@/stores/entitlementStore';
+import { refreshProStatus } from '@/utils/purchases';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { useSyncStore } from '@/stores/syncStore';
 import { type ThemePreference, useSettingsStore } from '@/stores/settingsStore';
@@ -38,6 +39,14 @@ function syncTimeAgo(ms: number): string {
 export default function SettingsScreen() {
   const theme = useAppTheme();
   const router = useRouter();
+  const { pro } = useLocalSearchParams<{ pro?: string }>();
+
+  // On web: refresh pro status when returning from Stripe Checkout
+  useEffect(() => {
+    if (Platform.OS === 'web' && pro === 'success') {
+      void refreshProStatus();
+    }
+  }, [pro]);
   const { lastSyncedAt, isSyncing, syncError } = useSyncStore();
   const themePreference = useSettingsStore((s) => s.themePreference);
   const setThemePreference = useSettingsStore((s) => s.setThemePreference);

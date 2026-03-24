@@ -7,8 +7,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Slot, Stack } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppState, Platform, View } from 'react-native';
+import { AnimatedSplash } from '@/components/ui/AnimatedSplash';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -41,6 +42,7 @@ if (Platform.OS !== 'web') {
 
 export default function RootLayout() {
   const isExpoGo = Constants.appOwnership === 'expo';
+  const [animationDone, setAnimationDone] = useState(false);
   const [fontsLoaded, fontsError] = useFonts({
     ...Ionicons.font,
   });
@@ -140,18 +142,18 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontsError]);
 
-  if (!fontsLoaded && !fontsError) {
-    return null;
-  }
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <View style={{ flex: 1 }}>
-          {isExpoGo ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
+          {(fontsLoaded || fontsError) &&
+            (isExpoGo ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />)}
           <WebNotificationFallbackToast />
         </View>
       </SafeAreaProvider>
+      {Platform.OS !== 'web' && !animationDone && (
+        <AnimatedSplash onFinish={() => setAnimationDone(true)} />
+      )}
     </GestureHandlerRootView>
   );
 }

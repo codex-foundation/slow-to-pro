@@ -46,6 +46,12 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
     supabase?.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, []);
 
+  useEffect(() => {
+    if (visible) {
+      void loadSpaces();
+    }
+  }, [visible]);
+
   const handleCreate = async () => {
     if (!newSpaceName.trim()) return;
     setBusy(true);
@@ -144,6 +150,15 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
 
   const spaceMembers = (spaceId: string) =>
     members.filter((m) => m.spaceId === spaceId && m.status === 'accepted');
+
+  const spaceInvites = (spaceId: string) =>
+    members.filter((m) => m.spaceId === spaceId && m.role !== 'owner');
+
+  const handleRemoveMember = async (memberId: string) => {
+    setBusy(true);
+    await removeMember(memberId);
+    setBusy(false);
+  };
 
   return (
     <Modal visible={visible} onClose={onClose} title="Shared Spaces">
@@ -316,6 +331,43 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
                         )}
                       </TouchableOpacity>
                     </View>
+                  </View>
+                )}
+
+                {/* Member / invite list */}
+                {spaceInvites(space.id).length > 0 && (
+                  <View
+                    style={{ borderTopWidth: 1, borderColor: theme.border, paddingHorizontal: 12, paddingVertical: 8 }}>
+                    {spaceInvites(space.id).map((m) => {
+                      const statusColor =
+                        m.status === 'accepted'
+                          ? '#16a34a'
+                          : m.status === 'pending'
+                            ? '#d97706'
+                            : theme.textSubtle;
+                      return (
+                        <View
+                          key={m.id}
+                          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 }}>
+                          <Text className="text-xs flex-1 mr-2" style={{ color: theme.textMuted }} numberOfLines={1}>
+                            {m.invitedEmail}
+                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text className="text-xs font-medium capitalize" style={{ color: statusColor }}>
+                              {m.status}
+                            </Text>
+                            {currentUserId === space.ownerId && (
+                              <TouchableOpacity
+                                onPress={() => handleRemoveMember(m.id)}
+                                disabled={busy}
+                                testID={`remove-member-${m.id}`}>
+                                <Ionicons name="close-circle-outline" size={16} color={theme.danger} />
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        </View>
+                      );
+                    })}
                   </View>
                 )}
               </View>

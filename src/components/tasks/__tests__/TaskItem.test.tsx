@@ -459,4 +459,212 @@ describe('TaskItem', () => {
     mockPaywallOnUpgraded();
     // No crash — setShowPaywall(false) was invoked
   });
+
+  it('renders drag handle when drag prop is provided', () => {
+    const drag = jest.fn();
+    const { getByLabelText, queryByLabelText } = render(
+      <TaskItem item={baseTask} drag={drag} />
+    );
+    // Drag handle renders — no up/down arrows
+    expect(getByLabelText(`Reorder task ${baseTask.title}`)).toBeTruthy();
+    expect(queryByLabelText(`Move ${baseTask.title} up`)).toBeNull();
+  });
+
+  it('renders up/down arrows when drag prop is absent', () => {
+    const { getByLabelText } = render(<TaskItem item={baseTask} />);
+    expect(getByLabelText(`Move ${baseTask.title} up`)).toBeTruthy();
+    expect(getByLabelText(`Move ${baseTask.title} down`)).toBeTruthy();
+  });
+
+  it('calls onMoveUp and onMoveDown when arrow buttons are pressed', () => {
+    const onMoveUp = jest.fn();
+    const onMoveDown = jest.fn();
+    const { getByLabelText } = render(
+      <TaskItem item={baseTask} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />
+    );
+    fireEvent.press(getByLabelText(`Move ${baseTask.title} up`));
+    expect(onMoveUp).toHaveBeenCalled();
+    fireEvent.press(getByLabelText(`Move ${baseTask.title} down`));
+    expect(onMoveDown).toHaveBeenCalled();
+  });
+
+  it('displays category name and color when task has matching categoryId', () => {
+    mockTaskStoreState.categories = [{ id: 'cat-1', name: 'Work', color: '#6366f1' }];
+    const { getByText } = render(
+      <TaskItem item={{ ...baseTask, categoryId: 'cat-1' }} />
+    );
+    expect(getByText('Work')).toBeTruthy();
+    mockTaskStoreState.categories = [];
+  });
+
+  it('does not display category when categoryId has no matching category', () => {
+    mockTaskStoreState.categories = [];
+    const { queryByText } = render(
+      <TaskItem item={{ ...baseTask, categoryId: 'cat-nonexistent' }} />
+    );
+    expect(queryByText('Work')).toBeNull();
+  });
+
+  it('shows dueDate text and reminderAt text in task metadata', () => {
+    const now = Date.now();
+    const { getByText } = render(
+      <TaskItem item={{ ...baseTask, dueDate: now, reminderAt: now }} />
+    );
+    expect(getByText(/Due:/)).toBeTruthy();
+    expect(getByText(/Reminder:/)).toBeTruthy();
+  });
+
+  it('shows category chips in edit form when categories exist', () => {
+    mockTaskStoreState.categories = [{ id: 'cat-work', name: 'Work', color: '#6366f1' }];
+    const { getByTestId, getByText } = render(<TaskItem item={baseTask} />);
+    fireEvent.press(getByTestId('edit-task-open'));
+    expect(getByText('None')).toBeTruthy();
+    expect(getByText('Work')).toBeTruthy();
+    // Select the Work category
+    fireEvent.press(getByText('Work'));
+    // Deselect back to None
+    fireEvent.press(getByText('None'));
+    mockTaskStoreState.categories = [];
+  });
+
+  it('saves edit with a category selected', () => {
+    mockTaskStoreState.categories = [{ id: 'cat-work', name: 'Work', color: '#6366f1' }];
+    const { getByTestId, getByText } = render(<TaskItem item={baseTask} />);
+    fireEvent.press(getByTestId('edit-task-open'));
+    fireEvent.press(getByText('Work'));
+    fireEvent.press(getByText('Save'));
+    expect(mockUpdateTask).toHaveBeenCalledWith(
+      'task-1',
+      expect.objectContaining({ categoryId: 'cat-work' })
+    );
+    mockTaskStoreState.categories = [];
+  });
+
+  it('closes PickerSheet via backdrop press', () => {
+    const { getByTestId, queryByTestId } = render(<TaskItem item={baseTask} />);
+    fireEvent.press(getByTestId('edit-task-open'));
+    fireEvent.press(getByTestId('edit-due-date-open'));
+    expect(getByTestId('edit-due-date-picker-modal')).toBeTruthy();
+    fireEvent.press(getByTestId('edit-due-date-picker-modal-backdrop'));
+    expect(queryByTestId('edit-due-date-picker-modal')).toBeNull();
+  });
+});
+
+describe('TaskItem web platform', () => {
+  const { Platform } = jest.requireActual('react-native') as typeof import('react-native');
+
+  const baseTask = {
+    id: 'task-web',
+    title: 'Web task',
+    completed: false,
+    priority: 'medium' as const,
+    order: 0,
+    recurring: { enabled: false, days: [] },
+    createdAt: Date.now(),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useEntitlementStore as jest.Mock).mockImplementation(
+      (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: true })
+    );
+    Object.defineProperty(Platform, 'OS', { value: 'web', configurable: true });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true });
+    mockTaskStoreState.categories = [];
+  });
+
+  it('renders inline focus, edit, delete buttons on web', () => {
+    const { getByTestId, getByLabelText } = render(<TaskItem item={baseTask} />);
+    expect(getByTestId('focus-task-start')).toBeTruthy();
+    expect(getByTestId('edit-task-open')).toBeTruthy();
+    expect(getByLabelText(`Delete task ${baseTask.title}`)).toBeTruthy();
+  });
+
+  it('hides focus and edit buttons for completed tasks on web', () => {
+    const { queryByTestId } = render(
+      <TaskItem item={{ ...baseTask, completed: true }} />
+    );
+    expect(queryByTestId('focus-task-start')).toBeNull();
+    expect(queryByTestId('edit-task-open')).toBeNull();
+  });
+
+  it('calls startWorkForTask and routes to pomodoro via web focus button', () => {
+    const { getByTestId } = render(<TaskItem item={baseTask} />);
+    fireEvent.press(getByTestId('focus-task-start'));
+    expect(mockStartWorkForTask).toHaveBeenCalledWith(baseTask.id);
+    expect(mockRouterReplace).toHaveBeenCalledWith('/(tabs)/pomodoro');
+  });
+
+  it('opens edit modal via web edit button', () => {
+    const { getByTestId } = render(<TaskItem item={baseTask} />);
+    fireEvent.press(getByTestId('edit-task-open'));
+    expect(getByTestId('edit-task-title-input')).toBeTruthy();
+  });
+
+  it('deletes task via web delete button', () => {
+    const { getByLabelText } = render(<TaskItem item={baseTask} />);
+    fireEvent.press(getByLabelText(`Delete task ${baseTask.title}`));
+    expect(mockDeleteTask).toHaveBeenCalledWith(baseTask.id);
+  });
+
+  it('saves edit with empty inputs on web (parsers return undefined, reminder blocked)', () => {
+    // Enable reminder but leave date/time inputs empty → parseReminderDateTime → undefined → early return
+    const { getByTestId, getByText } = render(<TaskItem item={baseTask} />);
+    fireEvent.press(getByTestId('edit-task-open'));
+    fireEvent(getByTestId('edit-reminder-enabled-switch'), 'valueChange', true);
+    fireEvent.changeText(getByTestId('edit-task-title-input'), 'Blocked save');
+    fireEvent.press(getByText('Save'));
+    expect(mockUpdateTask).not.toHaveBeenCalled();
+  });
+
+  it('saves edit with pre-loaded dueDate on web via parseDateToEndOfDay', () => {
+    // When item has a dueDate, editDueDateInput is pre-filled with a valid ISO date string
+    const taskWithDate = {
+      ...baseTask,
+      dueDate: new Date('2025-06-15').getTime(),
+    };
+    const { getByTestId, getByText } = render(<TaskItem item={taskWithDate} />);
+    fireEvent.press(getByTestId('edit-task-open'));
+    fireEvent.changeText(getByTestId('edit-task-title-input'), 'Web due date task');
+    fireEvent.press(getByText('Save'));
+    expect(mockUpdateTask).toHaveBeenCalledWith(
+      baseTask.id,
+      expect.objectContaining({ title: 'Web due date task', dueDate: expect.any(Number) })
+    );
+  });
+
+  it('saves edit with pre-loaded reminderAt on web via parseReminderDateTime', () => {
+    // item has reminderAt → editReminderEnabled=true, date/time inputs pre-filled
+    const taskWithReminder = {
+      ...baseTask,
+      reminderAt: new Date('2025-06-15T09:30:00').getTime(),
+    };
+    const { getByTestId, getByText } = render(<TaskItem item={taskWithReminder} />);
+    fireEvent.press(getByTestId('edit-task-open'));
+    fireEvent.changeText(getByTestId('edit-task-title-input'), 'Web reminder task');
+    fireEvent.press(getByText('Save'));
+    expect(mockUpdateTask).toHaveBeenCalledWith(
+      baseTask.id,
+      expect.objectContaining({ title: 'Web reminder task', reminderAt: expect.any(Number) })
+    );
+  });
+
+  it('saves recurring edit with reminderAt on web (uses today as date)', () => {
+    const taskWithRecurringAndReminder = {
+      ...baseTask,
+      recurring: { enabled: true, days: [1, 3] },
+      reminderAt: new Date('2025-06-15T08:00:00').getTime(),
+    };
+    const { getByTestId, getByText } = render(<TaskItem item={taskWithRecurringAndReminder} />);
+    fireEvent.press(getByTestId('edit-task-open'));
+    fireEvent.changeText(getByTestId('edit-task-title-input'), 'Recurring web');
+    fireEvent.press(getByText('Save'));
+    expect(mockUpdateTask).toHaveBeenCalledWith(
+      baseTask.id,
+      expect.objectContaining({ title: 'Recurring web' })
+    );
+  });
 });

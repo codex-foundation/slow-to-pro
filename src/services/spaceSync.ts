@@ -138,6 +138,17 @@ export async function createSpace(name: string): Promise<{ space: Space | null; 
 export async function inviteMember(spaceId: string, email: string): Promise<{ error?: string }> {
   if (!supabase) return { error: 'Not configured' };
 
+  // Fetch inviter info upfront for the notification email (best-effort)
+  let inviterEmail = '';
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    inviterEmail = user?.email ?? '';
+  } catch {
+    // not critical — proceed without inviter name
+  }
+
   const { error } = await supabase.from('space_members').insert({
     space_id: spaceId,
     invited_email: email.toLowerCase().trim(),
@@ -146,6 +157,14 @@ export async function inviteMember(spaceId: string, email: string): Promise<{ er
   });
 
   if (error) return { error: error.message };
+
+  // Send invite notification email (fire-and-forget — failure doesn't block the caller)
+  const spaceName =
+    useSpaceStore.getState().spaces.find((s) => s.id === spaceId)?.name ?? 'a shared space';
+  void supabase.functions.invoke('send-invite-email', {
+    body: { inviteeEmail: email.toLowerCase().trim(), spaceName, inviterEmail },
+  });
+
   await loadSpaces();
   return {};
 }

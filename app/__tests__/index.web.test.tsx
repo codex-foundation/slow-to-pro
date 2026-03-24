@@ -208,4 +208,105 @@ describe('AuthScreenWeb', () => {
       expect(getByTestId('auth-status-message')).toBeTruthy();
     });
   });
+
+  it('toggles privacy and TC checkboxes in register mode', async () => {
+    const { getByTestId } = render(<AuthScreenWeb />);
+    await waitFor(() => getByTestId('login-button'));
+
+    // Switch to register mode so checkboxes appear
+    fireEvent.press(getByTestId('toggle-auth-mode'));
+    await waitFor(() => getByTestId('privacy-checkbox'));
+
+    fireEvent.press(getByTestId('privacy-checkbox'));
+    fireEvent.press(getByTestId('tc-checkbox'));
+    // Toggle back off
+    fireEvent.press(getByTestId('privacy-checkbox'));
+    fireEvent.press(getByTestId('tc-checkbox'));
+  });
+
+  it('submitting email input focuses the password field without error', async () => {
+    const { getByTestId } = render(<AuthScreenWeb />);
+    await waitFor(() => getByTestId('auth-email-input'));
+    expect(() =>
+      fireEvent(getByTestId('auth-email-input'), 'submitEditing')
+    ).not.toThrow();
+  });
+
+  it('submitting password fires handleLogin when in login mode', async () => {
+    mockSignInWithPassword.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null });
+    const { getByTestId } = render(<AuthScreenWeb />);
+    await waitFor(() => getByTestId('auth-password-input'));
+    fireEvent.changeText(getByTestId('auth-email-input'), 'test@example.com');
+    fireEvent.changeText(getByTestId('auth-password-input'), 'password123');
+    expect(() =>
+      fireEvent(getByTestId('auth-password-input'), 'submitEditing')
+    ).not.toThrow();
+  });
+
+  it('submitting password fires handleSignUp when in register mode', async () => {
+    mockSignUp.mockResolvedValue({ data: { user: null }, error: null });
+    const { getByTestId } = render(<AuthScreenWeb />);
+    await waitFor(() => getByTestId('login-button'));
+    fireEvent.press(getByTestId('toggle-auth-mode'));
+    await waitFor(() => getByTestId('signup-button'));
+    fireEvent.press(getByTestId('privacy-checkbox'));
+    fireEvent.press(getByTestId('tc-checkbox'));
+    fireEvent.changeText(getByTestId('auth-email-input'), 'new@example.com');
+    fireEvent.changeText(getByTestId('auth-password-input'), 'password123');
+    expect(() =>
+      fireEvent(getByTestId('auth-password-input'), 'submitEditing')
+    ).not.toThrow();
+  });
+
+  it('pressing Google login fires handleSocialLogin google on web', async () => {
+    const webBrowser = jest.requireMock('expo-web-browser') as {
+      openAuthSessionAsync: jest.Mock;
+    };
+    mockSignInWithOAuth.mockResolvedValue({
+      data: { url: 'https://oauth.example.com' },
+      error: null,
+    });
+    webBrowser.openAuthSessionAsync.mockResolvedValue({
+      type: 'success',
+      url: 'slow-to-pro://auth/callback?code=abc123',
+    });
+    mockExchangeCodeForSession.mockResolvedValue({
+      data: { user: { id: 'u3' } },
+      error: null,
+    });
+
+    const { getByTestId } = render(<AuthScreenWeb />);
+    await waitFor(() => getByTestId('google-login-button'));
+    fireEvent.press(getByTestId('google-login-button'));
+
+    await waitFor(() => {
+      expect(mockSignInWithOAuth).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: 'google' })
+      );
+    });
+  });
+
+  it('shows get-started-button and checkboxes when Supabase is not configured', async () => {
+    mockIsSupabaseConfigured = false;
+    const { getByTestId, queryByTestId } = render(<AuthScreenWeb />);
+    await waitFor(() => {
+      expect(getByTestId('get-started-button')).toBeTruthy();
+      // No email/password inputs when auth is disabled
+      expect(queryByTestId('login-button')).toBeNull();
+    });
+  });
+
+  it('get-started-button navigates after accepting T&C when Supabase not configured', async () => {
+    mockIsSupabaseConfigured = false;
+    const { getByTestId } = render(<AuthScreenWeb />);
+    await waitFor(() => getByTestId('get-started-button'));
+    // Accept both checkboxes
+    fireEvent.press(getByTestId('privacy-checkbox'));
+    fireEvent.press(getByTestId('tc-checkbox'));
+    fireEvent.press(getByTestId('get-started-button'));
+    await waitFor(() => {
+      expect(mockSetItem).toHaveBeenCalledWith('tc-accepted-v1', 'true');
+      expect(mockReplace).toHaveBeenCalledWith('/(tabs)/tasks');
+    });
+  });
 });

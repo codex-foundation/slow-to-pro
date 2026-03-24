@@ -24,6 +24,8 @@ const mockPullSharedSpace = jest.fn();
 const mockPushToSharedSpace = jest.fn();
 const mockRespondToInvite = jest.fn();
 
+const mockRemoveMember = jest.fn();
+
 jest.mock('@/services/spaceSync', () => ({
   createSpace: (...args: unknown[]) => mockCreateSpace(...args),
   deleteSpace: (...args: unknown[]) => mockDeleteSpace(...args),
@@ -32,7 +34,7 @@ jest.mock('@/services/spaceSync', () => ({
   loadSpaces: (...args: unknown[]) => mockLoadSpaces(...args),
   pullSharedSpace: (...args: unknown[]) => mockPullSharedSpace(...args),
   pushToSharedSpace: (...args: unknown[]) => mockPushToSharedSpace(...args),
-  removeMember: jest.fn(),
+  removeMember: (...args: unknown[]) => mockRemoveMember(...args),
   respondToInvite: (...args: unknown[]) => mockRespondToInvite(...args),
 }));
 
@@ -210,9 +212,18 @@ describe('SharedSpaceModal', () => {
     mockLoadSpaces.mockResolvedValue(undefined);
     const { getByTestId } = render(<SharedSpaceModal {...defaultProps} />);
     // The refresh icon is rendered as "icon-refresh-outline"
+    mockLoadSpaces.mockClear();
     fireEvent.press(getByTestId('icon-refresh-outline'));
     await waitFor(() => {
       expect(mockLoadSpaces).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('calls loadSpaces automatically when modal becomes visible', async () => {
+    mockLoadSpaces.mockResolvedValue(undefined);
+    render(<SharedSpaceModal {...defaultProps} />);
+    await waitFor(() => {
+      expect(mockLoadSpaces).toHaveBeenCalled();
     });
   });
 
@@ -517,6 +528,86 @@ describe('SharedSpaceModal', () => {
         expect(mockPullForCurrentUser).toHaveBeenCalled();
       });
       alertSpy.mockRestore();
+    });
+  });
+
+  describe('member / invite list', () => {
+    const space = { id: 'sp1', name: 'Family', ownerId: 'user-1', createdAt: '' };
+
+    it('shows invited members with their status', async () => {
+      resetStore({
+        spaces: [space],
+        members: [
+          { id: 'm1', spaceId: 'sp1', userId: 'user-1', invitedEmail: 'me@example.com', role: 'owner', status: 'accepted', invitedAt: '', acceptedAt: null },
+          { id: 'm2', spaceId: 'sp1', userId: null, invitedEmail: 'pending@example.com', role: 'member', status: 'pending', invitedAt: '', acceptedAt: null },
+          { id: 'm3', spaceId: 'sp1', userId: 'user-2', invitedEmail: 'accepted@example.com', role: 'member', status: 'accepted', invitedAt: '', acceptedAt: '2024-01-01' },
+          { id: 'm4', spaceId: 'sp1', userId: null, invitedEmail: 'declined@example.com', role: 'member', status: 'declined', invitedAt: '', acceptedAt: null },
+        ],
+      });
+      const { getByText } = render(<SharedSpaceModal {...defaultProps} />);
+      expect(getByText('pending@example.com')).toBeTruthy();
+      expect(getByText('accepted@example.com')).toBeTruthy();
+      expect(getByText('declined@example.com')).toBeTruthy();
+      expect(getByText('pending')).toBeTruthy();
+      expect(getByText('accepted')).toBeTruthy();
+      expect(getByText('declined')).toBeTruthy();
+    });
+
+    it('shows remove button for each non-owner member when user is owner', async () => {
+      resetStore({
+        spaces: [space],
+        members: [
+          { id: 'm2', spaceId: 'sp1', userId: null, invitedEmail: 'friend@example.com', role: 'member', status: 'pending', invitedAt: '', acceptedAt: null },
+        ],
+      });
+      mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+      const { getByTestId } = render(<SharedSpaceModal {...defaultProps} />);
+      await waitFor(() => {
+        expect(getByTestId('remove-member-m2')).toBeTruthy();
+      });
+    });
+
+    it('calls removeMember when remove button is pressed', async () => {
+      mockRemoveMember.mockResolvedValue(undefined);
+      resetStore({
+        spaces: [space],
+        members: [
+          { id: 'm2', spaceId: 'sp1', userId: null, invitedEmail: 'friend@example.com', role: 'member', status: 'pending', invitedAt: '', acceptedAt: null },
+        ],
+      });
+      mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+      const { getByTestId } = render(<SharedSpaceModal {...defaultProps} />);
+      await waitFor(() => getByTestId('remove-member-m2'));
+      fireEvent.press(getByTestId('remove-member-m2'));
+      await waitFor(() => {
+        expect(mockRemoveMember).toHaveBeenCalledWith('m2');
+      });
+    });
+
+    it('does not show remove button when user is not owner', async () => {
+      resetStore({
+        spaces: [{ ...space, ownerId: 'other-user' }],
+        members: [
+          { id: 'm2', spaceId: 'sp1', userId: null, invitedEmail: 'friend@example.com', role: 'member', status: 'pending', invitedAt: '', acceptedAt: null },
+        ],
+      });
+      mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+      const { queryByTestId } = render(<SharedSpaceModal {...defaultProps} />);
+      await waitFor(() => {
+        expect(queryByTestId('remove-member-m2')).toBeNull();
+      });
+    });
+
+    it('does not render member list when there are no non-owner members', () => {
+      resetStore({
+        spaces: [space],
+        members: [
+          { id: 'm1', spaceId: 'sp1', userId: 'user-1', invitedEmail: 'me@example.com', role: 'owner', status: 'accepted', invitedAt: '', acceptedAt: null },
+        ],
+      });
+      const { queryByText } = render(<SharedSpaceModal {...defaultProps} />);
+      // owner email should not appear in the member list
+      expect(queryByText('me@example.com')).toBeNull();
     });
   });
 

@@ -249,9 +249,7 @@ export function AddTaskModal({ visible, onClose }: Props) {
     setShowReminderTimePicker(true);
   };
 
-  const handleAdd = () => {
-    if (!title.trim()) return;
-
+  const buildTaskPayload = () => {
     const dueDateMs =
       Platform.OS === 'web'
         ? parseDateToEndOfDay(dueDateInput)
@@ -270,19 +268,10 @@ export function AddTaskModal({ visible, onClose }: Props) {
           : undefined
       : undefined;
 
-    if (reminderEnabled && !reminderAtMs) return;
+    return { dueDateMs, reminderAtMs };
+  };
 
-    const taskId = addTask({
-      title: title.trim(),
-      priority,
-      categoryId: categoryId ?? undefined,
-      recurring: { enabled: recurring, days },
-      dueDate: dueDateMs,
-      reminderAt: reminderAtMs,
-    });
-    if (startFocusNow) {
-      startWorkForTask(taskId);
-    }
+  const resetForm = () => {
     setTitle('');
     setCategoryId(null);
     setPriority('medium');
@@ -298,10 +287,39 @@ export function AddTaskModal({ visible, onClose }: Props) {
     setShowReminderTimePicker(false);
     setReminderDateInput('');
     setReminderTimeInput('09:00');
+  };
+
+  const handleAdd = () => {
+    if (!title.trim()) return;
+    const { dueDateMs, reminderAtMs } = buildTaskPayload();
+    if (reminderEnabled && !reminderAtMs) return;
+    const taskId = addTask({
+      title: title.trim(),
+      priority,
+      categoryId: categoryId ?? undefined,
+      recurring: { enabled: recurring, days },
+      dueDate: dueDateMs,
+      reminderAt: reminderAtMs,
+    });
+    if (startFocusNow) startWorkForTask(taskId);
+    resetForm();
     onClose();
-    if (startFocusNow) {
-      router.replace('/(tabs)/pomodoro');
-    }
+    if (startFocusNow) router.replace('/(tabs)/pomodoro');
+  };
+
+  const handleAddAnother = () => {
+    if (!title.trim()) return;
+    const { dueDateMs, reminderAtMs } = buildTaskPayload();
+    if (reminderEnabled && !reminderAtMs) return;
+    addTask({
+      title: title.trim(),
+      priority,
+      categoryId: categoryId ?? undefined,
+      recurring: { enabled: recurring, days },
+      dueDate: dueDateMs,
+      reminderAt: reminderAtMs,
+    });
+    resetForm();
   };
 
   return (
@@ -588,16 +606,36 @@ export function AddTaskModal({ visible, onClose }: Props) {
           </>
         )}
 
-        <TouchableOpacity
-          testID="add-task-submit"
-          onPress={handleAdd}
-          className="bg-indigo-500 py-3.5 rounded-xl items-center mt-1"
-          style={{ opacity: title.trim() ? 1 : 0.55 }}
-          disabled={!title.trim()}>
-          <Text className="text-white font-semibold text-base">
-            {startFocusNow ? 'Add & Start Focus' : 'Add Task'}
-          </Text>
-        </TouchableOpacity>
+        <View className="flex-row gap-2 mt-1">
+          <TouchableOpacity
+            testID="add-task-submit"
+            onPress={handleAdd}
+            className="flex-1 bg-indigo-500 py-3.5 rounded-xl items-center"
+            style={{ opacity: title.trim() ? 1 : 0.55 }}
+            disabled={!title.trim()}>
+            <Text className="text-white font-semibold text-base">
+              {startFocusNow ? 'Add & Start Focus' : 'Add Task'}
+            </Text>
+          </TouchableOpacity>
+          {!startFocusNow && (
+            <TouchableOpacity
+              testID="add-task-submit-another"
+              onPress={handleAddAnother}
+              className="rounded-xl px-4 py-3.5 items-center"
+              style={{
+                borderWidth: 1,
+                borderColor: title.trim() ? theme.primary : theme.border,
+                opacity: title.trim() ? 1 : 0.55,
+              }}
+              disabled={!title.trim()}>
+              <Text
+                className="font-semibold text-base"
+                style={{ color: title.trim() ? theme.primary : theme.textSubtle }}>
+                + Another
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </Modal>
       <PaywallModal
         visible={showPaywall}

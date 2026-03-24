@@ -1,5 +1,5 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <!-- Transparent background — backgroundColor in app.json fills the screen -->
+  <rect width="1024" height="1024" rx="239" fill="#2563EB"/>
   <circle cx="512" cy="530" r="274" fill="none" stroke="white" stroke-width="42"/>
   <line x1="438" y1="228" x2="586" y2="228" stroke="white" stroke-width="38" stroke-linecap="round"/>
   <line x1="512" y1="180" x2="512" y2="256" stroke="white" stroke-width="38" stroke-linecap="round"/>

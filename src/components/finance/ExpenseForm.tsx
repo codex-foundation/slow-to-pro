@@ -29,6 +29,16 @@ export function ExpenseForm({ onSubmitted, onOpenCategoryModal }: ExpenseFormPro
     onSubmitted?.();
   };
 
+  const handleAddAnother = () => {
+    const parsed = parseFloat(amount);
+    if (!selectedCategoryId || isNaN(parsed) || parsed <= 0) return;
+
+    addExpense({ categoryId: selectedCategoryId, amount: parsed, note: note.trim() || undefined });
+    setAmount('');
+    setNote('');
+    setSelectedCategoryId(null);
+  };
+
   return (
     <View
       className="rounded-2xl p-4"
@@ -125,15 +135,30 @@ export function ExpenseForm({ onSubmitted, onOpenCategoryModal }: ExpenseFormPro
         />
       </View>
 
-      <TouchableOpacity
-        onPress={handleAdd}
-        className="py-3 rounded-xl items-center"
-        style={{ backgroundColor: canSubmit ? theme.primary : theme.surface }}
-        disabled={!canSubmit}>
-        <Text className="font-semibold" style={{ color: canSubmit ? '#fff' : theme.textSubtle }}>
-          Add Expense
-        </Text>
-      </TouchableOpacity>
+      <View className="flex-row gap-2">
+        <TouchableOpacity
+          testID="add-expense-submit"
+          onPress={handleAdd}
+          className="flex-1 py-3 rounded-xl items-center"
+          style={{ backgroundColor: canSubmit ? theme.primary : theme.surface }}
+          disabled={!canSubmit}>
+          <Text className="font-semibold" style={{ color: canSubmit ? '#fff' : theme.textSubtle }}>
+            Add Expense
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          testID="add-expense-submit-another"
+          onPress={handleAddAnother}
+          className="rounded-xl px-4 py-3 items-center"
+          style={{ borderWidth: 1, borderColor: canSubmit ? theme.primary : theme.border }}
+          disabled={!canSubmit}>
+          <Text
+            className="font-semibold"
+            style={{ color: canSubmit ? theme.primary : theme.textSubtle }}>
+            + Another
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

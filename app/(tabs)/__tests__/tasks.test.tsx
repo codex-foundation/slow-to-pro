@@ -269,4 +269,74 @@ describe('TasksScreen handleTaskCompleted', () => {
     clearTimeoutSpy.mockRestore();
     (Platform as { OS: string }).OS = original;
   });
+
+  it('rapid double completion resets confetti timeout', () => {
+    const Platform = jest.requireActual('react-native').Platform as { OS: string };
+    const original = Platform.OS;
+    (Platform as { OS: string }).OS = 'ios';
+
+    const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+    const { getByTestId } = render(<TasksScreen />);
+    fireEvent.press(getByTestId('mock-task-completed'));
+    // Fire again before timeout — should clear the previous timeout
+    fireEvent.press(getByTestId('mock-task-completed'));
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+
+    clearTimeoutSpy.mockRestore();
+    (Platform as { OS: string }).OS = original;
+  });
+});
+
+describe('TasksScreen categories and manage modal', () => {
+  beforeEach(() => {
+    resetTaskStore();
+    useTaskStore.setState((s) => ({
+      ...s,
+      categories: [{ id: 'cat-1', name: 'Work', color: '#6366f1' }],
+    }));
+  });
+
+  it('filters tasks by selected category', () => {
+    useTaskStore.setState((s) => ({
+      ...s,
+      tasks: [
+        ...s.tasks,
+        {
+          id: 'task-4',
+          title: 'Work task',
+          completed: false,
+          priority: 'high' as const,
+          order: 3,
+          categoryId: 'cat-1',
+          recurring: { enabled: false, days: [] },
+          createdAt: Date.now(),
+        },
+      ],
+    }));
+    const { getByText, queryByText } = render(<TasksScreen />);
+    // Select Work category
+    fireEvent.press(getByText('Work'));
+    expect(getByText('Work task')).toBeTruthy();
+    expect(queryByText('Read docs')).toBeNull();
+    // Press Work again to deselect (toggle off)
+    fireEvent.press(getByText('Work'));
+    expect(getByText('Read docs')).toBeTruthy();
+  });
+
+  it('resets to all when "All" category filter is pressed', () => {
+    const { getByText, getAllByText } = render(<TasksScreen />);
+    // Select Work
+    fireEvent.press(getByText('Work'));
+    // Press "All" in the category filter row
+    const allButtons = getAllByText('All');
+    fireEvent.press(allButtons[allButtons.length - 1]);
+    expect(getByText('Read docs')).toBeTruthy();
+  });
+
+  it('opens and closes ManageCategoriesModal', () => {
+    const { getByTestId, queryByTestId } = render(<TasksScreen />);
+    expect(queryByTestId('mock-manage-categories-modal')).toBeNull();
+    fireEvent.press(getByTestId('manage-categories-open'));
+    expect(getByTestId('mock-manage-categories-modal')).toBeTruthy();
+  });
 });

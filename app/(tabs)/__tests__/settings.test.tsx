@@ -1,8 +1,9 @@
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
-import SettingsScreen from '../settings';
 import { useEntitlementStore } from '@/stores/entitlementStore';
 import { useSyncStore } from '@/stores/syncStore';
+
+import SettingsScreen from '../settings';
 
 const mockGetUser = jest.fn();
 const mockOnAuthStateChange = jest.fn();
@@ -34,6 +35,7 @@ jest.mock('expo-linking', () => ({
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: mockReplace }),
+  useLocalSearchParams: () => ({}),
 }));
 
 jest.mock('expo-web-browser', () => ({
@@ -666,8 +668,8 @@ describe('SettingsScreen active space and modal callbacks', () => {
     );
     render(<SettingsScreen />);
     await waitFor(() => expect(mockPaywallOnClose).toBeDefined());
-    expect(() => mockPaywallOnClose()).not.toThrow();
-    expect(() => mockPaywallOnUpgraded()).not.toThrow();
+    await act(async () => { mockPaywallOnClose(); });
+    await act(async () => { mockPaywallOnUpgraded(); });
   });
 
   it('calls SharedSpaceModal onClose callback without error', async () => {
@@ -680,6 +682,6 @@ describe('SettingsScreen active space and modal callbacks', () => {
     await waitFor(() => expect(getByText('Manage Spaces')).toBeTruthy());
     fireEvent.press(getByText('Manage Spaces'));
     await waitFor(() => expect(mockSharedSpaceOnClose).toBeDefined());
-    expect(() => mockSharedSpaceOnClose()).not.toThrow();
+    await act(async () => { mockSharedSpaceOnClose(); });
   });
 });

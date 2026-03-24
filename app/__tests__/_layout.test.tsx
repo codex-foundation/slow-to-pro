@@ -361,10 +361,12 @@ describe('RootLayout', () => {
     });
   });
 
-  it('returns null when fonts have not loaded yet', () => {
+  it('shows animated splash (not app content) when fonts have not loaded yet', () => {
     mockUseFonts.mockReturnValue([false, null]);
-    const { toJSON } = render(<RootLayout />);
-    expect(toJSON()).toBeNull();
+    const { getByText, queryByTestId } = render(<RootLayout />);
+    // Splash overlay is visible; navigator content is not yet rendered
+    expect(getByText('Slow to ')).toBeTruthy();
+    expect(queryByTestId('navigator')).toBeNull();
   });
 
   it('loads readProStatusFromDb on web platform', async () => {

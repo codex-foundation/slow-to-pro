@@ -181,4 +181,31 @@ describe('ExpenseForm', () => {
       expect((noteInput as any).props.value).toBe('test note');
     });
   });
+
+  describe('+ Another button', () => {
+    it('adds expense without calling onSubmitted, then resets form', () => {
+      const mockOnSubmitted = jest.fn();
+      const { getByText, getByTestId, getByPlaceholderText } = render(
+        <ExpenseForm onSubmitted={mockOnSubmitted} />
+      );
+
+      fireEvent.press(getByText('Food'));
+      fireEvent.changeText(getByPlaceholderText('Amount'), '12');
+      fireEvent.press(getByTestId('add-expense-submit-another'));
+
+      expect(mockOnSubmitted).not.toHaveBeenCalled();
+      expect((getByPlaceholderText('Amount') as any).props.value).toBe('');
+    });
+
+    it('is disabled when canSubmit is false', () => {
+      const { getByTestId } = render(<ExpenseForm />);
+
+      const btn = getByTestId('add-expense-submit-another');
+      expect(btn.props.accessibilityState?.disabled ?? btn.props.disabled).toBeTruthy();
+
+      fireEvent.press(btn);
+      // No expense should have been added — store expenses remain empty
+      expect(useFinanceStore.getState().expenses).toHaveLength(0);
+    });
+  });
 });

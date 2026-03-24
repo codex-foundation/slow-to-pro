@@ -406,4 +406,161 @@ describe('AuthScreen', () => {
       fireEvent(getByTestId('auth-email-input'), 'submitEditing')
     ).not.toThrow();
   });
+
+  it('handleLogin returns early when canSubmit is false (empty email)', async () => {
+    const { getByTestId } = render(<AuthScreen />);
+    await waitFor(() => getByTestId('login-button'));
+    // No email/password → canSubmit=false
+    fireEvent.press(getByTestId('login-button'));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(mockSignInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('handleLogin throws when data.user is null', async () => {
+    mockSignInWithPassword.mockResolvedValue({ data: { user: null }, error: null });
+    const { getByTestId } = render(<AuthScreen />);
+    await waitFor(() => getByTestId('auth-email-input'));
+    fireEvent.changeText(getByTestId('auth-email-input'), 'test@example.com');
+    fireEvent.changeText(getByTestId('auth-password-input'), 'password123');
+    await act(async () => {
+      fireEvent.press(getByTestId('login-button'));
+    });
+    await waitFor(() => {
+      expect(getByTestId('auth-status-message')).toBeTruthy();
+    });
+  });
+
+  it('handleSignUp returns early when canSubmit is false', async () => {
+    const { getByTestId } = render(<AuthScreen />);
+    await waitFor(() => getByTestId('login-button'));
+    fireEvent.press(getByTestId('toggle-auth-mode'));
+    await waitFor(() => getByTestId('signup-button'));
+    // No checkboxes checked → canSubmit=false
+    fireEvent.changeText(getByTestId('auth-email-input'), 'a@b.com');
+    fireEvent.changeText(getByTestId('auth-password-input'), 'pass123');
+    // Still false because privacyAccepted/tcAccepted are false
+    fireEvent.press(getByTestId('signup-button'));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(mockSignUp).not.toHaveBeenCalled();
+  });
+
+  it('handleSignUp navigates when data.user is null (no sync)', async () => {
+    // When signup returns no user, skip sync but still navigate
+    mockSignUp.mockResolvedValue({ data: { user: null }, error: null });
+    const { getByTestId } = render(<AuthScreen />);
+    await waitFor(() => getByTestId('login-button'));
+    fireEvent.press(getByTestId('toggle-auth-mode'));
+    await waitFor(() => getByTestId('signup-button'));
+    fireEvent.press(getByTestId('privacy-checkbox'));
+    fireEvent.press(getByTestId('tc-checkbox'));
+    fireEvent.changeText(getByTestId('auth-email-input'), 'test@example.com');
+    fireEvent.changeText(getByTestId('auth-password-input'), 'password123');
+    await act(async () => {
+      fireEvent.press(getByTestId('signup-button'));
+    });
+    await waitFor(() => {
+      expect(mockSignUp).toHaveBeenCalled();
+      expect(mockSyncFromCloudOrSeed).not.toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith('/(tabs)/tasks');
+    });
+  });
+
+  it('handleSocialLogin returns early when another action is busy', async () => {
+    // Trigger a login to make isBusy=true
+    let resolveLate!: (v: { data: { user: null }; error: null }) => void;
+    mockSignInWithPassword.mockReturnValue(
+      new Promise((r) => { resolveLate = r as typeof resolveLate; })
+    );
+    const { getByTestId } = render(<AuthScreen />);
+    await waitFor(() => getByTestId('auth-email-input'));
+    fireEvent.changeText(getByTestId('auth-email-input'), 'test@example.com');
+    fireEvent.changeText(getByTestId('auth-password-input'), 'password123');
+    act(() => {
+      fireEvent.press(getByTestId('login-button'));
+    });
+    // Now busy — pressing google should be a no-op
+    fireEvent.press(getByTestId('google-login-button'));
+    expect(mockSignInWithOAuth).not.toHaveBeenCalled();
+    // Clean up
+    act(() => {
+      resolveLate({ data: { user: null }, error: null });
+    });
+  });
+
+  it('handleSocialLogin shows error when OAuth URL is null', async () => {
+    mockSignInWithOAuth.mockResolvedValue({ data: { url: null }, error: null });
+    const { getByTestId } = render(<AuthScreen />);
+    await waitFor(() => getByTestId('google-login-button'));
+    await act(async () => {
+      fireEvent.press(getByTestId('google-login-button'));
+    });
+    await waitFor(() => {
+      expect(getByTestId('auth-status-message')).toBeTruthy();
+    });
+  });
+
+  it('handleSocialLogin no-ops when parsed URL has no code', async () => {
+    const webBrowser = jest.requireMock('expo-web-browser') as {
+      openAuthSessionAsync: jest.Mock;
+    };
+    mockSignInWithOAuth.mockResolvedValue({
+      data: { url: 'https://oauth.example.com' },
+      error: null,
+    });
+    // Return a URL that doesn't contain a code query param — parse mock returns {}
+    // Since the parse mock is fixed to return { queryParams: { code: 'test-code' } },
+    // instead we test the auth-success-without-url path by returning no 'url' property
+    webBrowser.openAuthSessionAsync.mockResolvedValue({
+      type: 'success',
+      // No 'url' key — 'url' in result will be false
+    });
+
+    const { getByTestId } = render(<AuthScreen />);
+    await waitFor(() => getByTestId('google-login-button'));
+    await act(async () => {
+      fireEvent.press(getByTestId('google-login-button'));
+    });
+    expect(mockExchangeCodeForSession).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('handleSocialLogin skips sync when exchangeData has no user', async () => {
+    const webBrowser = jest.requireMock('expo-web-browser') as {
+      openAuthSessionAsync: jest.Mock;
+    };
+    mockSignInWithOAuth.mockResolvedValue({
+      data: { url: 'https://oauth.example.com' },
+      error: null,
+    });
+    webBrowser.openAuthSessionAsync.mockResolvedValue({
+      type: 'success',
+      url: 'slow-to-pro://auth/callback?code=abc',
+    });
+    mockExchangeCodeForSession.mockResolvedValue({
+      data: { user: null },
+      error: null,
+    });
+
+    const { getByTestId } = render(<AuthScreen />);
+    await waitFor(() => getByTestId('google-login-button'));
+    await act(async () => {
+      fireEvent.press(getByTestId('google-login-button'));
+    });
+    expect(mockExchangeCodeForSession).toHaveBeenCalled();
+    expect(mockSyncFromCloudOrSeed).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('triggerBiometricLogin catches and shows error when authenticateWithBiometrics throws', async () => {
+    mockIsBiometricAvailable.mockResolvedValue(true);
+    mockAuthenticateWithBiometrics.mockRejectedValue(new Error('Sensor unavailable'));
+    const { getByTestId } = render(<AuthScreen />);
+    await waitFor(() => getByTestId('biometric-login-button'));
+    await act(async () => {
+      fireEvent.press(getByTestId('biometric-login-button'));
+    });
+    await waitFor(() => {
+      expect(getByTestId('auth-status-message')).toBeTruthy();
+    });
+  });
 });
