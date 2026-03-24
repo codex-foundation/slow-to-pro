@@ -7,7 +7,7 @@ import { generateId } from '@/utils/id';
 import { mmkvStorage } from '@/utils/mmkv';
 import { scheduleOverBudgetNotification } from '@/utils/notifications';
 
-const DEFAULT_CATEGORIES: Category[] = [
+export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'cat-food', name: 'Food', color: '#f97316' },
   { id: 'cat-transport', name: 'Transport', color: '#3b82f6' },
   { id: 'cat-housing', name: 'Housing', color: '#8b5cf6' },

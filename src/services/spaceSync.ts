@@ -1,8 +1,8 @@
 import { supabase } from '@/lib/supabase';
-import { useFinanceStore } from '@/stores/financeStore';
+import { DEFAULT_CATEGORIES, useFinanceStore } from '@/stores/financeStore';
 import type { Space, SpaceMember } from '@/stores/spaceStore';
 import { useSpaceStore } from '@/stores/spaceStore';
-import { useTaskStore } from '@/stores/taskStore';
+import { DEFAULT_TASK_CATEGORIES, useTaskStore } from '@/stores/taskStore';
 
 // Set to true while pullSharedSpace is running so store subscriptions
 // don't trigger a push of the intermediate cleared/loading state.
@@ -116,15 +116,31 @@ export async function createSpace(name: string): Promise<{ space: Space | null; 
 
   const space = toSpace(data as Record<string, unknown>);
 
-  // Add owner as member row too (makes queries uniform)
-  await supabase.from('space_members').insert({
-    space_id: space.id,
-    user_id: user.id,
-    invited_email: user.email ?? '',
-    role: 'owner',
-    status: 'accepted',
-    accepted_at: new Date().toISOString(),
-  });
+  const now = new Date().toISOString();
+
+  // Add owner as member row + seed default categories in both snapshots
+  await Promise.all([
+    supabase.from('space_members').insert({
+      space_id: space.id,
+      user_id: user.id,
+      invited_email: user.email ?? '',
+      role: 'owner',
+      status: 'accepted',
+      accepted_at: now,
+    }),
+    supabase.from('space_finance_snapshots').insert({
+      space_id: space.id,
+      data: { categories: DEFAULT_CATEGORIES, budgets: [], expenses: [] },
+      updated_at: now,
+      updated_by: user.id,
+    }),
+    supabase.from('space_task_snapshots').insert({
+      space_id: space.id,
+      data: { tasks: [], categories: DEFAULT_TASK_CATEGORIES },
+      updated_at: now,
+      updated_by: user.id,
+    }),
+  ]);
 
   const store = useSpaceStore.getState();
   store.setSpaces([...store.spaces, space]);

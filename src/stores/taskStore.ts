@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { Priority, Task, TaskCategory } from '@/models/task';
+
+export const DEFAULT_TASK_CATEGORIES: TaskCategory[] = [
+  { id: 'default-task-cat-work', name: 'Work', color: '#6366f1' },
+  { id: 'default-task-cat-personal', name: 'Personal', color: '#22c55e' },
+  { id: 'default-task-cat-shopping', name: 'Shopping', color: '#f97316' },
+  { id: 'default-task-cat-health', name: 'Health', color: '#ec4899' },
+];
 import { todayString, todayWeekday } from '@/utils/date';
 import { generateId } from '@/utils/id';
 import { mmkvStorage } from '@/utils/mmkv';

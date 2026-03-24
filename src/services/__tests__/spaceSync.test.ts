@@ -10,9 +10,9 @@ import {
   removeMember,
   respondToInvite,
 } from '../spaceSync';
-import { useFinanceStore } from '@/stores/financeStore';
+import { DEFAULT_CATEGORIES, useFinanceStore } from '@/stores/financeStore';
 import { useSpaceStore } from '@/stores/spaceStore';
-import { useTaskStore } from '@/stores/taskStore';
+import { DEFAULT_TASK_CATEGORIES, useTaskStore } from '@/stores/taskStore';
 
 // ---------------------------------------------------------------------------
 // Mock supabase with a chainable query builder
@@ -175,6 +175,79 @@ describe('createSpace', () => {
     const result = await createSpace('Family');
     expect(result.space?.name).toBe('Family');
     expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ invited_email: '' }));
+  });
+
+  it('seeds finance and task snapshots with default categories on success', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1', email: 'a@a.com' } } });
+    mockSingle.mockResolvedValue({ data: spaceRow, error: null });
+
+    const insertCalls: unknown[] = [];
+    jest.requireMock('@/lib/supabase').supabase.from = jest.fn().mockImplementation((table: string) => {
+      if (table === 'spaces') {
+        return {
+          insert: () => ({ select: () => ({ single: () => mockSingle() }) }),
+        };
+      }
+      return {
+        insert: (...a: unknown[]) => {
+          insertCalls.push({ table, args: a[0] });
+          return { then: (r: (v: unknown) => unknown) => Promise.resolve({ error: null }).then(r) };
+        },
+      };
+    });
+
+    await createSpace('Family');
+
+    const finSeeding = insertCalls.find(
+      (c) => (c as { table: string }).table === 'space_finance_snapshots'
+    ) as { args: { space_id: string; data: { categories: unknown[]; budgets: unknown[]; expenses: unknown[] } } };
+    const taskSeeding = insertCalls.find(
+      (c) => (c as { table: string }).table === 'space_task_snapshots'
+    ) as { args: { space_id: string; data: { tasks: unknown[]; categories: unknown[] } } };
+
+    expect(finSeeding).toBeDefined();
+    expect(finSeeding.args.space_id).toBe('space-1');
+    expect(finSeeding.args.data.categories).toEqual(DEFAULT_CATEGORIES);
+    expect(finSeeding.args.data.budgets).toHaveLength(0);
+    expect(finSeeding.args.data.expenses).toHaveLength(0);
+
+    expect(taskSeeding).toBeDefined();
+    expect(taskSeeding.args.space_id).toBe('space-1');
+    expect(taskSeeding.args.data.tasks).toHaveLength(0);
+    expect(taskSeeding.args.data.categories).toEqual(DEFAULT_TASK_CATEGORIES);
+  });
+
+  it('pullSharedSpace loads default categories after createSpace seeds them', async () => {
+    // Simulate what happens end-to-end: createSpace seeds snapshots,
+    // then pullSharedSpace reads them and hydrates the stores.
+    const finSnapshot = {
+      categories: DEFAULT_CATEGORIES,
+      budgets: [],
+      expenses: [],
+    };
+    const taskSnapshot = {
+      tasks: [],
+      categories: DEFAULT_TASK_CATEGORIES,
+    };
+
+    let callCount = 0;
+    const makeDataBuilder = (payload: unknown) => ({
+      select: () => makeDataBuilder(payload),
+      eq: () => makeDataBuilder(payload),
+      single: () => Promise.resolve({ data: { data: payload }, error: null }),
+    });
+
+    jest.requireMock('@/lib/supabase').supabase.from = jest.fn().mockImplementation(() => {
+      callCount++;
+      return callCount % 2 === 1 ? makeDataBuilder(finSnapshot) : makeDataBuilder(taskSnapshot);
+    });
+
+    await pullSharedSpace('space-1');
+
+    expect(useFinanceStore.getState().categories).toEqual(DEFAULT_CATEGORIES);
+    expect(useFinanceStore.getState().categories).toHaveLength(DEFAULT_CATEGORIES.length);
+    expect(useTaskStore.getState().categories).toEqual(DEFAULT_TASK_CATEGORIES);
+    expect(useTaskStore.getState().tasks).toHaveLength(0);
   });
 });
 
