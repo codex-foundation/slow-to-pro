@@ -1,5 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CheckboxRow } from '@/components/ui/CheckboxRow';
@@ -280,9 +287,7 @@ export default function AuthScreen() {
               onPress={handleContinueWithoutAccount}
               disabled={!privacyAccepted || !tcAccepted}
               style={{ alignItems: 'center', marginTop: 12 }}>
-              <Text style={{ color: theme.textMuted, fontSize: 13 }}>
-                Continue without account
-              </Text>
+              <Text style={{ color: theme.textMuted, fontSize: 13 }}>Continue without account</Text>
             </TouchableOpacity>
           </>
         ) : (

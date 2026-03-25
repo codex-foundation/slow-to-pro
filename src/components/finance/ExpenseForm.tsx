@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useFinanceStore } from '@/stores/financeStore';

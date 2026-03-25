@@ -1,6 +1,6 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInRight, FadeOutLeft, Layout } from 'react-native-reanimated';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Category, Expense } from '@/models/finance';
 import { formatShortDate, formatTime } from '@/utils/date';

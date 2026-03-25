@@ -101,7 +101,7 @@ export function useAuthScreen() {
     return email.trim().length > 0 && password.length >= 6;
   }, [authEnabled, email, showRegister, password, privacyAccepted, tcAccepted]);
 
-  const withBusy = async <T,>(action: BusyAction, fn: () => Promise<T>): Promise<T | null> => {
+  const withBusy = async <T>(action: BusyAction, fn: () => Promise<T>): Promise<T | null> => {
     try {
       setBusyAction(action);
       setStatusMessage(null);

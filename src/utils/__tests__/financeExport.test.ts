@@ -1,6 +1,6 @@
-import { buildCsv, exportFinancesAsCsv, exportFinancesAsPdf } from '../financeExport';
-import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { buildCsv, exportFinancesAsCsv, exportFinancesAsPdf } from '../financeExport';
 
 // expo-file-system's File/Paths new API — mock at module level
 jest.mock('expo-file-system', () => {
@@ -97,7 +97,9 @@ describe('buildCsv', () => {
   });
 
   it('falls back to categoryId for budget when category not found', () => {
-    const unknownBudgets = [{ id: 'bu', categoryId: 'ghost-cat', monthlyLimit: 100, month: '2026-04' }];
+    const unknownBudgets = [
+      { id: 'bu', categoryId: 'ghost-cat', monthlyLimit: 100, month: '2026-04' },
+    ];
     const csv = buildCsv([], [], unknownBudgets);
     expect(csv).toContain('ghost-cat');
   });
@@ -185,7 +187,9 @@ describe('exportFinancesAsPdf', () => {
       .mockResolvedValue({ uri: '/tmp/mock.pdf' } as never);
     const shareSpy = jest.spyOn(Sharing, 'shareAsync').mockResolvedValue(undefined);
     const unknownExpenses = [{ id: 'ex', categoryId: 'ghost-exp', amount: 5, date: Date.now() }];
-    const unknownBudgets = [{ id: 'bu', categoryId: 'ghost-bud', monthlyLimit: 50, month: '2026-04' }];
+    const unknownBudgets = [
+      { id: 'bu', categoryId: 'ghost-bud', monthlyLimit: 50, month: '2026-04' },
+    ];
     await exportFinancesAsPdf(unknownExpenses, [], unknownBudgets);
     const htmlArg = printSpy.mock.calls[0][0].html as string;
     expect(htmlArg).toContain('ghost-exp');

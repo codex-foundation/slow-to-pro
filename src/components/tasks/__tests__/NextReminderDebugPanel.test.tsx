@@ -156,7 +156,10 @@ describe('NextReminderDebugPanel', () => {
 
   it('shows Chrome-specific tip when navigator UA contains chrome', async () => {
     Object.defineProperty(global, 'navigator', {
-      value: { userAgent: 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+      value: {
+        userAgent:
+          'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
       writable: true,
       configurable: true,
     });
@@ -167,7 +170,10 @@ describe('NextReminderDebugPanel', () => {
 
   it('shows Safari-specific tip when navigator UA contains safari but not chrome', async () => {
     Object.defineProperty(global, 'navigator', {
-      value: { userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15' },
+      value: {
+        userAgent:
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+      },
       writable: true,
       configurable: true,
     });
@@ -189,7 +195,10 @@ describe('NextReminderDebugPanel', () => {
 
   it('shows Edge-specific tip when navigator UA contains edg/', async () => {
     Object.defineProperty(global, 'navigator', {
-      value: { userAgent: 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0' },
+      value: {
+        userAgent:
+          'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+      },
       writable: true,
       configurable: true,
     });

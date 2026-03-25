@@ -79,7 +79,12 @@ describe('taskStore', () => {
       addCategory('Work', '#6366f1');
       const catId = useTaskStore.getState().categories[0].id;
 
-      addTask({ title: 'Tagged', priority: 'medium', recurring: { enabled: false, days: [] }, categoryId: catId });
+      addTask({
+        title: 'Tagged',
+        priority: 'medium',
+        recurring: { enabled: false, days: [] },
+        categoryId: catId,
+      });
 
       expect(useTaskStore.getState().tasks[0].categoryId).toBe(catId);
     });

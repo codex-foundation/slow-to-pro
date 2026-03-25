@@ -9,6 +9,7 @@ export const DEFAULT_TASK_CATEGORIES: TaskCategory[] = [
   { id: 'default-task-cat-shopping', name: 'Shopping', color: '#f97316' },
   { id: 'default-task-cat-health', name: 'Health', color: '#ec4899' },
 ];
+
 import { todayString, todayWeekday } from '@/utils/date';
 import { generateId } from '@/utils/id';
 import { mmkvStorage } from '@/utils/mmkv';

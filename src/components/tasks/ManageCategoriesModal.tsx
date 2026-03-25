@@ -62,9 +62,7 @@ export function ManageCategoriesModal({ visible, onClose }: Props) {
           </Text>
         )}
         {categories.map((cat) => (
-          <View
-            key={cat.id}
-            className="flex-row items-center gap-3 mb-3">
+          <View key={cat.id} className="flex-row items-center gap-3 mb-3">
             <View
               style={{
                 width: 14,
@@ -110,9 +108,7 @@ export function ManageCategoriesModal({ visible, onClose }: Props) {
         ))}
       </ScrollView>
 
-      <View
-        className="mt-2 pt-4"
-        style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
+      <View className="mt-2 pt-4" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
         <Text className="text-sm font-medium mb-2" style={{ color: theme.textMuted }}>
           New category
         </Text>

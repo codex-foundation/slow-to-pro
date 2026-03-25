@@ -1,5 +1,5 @@
-import { useSpaceStore } from '../spaceStore';
 import type { Space, SpaceMember } from '../spaceStore';
+import { useSpaceStore } from '../spaceStore';
 
 const space1: Space = {
   id: 's1',

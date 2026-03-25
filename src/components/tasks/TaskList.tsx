@@ -1,4 +1,4 @@
-import { Text, FlatList, Platform, View } from 'react-native';
+import { FlatList, Platform, Text, View } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import Animated, { Layout } from 'react-native-reanimated';
 

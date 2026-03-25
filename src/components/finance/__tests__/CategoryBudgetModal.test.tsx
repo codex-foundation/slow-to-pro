@@ -1,9 +1,8 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { Alert } from 'react-native';
-
-import { CategoryBudgetModal } from '../CategoryBudgetModal';
-import { useFinanceStore } from '@/stores/financeStore';
 import { useEntitlementStore } from '@/stores/entitlementStore';
+import { useFinanceStore } from '@/stores/financeStore';
+import { CategoryBudgetModal } from '../CategoryBudgetModal';
 
 jest.mock('@/hooks/useAppTheme', () => ({
   useAppTheme: () => ({
@@ -33,7 +32,14 @@ jest.mock('@/components/ui/Modal', () => ({
 const mockPaywallOnClose = jest.fn();
 const mockPaywallOnUpgraded = jest.fn();
 jest.mock('@/components/ui/PaywallModal', () => ({
-  PaywallModal: ({ onClose, onUpgraded }: { visible: boolean; onClose: () => void; onUpgraded: () => void }) => {
+  PaywallModal: ({
+    onClose,
+    onUpgraded,
+  }: {
+    visible: boolean;
+    onClose: () => void;
+    onUpgraded: () => void;
+  }) => {
     mockPaywallOnClose.mockImplementation(onClose);
     mockPaywallOnUpgraded.mockImplementation(onUpgraded);
     return null;
@@ -280,9 +286,10 @@ describe('CategoryBudgetModal', () => {
     // Find all "+" buttons — pick the last one (add-category section)
     const plusButtons = touchables.filter((t) => {
       try {
-        return t.findByType(
-          (jest.requireActual('react-native') as typeof import('react-native')).Text
-        ).props.children === '+';
+        return (
+          t.findByType((jest.requireActual('react-native') as typeof import('react-native')).Text)
+            .props.children === '+'
+        );
       } catch {
         return false;
       }
@@ -304,7 +311,11 @@ describe('CategoryBudgetModal', () => {
       // openPicker with !isPreset = true so draft = value = '#ff0000'
       fireEvent.press(customSwatch);
       // picker opens again, close via Done
-      try { fireEvent.press(getByText('Done')); } catch { /* ignore */ }
+      try {
+        fireEvent.press(getByText('Done'));
+      } catch {
+        /* ignore */
+      }
     }
   });
 
@@ -328,7 +339,11 @@ describe('CategoryBudgetModal', () => {
     const touchables = UNSAFE_getAllByType(TouchableOpacity);
     // Press each touchable to try to trigger the custom color path
     touchables.forEach((t) => {
-      try { fireEvent.press(t); } catch { /* ignore */ }
+      try {
+        fireEvent.press(t);
+      } catch {
+        /* ignore */
+      }
     });
   });
 

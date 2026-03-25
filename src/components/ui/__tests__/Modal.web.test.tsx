@@ -91,9 +91,7 @@ describe('Modal.web', () => {
         <Text>scrollable content</Text>
       </Modal>
     );
-    const { ScrollView } = jest.requireActual(
-      'react-native'
-    ) as typeof import('react-native');
+    const { ScrollView } = jest.requireActual('react-native') as typeof import('react-native');
     expect(UNSAFE_getByType(ScrollView)).toBeTruthy();
   });
 

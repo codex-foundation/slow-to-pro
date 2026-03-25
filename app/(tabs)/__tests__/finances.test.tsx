@@ -1,10 +1,9 @@
-import { Alert } from 'react-native';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-
-import FinancesScreen from '../finances';
-import { useFinanceStore } from '@/stores/financeStore';
+import { Alert } from 'react-native';
 import { useEntitlementStore } from '@/stores/entitlementStore';
+import { useFinanceStore } from '@/stores/financeStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import FinancesScreen from '../finances';
 
 const mockExportCsv = jest.fn().mockResolvedValue(undefined);
 const mockExportPdf = jest.fn().mockResolvedValue(undefined);
@@ -16,15 +15,31 @@ jest.mock('@/utils/financeExport', () => ({
 
 jest.mock('@/components/ui/PaywallModal', () => {
   const React = jest.requireActual('react') as typeof import('react');
-  const { View, TouchableOpacity } = jest.requireActual('react-native') as typeof import('react-native');
+  const { View, TouchableOpacity } = jest.requireActual(
+    'react-native'
+  ) as typeof import('react-native');
   return {
-    PaywallModal: ({ visible, onClose, onUpgraded }: { visible: boolean; onClose?: () => void; onUpgraded?: () => void }) =>
+    PaywallModal: ({
+      visible,
+      onClose,
+      onUpgraded,
+    }: {
+      visible: boolean;
+      onClose?: () => void;
+      onUpgraded?: () => void;
+    }) =>
       visible
         ? React.createElement(
             View,
             { testID: 'mock-paywall' },
-            React.createElement(TouchableOpacity, { testID: 'mock-paywall-close', onPress: onClose }),
-            React.createElement(TouchableOpacity, { testID: 'mock-paywall-upgraded', onPress: onUpgraded }),
+            React.createElement(TouchableOpacity, {
+              testID: 'mock-paywall-close',
+              onPress: onClose,
+            }),
+            React.createElement(TouchableOpacity, {
+              testID: 'mock-paywall-upgraded',
+              onPress: onUpgraded,
+            })
           )
         : null,
   };
@@ -42,13 +57,21 @@ jest.mock('@/components/ui/Modal', () => {
   const React = jest.requireActual('react') as typeof import('react');
   const { TouchableOpacity } = jest.requireActual('react-native') as typeof import('react-native');
   return {
-    Modal: ({ visible, children, onClose }: { visible: boolean; children: React.ReactNode; onClose?: () => void }) =>
+    Modal: ({
+      visible,
+      children,
+      onClose,
+    }: {
+      visible: boolean;
+      children: React.ReactNode;
+      onClose?: () => void;
+    }) =>
       visible
         ? React.createElement(
             React.Fragment,
             null,
             children,
-            React.createElement(TouchableOpacity, { testID: 'mock-modal-close', onPress: onClose }),
+            React.createElement(TouchableOpacity, { testID: 'mock-modal-close', onPress: onClose })
           )
         : null,
   };
@@ -68,7 +91,10 @@ jest.mock('@/components/finance/CategoryBudgetModal', () => {
   return {
     CategoryBudgetModal: ({ visible, onClose }: { visible: boolean; onClose?: () => void }) =>
       visible
-        ? React.createElement(TouchableOpacity, { testID: 'mock-category-budget-close', onPress: onClose })
+        ? React.createElement(TouchableOpacity, {
+            testID: 'mock-category-budget-close',
+            onPress: onClose,
+          })
         : null,
   };
 });
@@ -78,7 +104,10 @@ jest.mock('@/components/finance/ExpenseItem', () => {
   const { TouchableOpacity } = jest.requireActual('react-native') as typeof import('react-native');
   return {
     ExpenseItem: ({ expense, onDelete }: { expense: { id: string }; onDelete?: () => void }) =>
-      React.createElement(TouchableOpacity, { testID: `mock-expense-delete-${expense.id}`, onPress: onDelete }),
+      React.createElement(TouchableOpacity, {
+        testID: `mock-expense-delete-${expense.id}`,
+        onPress: onDelete,
+      }),
   };
 });
 
@@ -273,9 +302,7 @@ describe('FinancesScreen additional branches', () => {
       ...s,
       overallBudgetAmount: 100,
       overallBudgetPeriod: 'daily',
-      expenses: [
-        { id: 'e1', categoryId: 'cat-food', amount: 20, date: Date.now() },
-      ],
+      expenses: [{ id: 'e1', categoryId: 'cat-food', amount: 20, date: Date.now() }],
     }));
     const { getByText } = render(<FinancesScreen />);
     expect(getByText('20% used')).toBeTruthy();
@@ -286,9 +313,7 @@ describe('FinancesScreen additional branches', () => {
       ...s,
       overallBudgetAmount: 50,
       overallBudgetPeriod: 'monthly',
-      expenses: [
-        { id: 'e1', categoryId: 'cat-food', amount: 80, date: Date.now() },
-      ],
+      expenses: [{ id: 'e1', categoryId: 'cat-food', amount: 80, date: Date.now() }],
     }));
     const { getByText } = render(<FinancesScreen />);
     // Remaining is -30 (negative), displayed as a $ amount
@@ -324,9 +349,7 @@ describe('FinancesScreen additional branches', () => {
   it('calls deleteExpense when expense delete button pressed', () => {
     useFinanceStore.setState((s) => ({
       ...s,
-      expenses: [
-        { id: 'exp-del', categoryId: 'cat-food', amount: 10, date: Date.now() },
-      ],
+      expenses: [{ id: 'exp-del', categoryId: 'cat-food', amount: 10, date: Date.now() }],
     }));
     const { getByTestId } = render(<FinancesScreen />);
     fireEvent.press(getByTestId('mock-expense-delete-exp-del'));
@@ -366,9 +389,7 @@ describe('FinancesScreen additional branches', () => {
       ...s,
       overallBudgetAmount: 1200,
       overallBudgetPeriod: 'annual',
-      expenses: [
-        { id: 'e1', categoryId: 'cat-food', amount: 120, date: Date.now() },
-      ],
+      expenses: [{ id: 'e1', categoryId: 'cat-food', amount: 120, date: Date.now() }],
     }));
     const { getByText } = render(<FinancesScreen />);
     expect(getByText('10% used')).toBeTruthy();
@@ -414,7 +435,9 @@ describe('FinancesScreen additional branches', () => {
     useEntitlementStore.setState({ isPro: true, isRcPro: true, isLoading: false });
     const { resolve: resolveCsv, promise: csvPromise } = (() => {
       let resolve!: () => void;
-      const promise = new Promise<void>((res) => { resolve = res; });
+      const promise = new Promise<void>((res) => {
+        resolve = res;
+      });
       return { resolve, promise };
     })();
     mockExportCsv.mockReturnValueOnce(csvPromise);

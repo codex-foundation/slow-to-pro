@@ -89,7 +89,10 @@ describe('createCheckoutSession', () => {
 
   it('calls supabase.functions.invoke with correct params', async () => {
     process.env.EXPO_PUBLIC_STRIPE_PRICE_ID = 'price_abc';
-    mockInvoke.mockResolvedValue({ data: { url: 'https://checkout.stripe.com/pay/cs_test' }, error: null });
+    mockInvoke.mockResolvedValue({
+      data: { url: 'https://checkout.stripe.com/pay/cs_test' },
+      error: null,
+    });
     await jest.isolateModulesAsync(async () => {
       // biome-ignore lint/style/noCommonJs: isolateModules requires sync require
       const { createCheckoutSession } = require('../stripe') as typeof import('../stripe');
@@ -106,7 +109,10 @@ describe('createCheckoutSession', () => {
   });
 
   it('returns the checkout url on success', async () => {
-    mockInvoke.mockResolvedValue({ data: { url: 'https://checkout.stripe.com/pay/cs_test' }, error: null });
+    mockInvoke.mockResolvedValue({
+      data: { url: 'https://checkout.stripe.com/pay/cs_test' },
+      error: null,
+    });
     // biome-ignore lint/style/noCommonJs: isolateModules requires sync require
     const { createCheckoutSession } = require('../stripe') as typeof import('../stripe');
     const result = await createCheckoutSession('https://app.com/success', 'https://app.com/cancel');

@@ -1,5 +1,5 @@
-import { Alert } from 'react-native';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { Alert } from 'react-native';
 
 import { SharedSpaceModal } from '../SharedSpaceModal';
 
@@ -538,10 +538,46 @@ describe('SharedSpaceModal', () => {
       resetStore({
         spaces: [space],
         members: [
-          { id: 'm1', spaceId: 'sp1', userId: 'user-1', invitedEmail: 'me@example.com', role: 'owner', status: 'accepted', invitedAt: '', acceptedAt: null },
-          { id: 'm2', spaceId: 'sp1', userId: null, invitedEmail: 'pending@example.com', role: 'member', status: 'pending', invitedAt: '', acceptedAt: null },
-          { id: 'm3', spaceId: 'sp1', userId: 'user-2', invitedEmail: 'accepted@example.com', role: 'member', status: 'accepted', invitedAt: '', acceptedAt: '2024-01-01' },
-          { id: 'm4', spaceId: 'sp1', userId: null, invitedEmail: 'declined@example.com', role: 'member', status: 'declined', invitedAt: '', acceptedAt: null },
+          {
+            id: 'm1',
+            spaceId: 'sp1',
+            userId: 'user-1',
+            invitedEmail: 'me@example.com',
+            role: 'owner',
+            status: 'accepted',
+            invitedAt: '',
+            acceptedAt: null,
+          },
+          {
+            id: 'm2',
+            spaceId: 'sp1',
+            userId: null,
+            invitedEmail: 'pending@example.com',
+            role: 'member',
+            status: 'pending',
+            invitedAt: '',
+            acceptedAt: null,
+          },
+          {
+            id: 'm3',
+            spaceId: 'sp1',
+            userId: 'user-2',
+            invitedEmail: 'accepted@example.com',
+            role: 'member',
+            status: 'accepted',
+            invitedAt: '',
+            acceptedAt: '2024-01-01',
+          },
+          {
+            id: 'm4',
+            spaceId: 'sp1',
+            userId: null,
+            invitedEmail: 'declined@example.com',
+            role: 'member',
+            status: 'declined',
+            invitedAt: '',
+            acceptedAt: null,
+          },
         ],
       });
       const { getByText } = render(<SharedSpaceModal {...defaultProps} />);
@@ -557,7 +593,16 @@ describe('SharedSpaceModal', () => {
       resetStore({
         spaces: [space],
         members: [
-          { id: 'm2', spaceId: 'sp1', userId: null, invitedEmail: 'friend@example.com', role: 'member', status: 'pending', invitedAt: '', acceptedAt: null },
+          {
+            id: 'm2',
+            spaceId: 'sp1',
+            userId: null,
+            invitedEmail: 'friend@example.com',
+            role: 'member',
+            status: 'pending',
+            invitedAt: '',
+            acceptedAt: null,
+          },
         ],
       });
       mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
@@ -572,7 +617,16 @@ describe('SharedSpaceModal', () => {
       resetStore({
         spaces: [space],
         members: [
-          { id: 'm2', spaceId: 'sp1', userId: null, invitedEmail: 'friend@example.com', role: 'member', status: 'pending', invitedAt: '', acceptedAt: null },
+          {
+            id: 'm2',
+            spaceId: 'sp1',
+            userId: null,
+            invitedEmail: 'friend@example.com',
+            role: 'member',
+            status: 'pending',
+            invitedAt: '',
+            acceptedAt: null,
+          },
         ],
       });
       mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
@@ -588,7 +642,16 @@ describe('SharedSpaceModal', () => {
       resetStore({
         spaces: [{ ...space, ownerId: 'other-user' }],
         members: [
-          { id: 'm2', spaceId: 'sp1', userId: null, invitedEmail: 'friend@example.com', role: 'member', status: 'pending', invitedAt: '', acceptedAt: null },
+          {
+            id: 'm2',
+            spaceId: 'sp1',
+            userId: null,
+            invitedEmail: 'friend@example.com',
+            role: 'member',
+            status: 'pending',
+            invitedAt: '',
+            acceptedAt: null,
+          },
         ],
       });
       mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
@@ -602,7 +665,16 @@ describe('SharedSpaceModal', () => {
       resetStore({
         spaces: [space],
         members: [
-          { id: 'm1', spaceId: 'sp1', userId: 'user-1', invitedEmail: 'me@example.com', role: 'owner', status: 'accepted', invitedAt: '', acceptedAt: null },
+          {
+            id: 'm1',
+            spaceId: 'sp1',
+            userId: 'user-1',
+            invitedEmail: 'me@example.com',
+            role: 'owner',
+            status: 'accepted',
+            invitedAt: '',
+            acceptedAt: null,
+          },
         ],
       });
       const { queryByText } = render(<SharedSpaceModal {...defaultProps} />);

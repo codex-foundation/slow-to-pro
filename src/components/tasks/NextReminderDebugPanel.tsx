@@ -3,11 +3,11 @@ import { Pressable, Text, View } from 'react-native';
 
 import type { Task } from '@/models/task';
 import {
+  type BrowserNotificationPermission,
+  type BrowserNotificationTestResult,
   getBrowserNotificationPermission,
   requestBrowserNotificationPermission,
   showBrowserTestNotification,
-  type BrowserNotificationPermission,
-  type BrowserNotificationTestResult,
 } from '@/utils/browserNotifications';
 
 interface NextReminderDebugPanelProps {

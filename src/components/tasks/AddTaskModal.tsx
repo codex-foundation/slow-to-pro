@@ -1,11 +1,11 @@
-import { createElement, useState } from 'react';
-import { useRouter } from 'expo-router';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useRouter } from 'expo-router';
+import { createElement, useState } from 'react';
 import {
   Keyboard,
-  Modal as RNModal,
   Platform,
+  Modal as RNModal,
   ScrollView,
   Switch,
   Text,

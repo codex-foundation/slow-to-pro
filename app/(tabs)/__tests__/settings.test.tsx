@@ -133,7 +133,14 @@ jest.mock('@/stores/spaceStore', () => ({
 const mockPaywallOnClose = jest.fn();
 const mockPaywallOnUpgraded = jest.fn();
 jest.mock('@/components/ui/PaywallModal', () => ({
-  PaywallModal: ({ onClose, onUpgraded }: { visible: boolean; onClose: () => void; onUpgraded: () => void }) => {
+  PaywallModal: ({
+    onClose,
+    onUpgraded,
+  }: {
+    visible: boolean;
+    onClose: () => void;
+    onUpgraded: () => void;
+  }) => {
     mockPaywallOnClose.mockImplementation(onClose);
     mockPaywallOnUpgraded.mockImplementation(onUpgraded);
     return null;
@@ -668,8 +675,12 @@ describe('SettingsScreen active space and modal callbacks', () => {
     );
     render(<SettingsScreen />);
     await waitFor(() => expect(mockPaywallOnClose).toBeDefined());
-    await act(async () => { mockPaywallOnClose(); });
-    await act(async () => { mockPaywallOnUpgraded(); });
+    await act(async () => {
+      mockPaywallOnClose();
+    });
+    await act(async () => {
+      mockPaywallOnUpgraded();
+    });
   });
 
   it('calls SharedSpaceModal onClose callback without error', async () => {
@@ -682,6 +693,8 @@ describe('SettingsScreen active space and modal callbacks', () => {
     await waitFor(() => expect(getByText('Manage Spaces')).toBeTruthy());
     fireEvent.press(getByText('Manage Spaces'));
     await waitFor(() => expect(mockSharedSpaceOnClose).toBeDefined());
-    await act(async () => { mockSharedSpaceOnClose(); });
+    await act(async () => {
+      mockSharedSpaceOnClose();
+    });
   });
 });

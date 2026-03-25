@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { supabase } from '@/lib/supabase';
 import { pullForCurrentUser } from '@/services/cloudSync';
 import {
   createSpace,
@@ -23,7 +24,6 @@ import {
   removeMember,
   respondToInvite,
 } from '@/services/spaceSync';
-import { supabase } from '@/lib/supabase';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { Modal } from './Modal';
 
@@ -337,7 +337,12 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
                 {/* Member / invite list */}
                 {spaceInvites(space.id).length > 0 && (
                   <View
-                    style={{ borderTopWidth: 1, borderColor: theme.border, paddingHorizontal: 12, paddingVertical: 8 }}>
+                    style={{
+                      borderTopWidth: 1,
+                      borderColor: theme.border,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                    }}>
                     {spaceInvites(space.id).map((m) => {
                       const statusColor =
                         m.status === 'accepted'
@@ -348,12 +353,22 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
                       return (
                         <View
                           key={m.id}
-                          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 }}>
-                          <Text className="text-xs flex-1 mr-2" style={{ color: theme.textMuted }} numberOfLines={1}>
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingVertical: 4,
+                          }}>
+                          <Text
+                            className="text-xs flex-1 mr-2"
+                            style={{ color: theme.textMuted }}
+                            numberOfLines={1}>
                             {m.invitedEmail}
                           </Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text className="text-xs font-medium capitalize" style={{ color: statusColor }}>
+                            <Text
+                              className="text-xs font-medium capitalize"
+                              style={{ color: statusColor }}>
                               {m.status}
                             </Text>
                             {currentUserId === space.ownerId && (
@@ -361,7 +376,11 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
                                 onPress={() => handleRemoveMember(m.id)}
                                 disabled={busy}
                                 testID={`remove-member-${m.id}`}>
-                                <Ionicons name="close-circle-outline" size={16} color={theme.danger} />
+                                <Ionicons
+                                  name="close-circle-outline"
+                                  size={16}
+                                  color={theme.danger}
+                                />
                               </TouchableOpacity>
                             )}
                           </View>

@@ -1,7 +1,9 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useEffect, useState } from 'react';
 import {
   Keyboard,
-  KeyboardEvent,
   KeyboardAvoidingView,
+  KeyboardEvent,
   Platform,
   Modal as RNModal,
   Text,
@@ -9,8 +11,6 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import { useEffect, useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface ModalProps {

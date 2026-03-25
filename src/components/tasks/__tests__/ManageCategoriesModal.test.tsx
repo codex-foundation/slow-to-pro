@@ -1,7 +1,6 @@
 import { fireEvent, render } from '@testing-library/react-native';
-
-import { ManageCategoriesModal } from '../ManageCategoriesModal';
 import { useTaskStore } from '@/stores/taskStore';
+import { ManageCategoriesModal } from '../ManageCategoriesModal';
 
 jest.mock('@expo/vector-icons/Ionicons', () => {
   const React = jest.requireActual('react') as typeof import('react');
@@ -50,9 +49,7 @@ beforeEach(() => {
 
 describe('ManageCategoriesModal', () => {
   it('renders nothing when not visible', () => {
-    const { queryByTestId } = render(
-      <ManageCategoriesModal visible={false} onClose={jest.fn()} />
-    );
+    const { queryByTestId } = render(<ManageCategoriesModal visible={false} onClose={jest.fn()} />);
     expect(queryByTestId('modal-wrapper')).toBeNull();
   });
 

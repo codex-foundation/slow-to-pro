@@ -53,9 +53,17 @@ export async function loadSpaces(): Promise<void> {
       // Spaces the user owns
       supabase.from('spaces').select('*').eq('owner_id', user.id),
       // Spaces the user is an accepted member of
-      supabase.from('space_members').select('space_id, spaces(*)').eq('user_id', user.id).eq('status', 'accepted'),
+      supabase
+        .from('space_members')
+        .select('space_id, spaces(*)')
+        .eq('user_id', user.id)
+        .eq('status', 'accepted'),
       // Pending invites (by email)
-      supabase.from('space_members').select('id, space_id, spaces(*)').eq('invited_email', user.email ?? '').eq('status', 'pending'),
+      supabase
+        .from('space_members')
+        .select('id, space_id, spaces(*)')
+        .eq('invited_email', user.email ?? '')
+        .eq('status', 'pending'),
     ]);
 
     const owned: Space[] = (ownedSpaces ?? []).map(toSpace);
@@ -334,14 +342,17 @@ export async function leaveSpace(spaceId: string): Promise<void> {
 // Delete a space (owner only — cascade removes members + snapshots)
 // ---------------------------------------------------------------------------
 
-export async function deleteSpace(spaceId: string): Promise<void> {
-  if (!supabase) return;
-  await supabase.from('spaces').delete().eq('id', spaceId);
+export async function deleteSpace(spaceId: string): Promise<{ error?: string }> {
+  if (!supabase) return { error: 'Not configured' };
+
+  const { error } = await supabase.rpc('delete_space', { p_space_id: spaceId });
+  if (error) return { error: error.message };
 
   const store = useSpaceStore.getState();
   store.setSpaces(store.spaces.filter((s) => s.id !== spaceId));
   store.setMembers(store.members.filter((m) => m.spaceId !== spaceId));
   if (store.activeSpaceId === spaceId) store.setActiveSpaceId(null);
+  return {};
 }
 
 // ---------------------------------------------------------------------------

@@ -136,9 +136,8 @@ export function PaywallModal({ visible, onClose }: Props) {
                   marginBottom: 16,
                 }}>
                 <Text style={{ fontSize: 13, color: theme.textSubtle, textAlign: 'center' }}>
-                  Add{' '}
-                  <Text style={{ color: theme.primary }}>EXPO_PUBLIC_STRIPE_PRICE_ID</Text> to your
-                  .env to enable web purchases.
+                  Add <Text style={{ color: theme.primary }}>EXPO_PUBLIC_STRIPE_PRICE_ID</Text> to
+                  your .env to enable web purchases.
                 </Text>
               </View>
             )}
@@ -146,7 +145,12 @@ export function PaywallModal({ visible, onClose }: Props) {
             {errorMsg && (
               <Text
                 testID="paywall-error"
-                style={{ fontSize: 12, color: theme.danger, textAlign: 'center', marginBottom: 12 }}>
+                style={{
+                  fontSize: 12,
+                  color: theme.danger,
+                  textAlign: 'center',
+                  marginBottom: 12,
+                }}>
                 {errorMsg}
               </Text>
             )}
