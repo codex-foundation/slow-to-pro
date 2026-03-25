@@ -147,7 +147,11 @@ describe('PaywallModal (web)', () => {
   it('shows ActivityIndicator while checkout is in progress', async () => {
     mockIsStripeConfigured = true;
     let resolveCheckout!: (v: { url: string }) => void;
-    mockCreateCheckoutSession.mockReturnValue(new Promise((r) => { resolveCheckout = r; }));
+    mockCreateCheckoutSession.mockReturnValue(
+      new Promise((r) => {
+        resolveCheckout = r;
+      })
+    );
 
     const { getByTestId, queryByText } = render(<PaywallModal {...defaultProps} />);
 

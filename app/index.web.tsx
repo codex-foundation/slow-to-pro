@@ -45,7 +45,14 @@ export default function AuthScreenWeb() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: '#0f172a',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+      }}>
       {/* Centered card */}
       <View
         style={{
@@ -59,7 +66,6 @@ export default function AuthScreenWeb() {
           shadowOpacity: 0.4,
           shadowRadius: 40,
         }}>
-
         {/* Left column — branding */}
         <View
           style={{
@@ -108,17 +114,19 @@ export default function AuthScreenWeb() {
                 autoCapitalize="none"
                 returnKeyType="next"
                 onSubmitEditing={() => passwordRef.current?.focus()}
-                style={{
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                  borderWidth: 1,
-                  borderRadius: 10,
-                  padding: 12,
-                  fontSize: 15,
-                  color: theme.text,
-                  marginBottom: 12,
-                  outlineStyle: 'none',
-                } as object}
+                style={
+                  {
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    padding: 12,
+                    fontSize: 15,
+                    color: theme.text,
+                    marginBottom: 12,
+                    outlineStyle: 'none',
+                  } as object
+                }
               />
               <TextInput
                 testID="auth-password-input"
@@ -130,17 +138,19 @@ export default function AuthScreenWeb() {
                 secureTextEntry
                 returnKeyType="done"
                 onSubmitEditing={showRegister ? handleSignUp : handleLogin}
-                style={{
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                  borderWidth: 1,
-                  borderRadius: 10,
-                  padding: 12,
-                  fontSize: 15,
-                  color: theme.text,
-                  marginBottom: 20,
-                  outlineStyle: 'none',
-                } as object}
+                style={
+                  {
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    padding: 12,
+                    fontSize: 15,
+                    color: theme.text,
+                    marginBottom: 20,
+                    outlineStyle: 'none',
+                  } as object
+                }
               />
             </>
           )}

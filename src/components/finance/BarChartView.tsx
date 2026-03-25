@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Platform, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Text, useWindowDimensions, View } from 'react-native';
 import { BarChart, PieChart } from 'react-native-gifted-charts';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Category } from '@/models/finance';

@@ -1,11 +1,11 @@
-import { createElement, useState } from 'react';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
+import { createElement, useState } from 'react';
 import {
   Keyboard,
-  Modal as RNModal,
   Platform,
+  Modal as RNModal,
   ScrollView,
   Switch,
   Text,
@@ -519,15 +519,20 @@ export function TaskItem({
           </Text>
         </View>
 
-        {item.categoryId && (() => {
-          const cat = categories.find((c) => c.id === item.categoryId);
-          return cat ? (
-            <View className="flex-row items-center gap-1 mt-1">
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: cat.color }} />
-              <Text className="text-xs" style={{ color: cat.color }}>{cat.name}</Text>
-            </View>
-          ) : null;
-        })()}
+        {item.categoryId &&
+          (() => {
+            const cat = categories.find((c) => c.id === item.categoryId);
+            return cat ? (
+              <View className="flex-row items-center gap-1 mt-1">
+                <View
+                  style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: cat.color }}
+                />
+                <Text className="text-xs" style={{ color: cat.color }}>
+                  {cat.name}
+                </Text>
+              </View>
+            ) : null;
+          })()}
 
         {(item.recurring.enabled || dueDateText || reminderText) && (
           <View className="mt-1 gap-0.5">

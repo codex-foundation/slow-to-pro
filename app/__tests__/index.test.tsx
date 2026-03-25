@@ -68,7 +68,9 @@ const mockExchangeCodeForSession = jest.fn();
 let mockIsSupabaseConfigured = true;
 
 jest.mock('@/lib/supabase', () => ({
-  get isSupabaseConfigured() { return mockIsSupabaseConfigured; },
+  get isSupabaseConfigured() {
+    return mockIsSupabaseConfigured;
+  },
   get supabase() {
     if (!mockIsSupabaseConfigured) return null;
     return {
@@ -402,9 +404,7 @@ describe('AuthScreen', () => {
     const { getByTestId } = render(<AuthScreen />);
     await waitFor(() => getByTestId('auth-email-input'));
     // Fire submitEditing on email input — onSubmitEditing calls passwordRef.current?.focus()
-    expect(() =>
-      fireEvent(getByTestId('auth-email-input'), 'submitEditing')
-    ).not.toThrow();
+    expect(() => fireEvent(getByTestId('auth-email-input'), 'submitEditing')).not.toThrow();
   });
 
   it('handleLogin returns early when canSubmit is false (empty email)', async () => {
@@ -469,7 +469,9 @@ describe('AuthScreen', () => {
     // Trigger a login to make isBusy=true
     let resolveLate!: (v: { data: { user: null }; error: null }) => void;
     mockSignInWithPassword.mockReturnValue(
-      new Promise((r) => { resolveLate = r as typeof resolveLate; })
+      new Promise((r) => {
+        resolveLate = r as typeof resolveLate;
+      })
     );
     const { getByTestId } = render(<AuthScreen />);
     await waitFor(() => getByTestId('auth-email-input'));

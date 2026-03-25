@@ -60,27 +60,36 @@ export function AnimatedSplash({ onFinish }: Props) {
     // 3. Hand spin 0→765° (2.1s, delay 0.75s)
     handRotation.value = withDelay(
       750,
-      withTiming(765, { duration: 2100, easing: Easing.bezier(0.22, 0.1, 0.04, 1) }),
+      withTiming(765, { duration: 2100, easing: Easing.bezier(0.22, 0.1, 0.04, 1) })
     );
 
     // 4. Word reveal (1s, delay 2.6s)
     wordOpacity.value = withDelay(
       2600,
-      withTiming(1, { duration: 1000, easing: Easing.bezier(0.2, 0, 0, 1) }),
+      withTiming(1, { duration: 1000, easing: Easing.bezier(0.2, 0, 0, 1) })
     );
     wordScaleX.value = withDelay(
       2600,
-      withTiming(1, { duration: 1000, easing: Easing.bezier(0.2, 0, 0, 1) }),
+      withTiming(1, { duration: 1000, easing: Easing.bezier(0.2, 0, 0, 1) })
     );
 
     // 5. Tag reveal (0.7s, delay 3.2s)
-    tagOpacity.value = withDelay(3200, withTiming(1, { duration: 700, easing: Easing.out(Easing.ease) }));
-    tagTranslateY.value = withDelay(3200, withTiming(0, { duration: 700, easing: Easing.out(Easing.ease) }));
+    tagOpacity.value = withDelay(
+      3200,
+      withTiming(1, { duration: 700, easing: Easing.out(Easing.ease) })
+    );
+    tagTranslateY.value = withDelay(
+      3200,
+      withTiming(0, { duration: 700, easing: Easing.out(Easing.ease) })
+    );
 
     // 6. Fade out overlay (0.5s, delay 4.3s), then call onFinish
-    overlayOpacity.value = withDelay(4300, withTiming(0, { duration: 500 }, () => {
-      runOnJS(handleFinish)();
-    }));
+    overlayOpacity.value = withDelay(
+      4300,
+      withTiming(0, { duration: 500 }, () => {
+        runOnJS(handleFinish)();
+      })
+    );
   }, [
     handleFinish,
     iconOpacity,
@@ -145,16 +154,69 @@ export function AnimatedSplash({ onFinish }: Props) {
     <Animated.View style={[styles.container, overlayStyle]}>
       <Pressable style={StyleSheet.absoluteFillObject} onPress={startAnimation}>
         {/* Icon pinned to screen vertical centre */}
-        <Animated.View style={[{ position: 'absolute', top: iconTop, left: 0, width: screenWidth, alignItems: 'center' }, iconStyle]}>
+        <Animated.View
+          style={[
+            {
+              position: 'absolute',
+              top: iconTop,
+              left: 0,
+              width: screenWidth,
+              alignItems: 'center',
+            },
+            iconStyle,
+          ]}>
           <Svg width={128} height={128} viewBox="0 0 120 120">
             <Rect width={120} height={120} rx={28} fill="#2563EB" />
             {/* Stopwatch crown */}
-            <Line x1={48} y1={24} x2={72} y2={24} stroke="white" strokeWidth={4.5} strokeLinecap="round" />
-            <Line x1={60} y1={17} x2={60} y2={26} stroke="white" strokeWidth={4.5} strokeLinecap="round" />
+            <Line
+              x1={48}
+              y1={24}
+              x2={72}
+              y2={24}
+              stroke="white"
+              strokeWidth={4.5}
+              strokeLinecap="round"
+            />
+            <Line
+              x1={60}
+              y1={17}
+              x2={60}
+              y2={26}
+              stroke="white"
+              strokeWidth={4.5}
+              strokeLinecap="round"
+            />
             {/* Hour markers (3, 9, 12) */}
-            <Line x1={92} y1={62} x2={86} y2={62} stroke="white" strokeWidth={3} strokeLinecap="round" opacity={0.35} />
-            <Line x1={28} y1={62} x2={34} y2={62} stroke="white" strokeWidth={3} strokeLinecap="round" opacity={0.35} />
-            <Line x1={60} y1={30} x2={60} y2={30} stroke="white" strokeWidth={3} strokeLinecap="round" opacity={0.35} />
+            <Line
+              x1={92}
+              y1={62}
+              x2={86}
+              y2={62}
+              stroke="white"
+              strokeWidth={3}
+              strokeLinecap="round"
+              opacity={0.35}
+            />
+            <Line
+              x1={28}
+              y1={62}
+              x2={34}
+              y2={62}
+              stroke="white"
+              strokeWidth={3}
+              strokeLinecap="round"
+              opacity={0.35}
+            />
+            <Line
+              x1={60}
+              y1={30}
+              x2={60}
+              y2={30}
+              stroke="white"
+              strokeWidth={3}
+              strokeLinecap="round"
+              opacity={0.35}
+            />
             {/* Animated ring */}
             <AnimatedCircle
               cx={60}
@@ -168,7 +230,15 @@ export function AnimatedSplash({ onFinish }: Props) {
             />
             {/* Animated hand group — rotates around clock center (60, 62) */}
             <AnimatedG animatedProps={handProps}>
-              <Line x1={60} y1={62} x2={60} y2={31} stroke="white" strokeWidth={5} strokeLinecap="round" />
+              <Line
+                x1={60}
+                y1={62}
+                x2={60}
+                y2={31}
+                stroke="white"
+                strokeWidth={5}
+                strokeLinecap="round"
+              />
               <Polyline
                 points="52,39 60,31 68,39"
                 fill="none"
@@ -183,7 +253,17 @@ export function AnimatedSplash({ onFinish }: Props) {
         </Animated.View>
 
         {/* Text anchored just below the icon */}
-        <Animated.View style={[{ position: 'absolute', top: textTop, left: 0, width: screenWidth, alignItems: 'center' }, wordStyle]}>
+        <Animated.View
+          style={[
+            {
+              position: 'absolute',
+              top: textTop,
+              left: 0,
+              width: screenWidth,
+              alignItems: 'center',
+            },
+            wordStyle,
+          ]}>
           <Animated.View style={styles.titleRow}>
             <Text style={styles.titleLight}>Slow to </Text>
             <Text style={styles.titleBold}>Pro</Text>
@@ -223,5 +303,4 @@ const styles = StyleSheet.create({
     color: '#475569',
     letterSpacing: 0.8,
   },
-
 });

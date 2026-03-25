@@ -2,7 +2,6 @@ import Constants from 'expo-constants';
 import * as ExpoLinking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,18 +12,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { PaywallModal } from '@/components/ui/PaywallModal';
+import { SharedSpaceModal } from '@/components/ui/SharedSpaceModal';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { syncFromCloudOrSeed } from '@/services/cloudSync';
 import { loadSpaces } from '@/services/spaceSync';
 import { useEntitlementStore } from '@/stores/entitlementStore';
-import { refreshProStatus } from '@/utils/purchases';
+import { type ThemePreference, useSettingsStore } from '@/stores/settingsStore';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { useSyncStore } from '@/stores/syncStore';
-import { type ThemePreference, useSettingsStore } from '@/stores/settingsStore';
-import { PaywallModal } from '@/components/ui/PaywallModal';
-import { SharedSpaceModal } from '@/components/ui/SharedSpaceModal';
+import { refreshProStatus } from '@/utils/purchases';
 
 const THEME_OPTIONS: ThemePreference[] = ['system', 'light', 'dark'];
 

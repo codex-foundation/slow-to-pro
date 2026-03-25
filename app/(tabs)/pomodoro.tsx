@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { SessionLog } from '@/components/pomodoro/SessionLog';
 import { TaskPicker } from '@/components/pomodoro/TaskPicker';
 import { TimerControls } from '@/components/pomodoro/TimerControls';
 import { TimerDisplay } from '@/components/pomodoro/TimerDisplay';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { fireConfetti } from '@/utils/confetti';
 

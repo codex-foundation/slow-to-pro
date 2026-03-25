@@ -6,17 +6,17 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
   useWindowDimensions,
+  View,
 } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { AddTaskModal } from '@/components/tasks/AddTaskModal';
 import { ManageCategoriesModal } from '@/components/tasks/ManageCategoriesModal';
 import { NextReminderDebugPanel } from '@/components/tasks/NextReminderDebugPanel';
 import { TaskList } from '@/components/tasks/TaskList';
 import { FAB } from '@/components/ui/FAB';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useTaskStore } from '@/stores/taskStore';
 import { fireConfetti } from '@/utils/confetti';
 
@@ -104,7 +104,9 @@ export default function TasksScreen() {
 
         {categories.length > 0 && (
           <>
-            <Text className="text-xs font-semibold uppercase mt-3 mb-1" style={{ color: theme.textSubtle }}>
+            <Text
+              className="text-xs font-semibold uppercase mt-3 mb-1"
+              style={{ color: theme.textSubtle }}>
               Categories
             </Text>
             <ScrollView

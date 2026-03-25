@@ -1,6 +1,6 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
 import { Slot, Tabs, usePathname, useRouter } from 'expo-router';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

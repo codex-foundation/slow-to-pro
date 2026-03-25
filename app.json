@@ -41,9 +41,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#0F172A"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.slowtopro"

@@ -1,5 +1,5 @@
-import * as LocalAuthentication from 'expo-local-authentication';
 import Constants from 'expo-constants';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 const isExpoGo = Constants.appOwnership === 'expo';
 

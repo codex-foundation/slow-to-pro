@@ -1,5 +1,5 @@
-import { Text, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 

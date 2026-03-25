@@ -1,7 +1,6 @@
 import { fireEvent, render } from '@testing-library/react-native';
-
-import { ExpenseForm } from '../ExpenseForm';
 import { useFinanceStore } from '@/stores/financeStore';
+import { ExpenseForm } from '../ExpenseForm';
 
 jest.mock('@/hooks/useAppTheme', () => ({
   useAppTheme: () => ({

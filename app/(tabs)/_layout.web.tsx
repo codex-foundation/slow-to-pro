@@ -62,7 +62,12 @@ export default function WebTabLayout() {
   if (!authChecked) {
     return (
       <View
-        style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.bg }}>
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: theme.bg,
+        }}>
         <ActivityIndicator color={theme.primary} size="large" />
       </View>
     );

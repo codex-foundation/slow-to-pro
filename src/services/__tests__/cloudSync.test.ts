@@ -1,17 +1,17 @@
-import {
-  applySnapshot,
-  getLocalSnapshot,
-  pullCloudSnapshot,
-  pushCloudSnapshot,
-  syncFromCloudOrSeed,
-  pullForCurrentUser,
-  pushForCurrentUser,
-} from '../cloudSync';
 import { useFinanceStore } from '@/stores/financeStore';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useSyncStore } from '@/stores/syncStore';
 import { useTaskStore } from '@/stores/taskStore';
+import {
+  applySnapshot,
+  getLocalSnapshot,
+  pullCloudSnapshot,
+  pullForCurrentUser,
+  pushCloudSnapshot,
+  pushForCurrentUser,
+  syncFromCloudOrSeed,
+} from '../cloudSync';
 
 const mockGetUser = jest.fn();
 const mockMaybeSingle = jest.fn();
@@ -192,17 +192,19 @@ describe('pushCloudSnapshot', () => {
       },
     });
     await pushCloudSnapshot('user-1');
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({ user_id: 'user-1' }),
-      { onConflict: 'user_id' }
-    );
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ user_id: 'user-1' }), {
+      onConflict: 'user_id',
+    });
   });
 
   it('throws when upsert returns an error', async () => {
     jest.requireMock('@/lib/supabase').supabase.from = jest.fn().mockReturnValue({
       upsert: (...a: unknown[]) => {
         mockUpsert(...a);
-        return { then: (r: (v: unknown) => unknown) => Promise.resolve({ error: { message: 'upsert failed' } }).then(r) };
+        return {
+          then: (r: (v: unknown) => unknown) =>
+            Promise.resolve({ error: { message: 'upsert failed' } }).then(r),
+        };
       },
     });
     await expect(pushCloudSnapshot('user-1')).rejects.toMatchObject({ message: 'upsert failed' });
@@ -225,8 +227,25 @@ describe('syncFromCloudOrSeed', () => {
   it('returns pulled when remote snapshot exists', async () => {
     const snap = {
       taskStore: { tasks: [], categories: [], lastResetDate: '2026-01-01' },
-      financeStore: { categories: [], budgets: [], expenses: [], notifiedBudgetThresholdByKey: {}, overallBudgetAmount: 0, overallBudgetPeriod: 'monthly' as const },
-      pomodoroStore: { sessions: [], workDuration: 25, breakDuration: 5, status: 'idle' as const, phase: 'work' as const, secondsRemaining: 1500, cycleCount: 0, selectedTaskId: null, cycleStartedAt: null },
+      financeStore: {
+        categories: [],
+        budgets: [],
+        expenses: [],
+        notifiedBudgetThresholdByKey: {},
+        overallBudgetAmount: 0,
+        overallBudgetPeriod: 'monthly' as const,
+      },
+      pomodoroStore: {
+        sessions: [],
+        workDuration: 25,
+        breakDuration: 5,
+        status: 'idle' as const,
+        phase: 'work' as const,
+        secondsRemaining: 1500,
+        cycleCount: 0,
+        selectedTaskId: null,
+        cycleStartedAt: null,
+      },
       settingsStore: { themePreference: 'system' as const },
       updatedAt: new Date().toISOString(),
     };
@@ -277,8 +296,25 @@ describe('pullForCurrentUser', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     const snap = {
       taskStore: { tasks: [], categories: [], lastResetDate: '2026-01-01' },
-      financeStore: { categories: [], budgets: [], expenses: [], notifiedBudgetThresholdByKey: {}, overallBudgetAmount: 0, overallBudgetPeriod: 'monthly' as const },
-      pomodoroStore: { sessions: [], workDuration: 25, breakDuration: 5, status: 'idle' as const, phase: 'work' as const, secondsRemaining: 1500, cycleCount: 0, selectedTaskId: null, cycleStartedAt: null },
+      financeStore: {
+        categories: [],
+        budgets: [],
+        expenses: [],
+        notifiedBudgetThresholdByKey: {},
+        overallBudgetAmount: 0,
+        overallBudgetPeriod: 'monthly' as const,
+      },
+      pomodoroStore: {
+        sessions: [],
+        workDuration: 25,
+        breakDuration: 5,
+        status: 'idle' as const,
+        phase: 'work' as const,
+        secondsRemaining: 1500,
+        cycleCount: 0,
+        selectedTaskId: null,
+        cycleStartedAt: null,
+      },
       settingsStore: { themePreference: 'system' as const },
       updatedAt: new Date().toISOString(),
     };
@@ -329,7 +365,10 @@ describe('pushForCurrentUser', () => {
     jest.requireMock('@/lib/supabase').supabase.from = jest.fn().mockImplementation(() => ({
       upsert: (...a: unknown[]) => {
         mockUpsert(...a);
-        return { then: (r: (v: unknown) => unknown) => Promise.resolve({ error: { message: 'push error' } }).then(r) };
+        return {
+          then: (r: (v: unknown) => unknown) =>
+            Promise.resolve({ error: { message: 'push error' } }).then(r),
+        };
       },
     }));
     const result = await pushForCurrentUser();

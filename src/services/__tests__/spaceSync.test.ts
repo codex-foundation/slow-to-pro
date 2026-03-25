@@ -1,3 +1,6 @@
+import { DEFAULT_CATEGORIES, useFinanceStore } from '@/stores/financeStore';
+import { useSpaceStore } from '@/stores/spaceStore';
+import { DEFAULT_TASK_CATEGORIES, useTaskStore } from '@/stores/taskStore';
 import {
   createSpace,
   deleteSpace,
@@ -10,9 +13,6 @@ import {
   removeMember,
   respondToInvite,
 } from '../spaceSync';
-import { DEFAULT_CATEGORIES, useFinanceStore } from '@/stores/financeStore';
-import { useSpaceStore } from '@/stores/spaceStore';
-import { DEFAULT_TASK_CATEGORIES, useTaskStore } from '@/stores/taskStore';
 
 // ---------------------------------------------------------------------------
 // Mock supabase with a chainable query builder
@@ -65,10 +65,13 @@ function mockQueryBuilder() {
   return builder;
 }
 
+const mockRpc = jest.fn();
+
 jest.mock('@/lib/supabase', () => ({
   supabase: {
     auth: { getUser: (...a: unknown[]) => mockGetUser(...a) },
     from: () => mockQueryBuilder(),
+    rpc: (...a: unknown[]) => mockRpc(...a),
     functions: { invoke: (...a: unknown[]) => mockInvokeEmail(...a) },
   },
 }));
@@ -118,6 +121,7 @@ function resetStores() {
 
 beforeEach(() => {
   mockGetUser.mockReset();
+  mockRpc.mockReset();
   mockInvokeEmail.mockReset();
   mockInsert.mockReset();
   mockUpsert.mockReset();
@@ -182,25 +186,34 @@ describe('createSpace', () => {
     mockSingle.mockResolvedValue({ data: spaceRow, error: null });
 
     const insertCalls: unknown[] = [];
-    jest.requireMock('@/lib/supabase').supabase.from = jest.fn().mockImplementation((table: string) => {
-      if (table === 'spaces') {
+    jest.requireMock('@/lib/supabase').supabase.from = jest
+      .fn()
+      .mockImplementation((table: string) => {
+        if (table === 'spaces') {
+          return {
+            insert: () => ({ select: () => ({ single: () => mockSingle() }) }),
+          };
+        }
         return {
-          insert: () => ({ select: () => ({ single: () => mockSingle() }) }),
+          insert: (...a: unknown[]) => {
+            insertCalls.push({ table, args: a[0] });
+            return {
+              then: (r: (v: unknown) => unknown) => Promise.resolve({ error: null }).then(r),
+            };
+          },
         };
-      }
-      return {
-        insert: (...a: unknown[]) => {
-          insertCalls.push({ table, args: a[0] });
-          return { then: (r: (v: unknown) => unknown) => Promise.resolve({ error: null }).then(r) };
-        },
-      };
-    });
+      });
 
     await createSpace('Family');
 
     const finSeeding = insertCalls.find(
       (c) => (c as { table: string }).table === 'space_finance_snapshots'
-    ) as { args: { space_id: string; data: { categories: unknown[]; budgets: unknown[]; expenses: unknown[] } } };
+    ) as {
+      args: {
+        space_id: string;
+        data: { categories: unknown[]; budgets: unknown[]; expenses: unknown[] };
+      };
+    };
     const taskSeeding = insertCalls.find(
       (c) => (c as { table: string }).table === 'space_task_snapshots'
     ) as { args: { space_id: string; data: { tasks: unknown[]; categories: unknown[] } } };
@@ -482,12 +495,11 @@ describe('deleteSpace', () => {
       pendingInvites: [],
       isLoading: false,
     });
-    jest.requireMock('@/lib/supabase').supabase.from = jest
-      .fn()
-      .mockReturnValue(mockQueryBuilder());
+    mockRpc.mockResolvedValue({ error: null });
 
     await deleteSpace('space-1');
 
+    expect(mockRpc).toHaveBeenCalledWith('delete_space', { p_space_id: 'space-1' });
     expect(useSpaceStore.getState().spaces).toHaveLength(0);
     expect(useSpaceStore.getState().activeSpaceId).toBeNull();
   });
@@ -500,15 +512,27 @@ describe('deleteSpace', () => {
       ],
       activeSpaceId: 'space-2',
       members: [
-        { id: 'm1', spaceId: 'space-1', userId: 'u2', email: 'b@b.com', role: 'member', status: 'accepted' },
-        { id: 'm2', spaceId: 'space-2', userId: 'u3', email: 'c@c.com', role: 'member', status: 'accepted' },
+        {
+          id: 'm1',
+          spaceId: 'space-1',
+          userId: 'u2',
+          email: 'b@b.com',
+          role: 'member',
+          status: 'accepted',
+        },
+        {
+          id: 'm2',
+          spaceId: 'space-2',
+          userId: 'u3',
+          email: 'c@c.com',
+          role: 'member',
+          status: 'accepted',
+        },
       ],
       pendingInvites: [],
       isLoading: false,
     });
-    jest.requireMock('@/lib/supabase').supabase.from = jest
-      .fn()
-      .mockReturnValue(mockQueryBuilder());
+    mockRpc.mockResolvedValue({ error: null });
 
     await deleteSpace('space-1');
 

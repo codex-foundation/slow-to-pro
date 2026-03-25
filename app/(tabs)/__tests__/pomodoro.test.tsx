@@ -1,9 +1,8 @@
 import { act, render } from '@testing-library/react-native';
 import { ScrollView } from 'react-native';
-
-import PomodoroScreen from '../pomodoro';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useTaskStore } from '@/stores/taskStore';
+import PomodoroScreen from '../pomodoro';
 
 jest.mock('@/utils/notifications', () => ({
   scheduleTaskReminderNotification: jest.fn(),

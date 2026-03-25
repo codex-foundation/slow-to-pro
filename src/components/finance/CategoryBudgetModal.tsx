@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useState } from 'react';
 import {
   Alert,
   Modal as RNModal,
@@ -9,13 +9,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useAppTheme } from '@/hooks/useAppTheme';
-import { Modal } from '@/components/ui/Modal';
 import { ColorPicker } from '@/components/ui/ColorPicker';
+import { Modal } from '@/components/ui/Modal';
+import { PaywallModal } from '@/components/ui/PaywallModal';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useEntitlementStore } from '@/stores/entitlementStore';
 import { useFinanceStore } from '@/stores/financeStore';
 import { currentMonth } from '@/utils/date';
-import { PaywallModal } from '@/components/ui/PaywallModal';
 
 const PRESET_COLORS = [
   '#f97316',

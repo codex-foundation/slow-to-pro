@@ -1,8 +1,7 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { Keyboard } from 'react-native';
-
-import { TaskItem } from '../TaskItem';
 import { useEntitlementStore } from '@/stores/entitlementStore';
+import { TaskItem } from '../TaskItem';
 
 const mockToggleTask = jest.fn();
 const mockDeleteTask = jest.fn();
@@ -462,9 +461,7 @@ describe('TaskItem', () => {
 
   it('renders drag handle when drag prop is provided', () => {
     const drag = jest.fn();
-    const { getByLabelText, queryByLabelText } = render(
-      <TaskItem item={baseTask} drag={drag} />
-    );
+    const { getByLabelText, queryByLabelText } = render(<TaskItem item={baseTask} drag={drag} />);
     // Drag handle renders — no up/down arrows
     expect(getByLabelText(`Reorder task ${baseTask.title}`)).toBeTruthy();
     expect(queryByLabelText(`Move ${baseTask.title} up`)).toBeNull();
@@ -490,9 +487,7 @@ describe('TaskItem', () => {
 
   it('displays category name and color when task has matching categoryId', () => {
     mockTaskStoreState.categories = [{ id: 'cat-1', name: 'Work', color: '#6366f1' }];
-    const { getByText } = render(
-      <TaskItem item={{ ...baseTask, categoryId: 'cat-1' }} />
-    );
+    const { getByText } = render(<TaskItem item={{ ...baseTask, categoryId: 'cat-1' }} />);
     expect(getByText('Work')).toBeTruthy();
     mockTaskStoreState.categories = [];
   });
@@ -584,9 +579,7 @@ describe('TaskItem web platform', () => {
   });
 
   it('hides focus and edit buttons for completed tasks on web', () => {
-    const { queryByTestId } = render(
-      <TaskItem item={{ ...baseTask, completed: true }} />
-    );
+    const { queryByTestId } = render(<TaskItem item={{ ...baseTask, completed: true }} />);
     expect(queryByTestId('focus-task-start')).toBeNull();
     expect(queryByTestId('edit-task-open')).toBeNull();
   });

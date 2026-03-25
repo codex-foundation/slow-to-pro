@@ -1,7 +1,7 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { Modal as RNModal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Modal as RNModal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
-import { useAppTheme } from "@/hooks/useAppTheme";
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface ModalProps {
   visible: boolean;
@@ -27,8 +27,8 @@ export function Modal({ visible, onClose, title, children }: ModalProps) {
         style={{
           flex: 1,
           backgroundColor: theme.overlay,
-          justifyContent: "center",
-          alignItems: "center",
+          justifyContent: 'center',
+          alignItems: 'center',
           padding: 16,
         }}
         accessibilityLabel="Close modal"
@@ -50,9 +50,9 @@ export function Modal({ visible, onClose, title, children }: ModalProps) {
             borderRadius: 20,
             borderWidth: 1,
             borderColor: theme.border,
-            width: "100%",
+            width: '100%',
             maxWidth: 560,
-            maxHeight: "85%",
+            maxHeight: '85%',
             paddingHorizontal: 24,
             paddingTop: 20,
             paddingBottom: 32,
@@ -62,12 +62,12 @@ export function Modal({ visible, onClose, title, children }: ModalProps) {
           {/* Header */}
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               marginBottom: 20,
             }}>
-            <Text style={{ fontSize: 18, fontWeight: "700", color: theme.text }}>{title}</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: theme.text }}>{title}</Text>
             <TouchableOpacity
               onPress={onClose}
               style={{ padding: 4 }}
@@ -79,9 +79,7 @@ export function Modal({ visible, onClose, title, children }: ModalProps) {
           </View>
 
           {/* Scrollable content */}
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {children}
-          </ScrollView>
+          <ScrollView showsVerticalScrollIndicator={false}>{children}</ScrollView>
         </View>
       </View>
     </RNModal>

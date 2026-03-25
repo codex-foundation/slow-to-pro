@@ -1,6 +1,6 @@
 import { useFinanceStore } from '../../stores/financeStore';
-import { scheduleOverBudgetNotification } from '../../utils/notifications';
 import { currentMonth } from '../../utils/date';
+import { scheduleOverBudgetNotification } from '../../utils/notifications';
 
 jest.mock('../../utils/notifications', () => ({
   scheduleOverBudgetNotification: jest.fn(),

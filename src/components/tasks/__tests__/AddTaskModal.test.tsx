@@ -1,8 +1,7 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { Keyboard } from 'react-native';
-
-import { AddTaskModal } from '../AddTaskModal';
 import { useEntitlementStore } from '@/stores/entitlementStore';
+import { AddTaskModal } from '../AddTaskModal';
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({
@@ -43,8 +42,9 @@ const mockAddTask = jest.fn(() => 'task-id');
 const mockStartWorkForTask = jest.fn();
 
 jest.mock('@/stores/taskStore', () => ({
-  useTaskStore: jest.fn((selector: (s: { addTask: typeof mockAddTask; categories: unknown[] }) => unknown) =>
-    selector({ addTask: mockAddTask, categories: [] })
+  useTaskStore: jest.fn(
+    (selector: (s: { addTask: typeof mockAddTask; categories: unknown[] }) => unknown) =>
+      selector({ addTask: mockAddTask, categories: [] })
   ),
 }));
 
@@ -469,18 +469,14 @@ describe('AddTaskModal + Another button', () => {
     fireEvent.changeText(getByTestId('task-title-input'), 'Another task');
     fireEvent.press(getByTestId('add-task-submit-another'));
 
-    expect(mockAddTask).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Another task' })
-    );
+    expect(mockAddTask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Another task' }));
     expect(onClose).not.toHaveBeenCalled();
     // form resets: title input should be empty
     expect((getByTestId('task-title-input') as any).props.value).toBe('');
   });
 
   it('hides + Another button when startFocusNow is enabled', () => {
-    const { getByTestId, queryByTestId } = render(
-      <AddTaskModal visible onClose={jest.fn()} />
-    );
+    const { getByTestId, queryByTestId } = render(<AddTaskModal visible onClose={jest.fn()} />);
 
     expect(queryByTestId('add-task-submit-another')).toBeTruthy();
 

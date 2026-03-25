@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { BarChartView } from '@/components/finance/BarChartView';
 import { BudgetProgressBar } from '@/components/finance/BudgetProgressBar';
 import { CategoryBudgetModal } from '@/components/finance/CategoryBudgetModal';
@@ -11,6 +9,7 @@ import { ExpenseForm } from '@/components/finance/ExpenseForm';
 import { ExpenseItem } from '@/components/finance/ExpenseItem';
 import { Modal } from '@/components/ui/Modal';
 import { PaywallModal } from '@/components/ui/PaywallModal';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import type { BudgetPeriod } from '@/models/finance';
 import { useEntitlementStore } from '@/stores/entitlementStore';
 import { useFinanceStore } from '@/stores/financeStore';

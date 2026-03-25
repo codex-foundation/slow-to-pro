@@ -136,8 +136,12 @@ describe('Modal', () => {
     );
 
     // Show then hide keyboard — keyboardVisible goes false
-    act(() => { keyboardShowHandler?.(); });
-    act(() => { keyboardHideHandler?.(); });
+    act(() => {
+      keyboardShowHandler?.();
+    });
+    act(() => {
+      keyboardHideHandler?.();
+    });
 
     // After keyboard hides, pressing backdrop should call onClose (not dismiss)
     const elements = getAllByLabelText('Close modal');

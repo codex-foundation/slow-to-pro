@@ -1,7 +1,6 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
-
-import TasksScreen from '../tasks';
 import { useTaskStore } from '@/stores/taskStore';
+import TasksScreen from '../tasks';
 
 jest.mock('react-native-reanimated', () => {
   const Reanimated = jest.requireActual('react-native-reanimated/mock') as {
@@ -118,7 +117,13 @@ jest.mock('@/components/tasks/ManageCategoriesModal', () => {
 
   return {
     ManageCategoriesModal: ({ visible }: { visible: boolean; onClose: () => void }) =>
-      visible ? React.createElement(View, { testID: 'mock-manage-categories-modal' }, React.createElement(Text, null, 'Manage categories')) : null,
+      visible
+        ? React.createElement(
+            View,
+            { testID: 'mock-manage-categories-modal' },
+            React.createElement(Text, null, 'Manage categories')
+          )
+        : null,
   };
 });
 

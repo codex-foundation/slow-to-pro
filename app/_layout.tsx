@@ -1,19 +1,20 @@
 import '../global.css';
 
+import Ionicons from '@expo/vector-icons/Ionicons';
 import NetInfo from '@react-native-community/netinfo';
 import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
-import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Slot, Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Platform, View } from 'react-native';
-import { AnimatedSplash } from '@/components/ui/AnimatedSplash';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AnimatedSplash } from '@/components/ui/AnimatedSplash';
 
 import { WebNotificationFallbackToast } from '@/components/ui/WebNotificationFallbackToast';
+import { supabase } from '@/lib/supabase';
 import { isApplyingSnapshot, pullForCurrentUser, pushForCurrentUser } from '@/services/cloudSync';
 import { isApplyingSpaceSnapshot, pushToSharedSpace } from '@/services/spaceSync';
 import { useEntitlementStore } from '@/stores/entitlementStore';
@@ -22,7 +23,6 @@ import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { useTaskStore } from '@/stores/taskStore';
-import { supabase } from '@/lib/supabase';
 import { initializePurchases, readProStatusFromDb, refreshProStatus } from '@/utils/purchases';
 
 if (Platform.OS !== 'web') {

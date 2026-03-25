@@ -227,9 +227,7 @@ describe('AuthScreenWeb', () => {
   it('submitting email input focuses the password field without error', async () => {
     const { getByTestId } = render(<AuthScreenWeb />);
     await waitFor(() => getByTestId('auth-email-input'));
-    expect(() =>
-      fireEvent(getByTestId('auth-email-input'), 'submitEditing')
-    ).not.toThrow();
+    expect(() => fireEvent(getByTestId('auth-email-input'), 'submitEditing')).not.toThrow();
   });
 
   it('submitting password fires handleLogin when in login mode', async () => {
@@ -238,9 +236,7 @@ describe('AuthScreenWeb', () => {
     await waitFor(() => getByTestId('auth-password-input'));
     fireEvent.changeText(getByTestId('auth-email-input'), 'test@example.com');
     fireEvent.changeText(getByTestId('auth-password-input'), 'password123');
-    expect(() =>
-      fireEvent(getByTestId('auth-password-input'), 'submitEditing')
-    ).not.toThrow();
+    expect(() => fireEvent(getByTestId('auth-password-input'), 'submitEditing')).not.toThrow();
   });
 
   it('submitting password fires handleSignUp when in register mode', async () => {
@@ -253,9 +249,7 @@ describe('AuthScreenWeb', () => {
     fireEvent.press(getByTestId('tc-checkbox'));
     fireEvent.changeText(getByTestId('auth-email-input'), 'new@example.com');
     fireEvent.changeText(getByTestId('auth-password-input'), 'password123');
-    expect(() =>
-      fireEvent(getByTestId('auth-password-input'), 'submitEditing')
-    ).not.toThrow();
+    expect(() => fireEvent(getByTestId('auth-password-input'), 'submitEditing')).not.toThrow();
   });
 
   it('pressing Google login fires handleSocialLogin google on web', async () => {

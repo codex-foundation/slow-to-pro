@@ -1,3 +1,8 @@
+import { useFinanceStore } from '@/stores/financeStore';
+import { usePomodoroStore } from '@/stores/pomodoroStore';
+import { useSettingsStore } from '@/stores/settingsStore';
+import { useSyncStore } from '@/stores/syncStore';
+import { useTaskStore } from '@/stores/taskStore';
 import {
   isApplyingSnapshot,
   pullCloudSnapshot,
@@ -6,11 +11,6 @@ import {
   pushForCurrentUser,
   syncFromCloudOrSeed,
 } from '../cloudSync';
-import { useFinanceStore } from '@/stores/financeStore';
-import { usePomodoroStore } from '@/stores/pomodoroStore';
-import { useSettingsStore } from '@/stores/settingsStore';
-import { useSyncStore } from '@/stores/syncStore';
-import { useTaskStore } from '@/stores/taskStore';
 
 // ---------------------------------------------------------------------------
 // Minimal mock supabase
