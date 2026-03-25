@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { supabase } from '@/lib/supabase';
 import { pullForCurrentUser } from '@/services/cloudSync';
 import {
   createSpace,
@@ -23,7 +24,6 @@ import {
   removeMember,
   respondToInvite,
 } from '@/services/spaceSync';
-import { supabase } from '@/lib/supabase';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { Modal } from './Modal';
 
@@ -40,6 +40,7 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
   const [inviteEmail, setInviteEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [inviteSpaceId, setInviteSpaceId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,7 +63,9 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
         return;
       }
       setNewSpaceName('');
-      setTab('spaces');
+      setActiveSpaceId(space.id);
+      await pullSharedSpace(space.id);
+      onClose();
     } finally {
       setBusy(false);
     }
@@ -121,25 +124,19 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
     ]);
   };
 
-  const handleDelete = (spaceId: string, spaceName: string) => {
-    Alert.alert(
-      `Delete "${spaceName}"`,
-      'This permanently deletes the space and all its shared data for every member.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setBusy(true);
-            const wasActive = useSpaceStore.getState().activeSpaceId === spaceId;
-            await deleteSpace(spaceId);
-            if (wasActive) await pullForCurrentUser();
-            setBusy(false);
-          },
-        },
-      ]
-    );
+  const handleDelete = async (spaceId: string) => {
+    setBusy(true);
+    const wasActive = useSpaceStore.getState().activeSpaceId === spaceId;
+    const { error } = await deleteSpace(spaceId);
+    if (error) {
+      setBusy(false);
+      setPendingDeleteId(null);
+      Alert.alert('Delete failed', error);
+      return;
+    }
+    if (wasActive) await pullForCurrentUser();
+    setPendingDeleteId(null);
+    setBusy(false);
   };
 
   const handleRefresh = async () => {
@@ -258,36 +255,65 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
                 </TouchableOpacity>
 
                 {/* Actions row */}
-                <View className="flex-row border-t" style={{ borderColor: theme.border }}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setInviteSpaceId(space.id);
-                      setTab('spaces');
-                    }}
-                    className="flex-1 py-2 items-center">
-                    <Text className="text-xs font-medium" style={{ color: theme.primary }}>
-                      Invite
+                {pendingDeleteId === space.id ? (
+                  <View
+                    className="flex-row border-t items-center px-3 py-2 gap-2"
+                    style={{ borderColor: theme.border }}>
+                    <Text className="flex-1 text-xs" style={{ color: theme.textMuted }}>
+                      Delete this space?
                     </Text>
-                  </TouchableOpacity>
-                  <View style={{ width: 1, backgroundColor: theme.border }} />
-                  {currentUserId === space.ownerId ? (
                     <TouchableOpacity
-                      onPress={() => handleDelete(space.id, space.name)}
-                      className="flex-1 py-2 items-center">
-                      <Text className="text-xs font-medium" style={{ color: theme.danger }}>
-                        Delete
+                      onPress={() => setPendingDeleteId(null)}
+                      className="px-3 py-1 rounded-lg"
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        borderWidth: 1,
+                      }}>
+                      <Text className="text-xs font-medium" style={{ color: theme.textMuted }}>
+                        Cancel
                       </Text>
                     </TouchableOpacity>
-                  ) : (
                     <TouchableOpacity
-                      onPress={() => handleLeave(space.id, space.name)}
+                      onPress={() => handleDelete(space.id)}
+                      disabled={busy}
+                      className="px-3 py-1 rounded-lg"
+                      style={{ backgroundColor: theme.danger }}>
+                      <Text className="text-xs font-semibold text-white">Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View className="flex-row border-t" style={{ borderColor: theme.border }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setInviteSpaceId(space.id);
+                        setTab('spaces');
+                      }}
                       className="flex-1 py-2 items-center">
-                      <Text className="text-xs font-medium" style={{ color: theme.danger }}>
-                        Leave
+                      <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+                        Invite
                       </Text>
                     </TouchableOpacity>
-                  )}
-                </View>
+                    <View style={{ width: 1, backgroundColor: theme.border }} />
+                    {currentUserId === space.ownerId ? (
+                      <TouchableOpacity
+                        onPress={() => setPendingDeleteId(space.id)}
+                        className="flex-1 py-2 items-center">
+                        <Text className="text-xs font-medium" style={{ color: theme.danger }}>
+                          Delete
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => handleLeave(space.id, space.name)}
+                        className="flex-1 py-2 items-center">
+                        <Text className="text-xs font-medium" style={{ color: theme.danger }}>
+                          Leave
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
 
                 {/* Inline invite form */}
                 {inviteSpaceId === space.id && (
@@ -337,7 +363,12 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
                 {/* Member / invite list */}
                 {spaceInvites(space.id).length > 0 && (
                   <View
-                    style={{ borderTopWidth: 1, borderColor: theme.border, paddingHorizontal: 12, paddingVertical: 8 }}>
+                    style={{
+                      borderTopWidth: 1,
+                      borderColor: theme.border,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                    }}>
                     {spaceInvites(space.id).map((m) => {
                       const statusColor =
                         m.status === 'accepted'
@@ -348,12 +379,22 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
                       return (
                         <View
                           key={m.id}
-                          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 }}>
-                          <Text className="text-xs flex-1 mr-2" style={{ color: theme.textMuted }} numberOfLines={1}>
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingVertical: 4,
+                          }}>
+                          <Text
+                            className="text-xs flex-1 mr-2"
+                            style={{ color: theme.textMuted }}
+                            numberOfLines={1}>
                             {m.invitedEmail}
                           </Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text className="text-xs font-medium capitalize" style={{ color: statusColor }}>
+                            <Text
+                              className="text-xs font-medium capitalize"
+                              style={{ color: statusColor }}>
                               {m.status}
                             </Text>
                             {currentUserId === space.ownerId && (
@@ -361,7 +402,11 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
                                 onPress={() => handleRemoveMember(m.id)}
                                 disabled={busy}
                                 testID={`remove-member-${m.id}`}>
-                                <Ionicons name="close-circle-outline" size={16} color={theme.danger} />
+                                <Ionicons
+                                  name="close-circle-outline"
+                                  size={16}
+                                  color={theme.danger}
+                                />
                               </TouchableOpacity>
                             )}
                           </View>

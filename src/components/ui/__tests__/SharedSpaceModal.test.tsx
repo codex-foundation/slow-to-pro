@@ -337,25 +337,23 @@ describe('SharedSpaceModal', () => {
       alertSpy.mockRestore();
     });
 
-    it('calls deleteSpace via Alert confirmation (owner)', async () => {
-      mockDeleteSpace.mockResolvedValue(undefined);
-      let alertCallback: (() => void) | undefined;
-      const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_title, _msg, buttons) => {
-        const destructiveBtn = buttons?.find((b) => b.style === 'destructive');
-        alertCallback = destructiveBtn?.onPress as (() => void) | undefined;
-      });
+    it('calls deleteSpace via inline confirmation (owner)', async () => {
+      mockDeleteSpace.mockResolvedValue({});
 
       const { getByText } = render(<SharedSpaceModal {...defaultProps} />);
       await waitFor(() => {
         getByText('Delete');
       });
+      // First press shows inline confirmation
       fireEvent.press(getByText('Delete'));
-      expect(alertSpy).toHaveBeenCalled();
-      alertCallback?.();
+      await waitFor(() => {
+        getByText('Delete this space?');
+      });
+      // Second press on the confirm Delete button calls deleteSpace
+      fireEvent.press(getByText('Delete'));
       await waitFor(() => {
         expect(mockDeleteSpace).toHaveBeenCalledWith('sp1');
       });
-      alertSpy.mockRestore();
     });
 
     it('calls leaveSpace via Alert confirmation (non-owner)', async () => {
@@ -431,15 +429,20 @@ describe('SharedSpaceModal', () => {
   });
 
   describe('handleCreate finally block', () => {
-    it('resets busy after successful create', async () => {
+    it('switches to the new space and closes the modal on successful create', async () => {
       mockCreateSpace.mockResolvedValue({ space: { id: 'sp1', name: 'New' }, error: null });
-      const { getByText, getByPlaceholderText } = render(<SharedSpaceModal {...defaultProps} />);
+      mockPullSharedSpace.mockResolvedValue(undefined);
+      const onClose = jest.fn();
+      const { getByText, getByPlaceholderText } = render(
+        <SharedSpaceModal visible={true} onClose={onClose} />
+      );
       fireEvent.press(getByText('create'));
       fireEvent.changeText(getByPlaceholderText('e.g. Family, Work Team\u2026'), 'New');
       fireEvent.press(getByText('Create Space'));
       await waitFor(() => {
-        // After success, tab switches back to 'spaces'
-        expect(getByText('Personal')).toBeTruthy();
+        expect(mockSpaceStoreState.setActiveSpaceId).toHaveBeenCalledWith('sp1');
+        expect(mockPullSharedSpace).toHaveBeenCalledWith('sp1');
+        expect(onClose).toHaveBeenCalled();
       });
     });
 
@@ -509,25 +512,18 @@ describe('SharedSpaceModal', () => {
     });
 
     it('calls pullForCurrentUser after delete when space was active', async () => {
-      mockDeleteSpace.mockResolvedValue(undefined);
+      mockDeleteSpace.mockResolvedValue({});
       mockPullForCurrentUser.mockResolvedValue(undefined);
-
-      let alertCallback: (() => void) | undefined;
-      const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_title, _msg, buttons) => {
-        const destructiveBtn = buttons?.find((b) => b.style === 'destructive');
-        alertCallback = destructiveBtn?.onPress as (() => void) | undefined;
-      });
 
       const { getByText } = render(<SharedSpaceModal {...defaultProps} />);
       await waitFor(() => getByText('Delete'));
       fireEvent.press(getByText('Delete'));
-      expect(alertSpy).toHaveBeenCalled();
-      alertCallback?.();
+      await waitFor(() => getByText('Delete this space?'));
+      fireEvent.press(getByText('Delete'));
       await waitFor(() => {
         expect(mockDeleteSpace).toHaveBeenCalledWith('sp1');
         expect(mockPullForCurrentUser).toHaveBeenCalled();
       });
-      alertSpy.mockRestore();
     });
   });
 
