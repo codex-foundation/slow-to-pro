@@ -1,7 +1,7 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
-  "files": { "ignoreUnknown": false, "includes": ["**", "!.*/**", "!supabase/**"] },
+  "files": { "ignoreUnknown": false, "includes": ["**", "!.*/**"] },
   "formatter": {
     "enabled": true,
     "formatWithErrors": false,
@@ -217,7 +217,11 @@
         }
       }
     },
-    { "includes": ["*.web.*"] }
+    { "includes": ["*.web.*"] },
+    {
+      "includes": ["supabase/**/*.ts"],
+      "javascript": { "globals": ["Deno"] }
+    }
   ],
   "assist": { "enabled": true, "actions": { "source": { "organizeImports": "on" } } }
 }

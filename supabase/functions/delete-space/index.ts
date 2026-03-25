@@ -21,7 +21,10 @@ Deno.serve(async (req) => {
 
   // Use service role client to verify the JWT
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-  const { data: { user }, error: authError } = await admin.auth.getUser(jwt);
+  const {
+    data: { user },
+    error: authError,
+  } = await admin.auth.getUser(jwt);
   if (authError || !user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
