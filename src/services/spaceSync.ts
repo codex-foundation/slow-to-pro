@@ -248,6 +248,8 @@ export async function pushToSharedSpace(spaceId: string): Promise<void> {
           categories: financeState.categories,
           budgets: financeState.budgets,
           expenses: financeState.expenses,
+          overallBudgetAmount: financeState.overallBudgetAmount,
+          overallBudgetPeriod: financeState.overallBudgetPeriod,
         },
         updated_at: new Date().toISOString(),
         updated_by: user.id,
@@ -287,6 +289,8 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
       categories: [],
       budgets: [],
       expenses: [],
+      overallBudgetAmount: 0,
+      overallBudgetPeriod: 'monthly',
     }));
     useTaskStore.setState((s) => ({ ...s, tasks: [], categories: [] }));
 
@@ -295,12 +299,16 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
         categories?: unknown[];
         budgets?: unknown[];
         expenses?: unknown[];
+        overallBudgetAmount?: number;
+        overallBudgetPeriod?: unknown;
       };
       useFinanceStore.setState((s) => ({
         ...s,
         categories: (d.categories as typeof s.categories) ?? s.categories,
         budgets: (d.budgets as typeof s.budgets) ?? s.budgets,
         expenses: (d.expenses as typeof s.expenses) ?? s.expenses,
+        overallBudgetAmount: d.overallBudgetAmount ?? 0,
+        overallBudgetPeriod: (d.overallBudgetPeriod as typeof s.overallBudgetPeriod) ?? 'monthly',
       }));
     }
 
