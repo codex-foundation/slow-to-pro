@@ -94,13 +94,14 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
 
   const handleSwitch = async (spaceId: string | null) => {
     setBusy(true);
+    // Save current space data before switching so no pending changes are lost
+    if (activeSpaceId) await pushToSharedSpace(activeSpaceId);
     if (spaceId) {
       // Entering a space: load the space's data into local stores
       setActiveSpaceId(spaceId);
       await pullSharedSpace(spaceId);
     } else {
-      // Leaving a space: save space data, then restore personal data from cloud
-      if (activeSpaceId) await pushToSharedSpace(activeSpaceId);
+      // Leaving a space: restore personal data from cloud
       setActiveSpaceId(null);
       await pullForCurrentUser();
     }

@@ -394,6 +394,26 @@ describe('SharedSpaceModal', () => {
       });
     });
 
+    it('saves current space data before switching to another space', async () => {
+      const space2 = { id: 'sp2', name: 'Work', ownerId: 'user-1', createdAt: '' };
+      resetStore({
+        spaces: [space, space2],
+        members: [],
+        activeSpaceId: 'sp1',
+      });
+      mockPushToSharedSpace.mockResolvedValue(undefined);
+      mockPullSharedSpace.mockResolvedValue(undefined);
+      const onClose = jest.fn();
+      const { getByText } = render(<SharedSpaceModal visible={true} onClose={onClose} />);
+      fireEvent.press(getByText('Work'));
+      await waitFor(() => {
+        expect(mockPushToSharedSpace).toHaveBeenCalledWith('sp1');
+        expect(mockSpaceStoreState.setActiveSpaceId).toHaveBeenCalledWith('sp2');
+        expect(mockPullSharedSpace).toHaveBeenCalledWith('sp2');
+        expect(onClose).toHaveBeenCalled();
+      });
+    });
+
     it('switches back to personal (handleSwitch null) when in a space', async () => {
       resetStore({
         spaces: [space],

@@ -298,11 +298,43 @@ describe('pullSharedSpace', () => {
     };
     jest.requireMock('@/lib/supabase').supabase.from = jest.fn().mockReturnValue(noDataBuilder);
 
+    useFinanceStore.setState((s) => ({ ...s, overallBudgetAmount: 500, overallBudgetPeriod: 'annual' }));
+
     await pullSharedSpace('space-1');
 
     expect(useFinanceStore.getState().categories).toHaveLength(0);
     expect(useFinanceStore.getState().expenses).toHaveLength(0);
     expect(useTaskStore.getState().tasks).toHaveLength(0);
+    expect(useFinanceStore.getState().overallBudgetAmount).toBe(0);
+    expect(useFinanceStore.getState().overallBudgetPeriod).toBe('monthly');
+  });
+
+  it('loads overallBudgetAmount and overallBudgetPeriod from snapshot', async () => {
+    const finSnapshot = {
+      categories: [],
+      budgets: [],
+      expenses: [],
+      overallBudgetAmount: 1500,
+      overallBudgetPeriod: 'annual',
+    };
+    const taskSnapshot = { tasks: [], categories: [] };
+
+    let callCount = 0;
+    const makeDataBuilder = (payload: unknown) => ({
+      select: () => makeDataBuilder(payload),
+      eq: () => makeDataBuilder(payload),
+      single: () => Promise.resolve({ data: { data: payload }, error: null }),
+    });
+
+    jest.requireMock('@/lib/supabase').supabase.from = jest.fn().mockImplementation(() => {
+      callCount++;
+      return callCount % 2 === 1 ? makeDataBuilder(finSnapshot) : makeDataBuilder(taskSnapshot);
+    });
+
+    await pullSharedSpace('space-1');
+
+    expect(useFinanceStore.getState().overallBudgetAmount).toBe(1500);
+    expect(useFinanceStore.getState().overallBudgetPeriod).toBe('annual');
   });
 
   it('loads space data into stores when data exists', async () => {
@@ -415,6 +447,8 @@ describe('pushToSharedSpace', () => {
     const [fin, task] = upsertResults as Record<string, unknown>[];
     expect(fin.space_id).toBe('space-1');
     expect((fin.data as Record<string, unknown>).categories).toBeDefined();
+    expect((fin.data as Record<string, unknown>).overallBudgetAmount).toBeDefined();
+    expect((fin.data as Record<string, unknown>).overallBudgetPeriod).toBeDefined();
     expect(task.space_id).toBe('space-1');
     expect((task.data as Record<string, unknown>).tasks).toBeDefined();
     expect((task.data as Record<string, unknown>).categories).toBeDefined();
