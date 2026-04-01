@@ -11,11 +11,9 @@ interface Props {
 
 export function TimerSettings({ visible, onClose }: Props) {
   const theme = useAppTheme();
-  const { workDuration, breakDuration, updateDurations } = usePomodoroStore((s) => ({
-    workDuration: s.workDuration,
-    breakDuration: s.breakDuration,
-    updateDurations: s.updateDurations,
-  }));
+  const workDuration = usePomodoroStore((s) => s.workDuration);
+  const breakDuration = usePomodoroStore((s) => s.breakDuration);
+  const updateDurations = usePomodoroStore((s) => s.updateDurations);
 
   const [focusInput, setFocusInput] = useState(String(workDuration));
   const [breakInput, setBreakInput] = useState(String(breakDuration));

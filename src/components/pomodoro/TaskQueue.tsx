@@ -6,12 +6,10 @@ import { useTaskStore } from '@/stores/taskStore';
 
 export function TaskQueue() {
   const theme = useAppTheme();
-  const { taskQueue, status, setTaskQueue, startQueue } = usePomodoroStore((s) => ({
-    taskQueue: s.taskQueue,
-    status: s.status,
-    setTaskQueue: s.setTaskQueue,
-    startQueue: s.startQueue,
-  }));
+  const taskQueue = usePomodoroStore((s) => s.taskQueue);
+  const status = usePomodoroStore((s) => s.status);
+  const setTaskQueue = usePomodoroStore((s) => s.setTaskQueue);
+  const startQueue = usePomodoroStore((s) => s.startQueue);
   const tasks = useTaskStore((s) => s.tasks);
   const activeTasks = useMemo(() => tasks.filter((t) => !t.completed), [tasks]);
 
