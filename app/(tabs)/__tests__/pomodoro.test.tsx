@@ -1,4 +1,4 @@
-import { act, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 import { ScrollView } from 'react-native';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useTaskStore } from '@/stores/taskStore';
@@ -54,6 +54,23 @@ jest.mock('@/components/pomodoro/TaskPicker', () => ({
 jest.mock('@/components/pomodoro/SessionLog', () => ({
   SessionLog: () => null,
 }));
+
+jest.mock('@/components/pomodoro/TimerSettings', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { View } = jest.requireActual('react-native') as typeof import('react-native');
+  return {
+    TimerSettings: ({ visible }: { visible: boolean; onClose: () => void }) =>
+      visible ? React.createElement(View, { testID: 'mock-timer-settings' }) : null,
+  };
+});
+
+jest.mock('@/components/pomodoro/TaskQueue', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { View } = jest.requireActual('react-native') as typeof import('react-native');
+  return {
+    TaskQueue: () => React.createElement(View, { testID: 'mock-task-queue' }),
+  };
+});
 
 const INITIAL_POMODORO_STATE = {
   sessions: [],
@@ -170,5 +187,30 @@ describe('PomodoroScreen UI', () => {
       unmount();
     });
     // Verify no crash — the cleanup cleared the timeout
+  });
+
+  describe('timer settings', () => {
+    it('renders a settings button in the header', () => {
+      const { getByTestId } = render(<PomodoroScreen />);
+      expect(getByTestId('timer-settings-btn')).toBeTruthy();
+    });
+
+    it('opens TimerSettings modal when settings button is pressed', () => {
+      const { getByTestId } = render(<PomodoroScreen />);
+      fireEvent.press(getByTestId('timer-settings-btn'));
+      expect(getByTestId('mock-timer-settings')).toBeTruthy();
+    });
+  });
+
+  describe('bulk tasks section', () => {
+    it('renders the Bulk tasks section heading', () => {
+      const { getByText } = render(<PomodoroScreen />);
+      expect(getByText('Bulk tasks')).toBeTruthy();
+    });
+
+    it('renders the TaskQueue component', () => {
+      const { getByTestId } = render(<PomodoroScreen />);
+      expect(getByTestId('mock-task-queue')).toBeTruthy();
+    });
   });
 });
