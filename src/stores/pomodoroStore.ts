@@ -114,12 +114,14 @@ export const usePomodoroStore = create<PomodoroStore>()(
         const { phase, workDuration, breakDuration, cycleCount, selectedTaskId, cycleStartedAt, taskQueue } =
           get();
 
-        const taskTitle = selectedTaskId
-          ? useTaskStore.getState().tasks.find((t) => t.id === selectedTaskId)?.title
-          : undefined;
+        // Only associate task metadata with work sessions; breaks are rests, not task execution
+        const taskTitle =
+          phase === 'work' && selectedTaskId
+            ? useTaskStore.getState().tasks.find((t) => t.id === selectedTaskId)?.title
+            : undefined;
         const session: PomodoroSession = {
           id: generateId(),
-          taskId: selectedTaskId ?? undefined,
+          taskId: phase === 'work' ? (selectedTaskId ?? undefined) : undefined,
           taskTitle,
           phase,
           durationMinutes: phase === 'work' ? workDuration : breakDuration,
@@ -141,6 +143,13 @@ export const usePomodoroStore = create<PomodoroStore>()(
             cycleCount: cycleCount + 1,
             cycleStartedAt: Date.now(),
           }));
+          // Mark the focused task as completed
+          if (selectedTaskId) {
+            useTaskStore.getState().updateTask(selectedTaskId, {
+              completed: true,
+              completedAt: Date.now(),
+            });
+          }
           ensurePomodoroInterval();
         } else {
           // After break: advance queue or go idle
