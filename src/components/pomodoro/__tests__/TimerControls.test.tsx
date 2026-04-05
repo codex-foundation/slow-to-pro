@@ -27,12 +27,15 @@ jest.mock('@/hooks/useAppTheme', () => ({
 }));
 
 jest.mock('@/stores/pomodoroStore', () => ({
-  usePomodoroStore: () => ({
-    status: mockStatus,
-    start: mockStart,
-    pause: mockPause,
-    reset: mockReset,
-  }),
+  usePomodoroStore: (selector?: (s: any) => any) => {
+    const store = {
+      status: mockStatus,
+      start: mockStart,
+      pause: mockPause,
+      reset: mockReset,
+    };
+    return selector ? selector(store) : store;
+  },
 }));
 
 jest.mock('@expo/vector-icons/Ionicons', () => {

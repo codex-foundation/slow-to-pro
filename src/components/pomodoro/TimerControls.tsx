@@ -5,7 +5,10 @@ import { usePomodoroStore } from '@/stores/pomodoroStore';
 
 export function TimerControls() {
   const theme = useAppTheme();
-  const { status, start, pause, reset } = usePomodoroStore();
+  const status = usePomodoroStore((s) => s.status);
+  const start = usePomodoroStore((s) => s.start);
+  const pause = usePomodoroStore((s) => s.pause);
+  const reset = usePomodoroStore((s) => s.reset);
   const isRunning = status === 'running';
 
   return (
