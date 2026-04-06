@@ -17,6 +17,7 @@ const INITIAL_STATE = {
   cycleCount: 0,
   selectedTaskId: null,
   cycleStartedAt: null,
+  taskQueue: [],
 };
 
 beforeEach(() => {
@@ -47,7 +48,7 @@ describe('pomodoroStore', () => {
 
       jest.advanceTimersByTime(1000);
       const state = usePomodoroStore.getState();
-      expect(state.status).toBe('idle');
+      expect(state.status).toBe('running');     // break auto-starts
       expect(state.phase).toBe('break');
       expect(state.secondsRemaining).toBe(state.breakDuration * 60);
       expect(state.sessions).toHaveLength(1);
@@ -149,10 +150,10 @@ describe('pomodoroStore', () => {
       expect(usePomodoroStore.getState().phase).toBe('work');
     });
 
-    it('resets status to idle', () => {
+    it('auto-starts break (status running) after work cycle completes', () => {
       usePomodoroStore.getState().start();
       usePomodoroStore.getState().completeCycle();
-      expect(usePomodoroStore.getState().status).toBe('idle');
+      expect(usePomodoroStore.getState().status).toBe('running');
     });
 
     it('logs a session', () => {
@@ -195,6 +196,43 @@ describe('pomodoroStore', () => {
       usePomodoroStore.getState().start();
       usePomodoroStore.getState().completeCycle();
       expect(usePomodoroStore.getState().sessions[0].taskId).toBe('task-abc');
+    });
+
+    it('does not log taskId on break sessions', () => {
+      usePomodoroStore.setState({
+        ...INITIAL_STATE,
+        phase: 'break',
+        selectedTaskId: 'task-abc',
+        cycleStartedAt: Date.now(),
+      });
+      usePomodoroStore.getState().completeCycle();
+      const session = usePomodoroStore.getState().sessions[0];
+      expect(session.phase).toBe('break');
+      expect(session.taskId).toBeUndefined();
+      expect(session.taskTitle).toBeUndefined();
+    });
+
+    it('marks the linked task as completed after a work session', () => {
+      const taskId = 'task-focus';
+      useTaskStore.setState({
+        tasks: [
+          {
+            id: taskId,
+            title: 'Focus Task',
+            completed: false,
+            priority: 'medium' as const,
+            order: 0,
+            recurring: { enabled: false, days: [] },
+            createdAt: Date.now(),
+          },
+        ],
+        lastResetDate: new Date().toISOString().slice(0, 10),
+      });
+      usePomodoroStore.setState({ ...INITIAL_STATE, selectedTaskId: taskId, phase: 'work', cycleStartedAt: Date.now() });
+      usePomodoroStore.getState().completeCycle();
+      const task = useTaskStore.getState().tasks.find((t) => t.id === taskId);
+      expect(task?.completed).toBe(true);
+      expect(task?.completedAt).toBeDefined();
     });
 
     it('caps session log at 50 entries', () => {
@@ -331,7 +369,7 @@ describe('pomodoroStore', () => {
       usePomodoroStore.getState().reconcileRunningTimer();
 
       const state = usePomodoroStore.getState();
-      expect(state.status).toBe('idle');
+      expect(state.status).toBe('running'); // break auto-starts
       expect(state.phase).toBe('break');
       expect(state.sessions).toHaveLength(1);
       expect(scheduleTimerEndNotification).toHaveBeenCalledWith('work');
@@ -436,6 +474,106 @@ describe('pomodoroStore', () => {
       const options = store.persist?.getOptions?.();
       const outerHandler = options?.onRehydrateStorage?.();
       expect(() => outerHandler?.(null)).not.toThrow();
+    });
+  });
+
+  describe('auto-transition', () => {
+    it('completeCycle: work phase → status running, phase break', () => {
+      usePomodoroStore.setState({ phase: 'work', cycleStartedAt: Date.now() });
+      usePomodoroStore.getState().completeCycle();
+      const s = usePomodoroStore.getState();
+      expect(s.phase).toBe('break');
+      expect(s.status).toBe('running');
+      expect(s.secondsRemaining).toBe(5 * 60);
+      expect(s.cycleCount).toBe(1);
+    });
+
+    it('completeCycle: break phase with empty queue → status idle, phase work', () => {
+      usePomodoroStore.setState({ phase: 'break', cycleStartedAt: Date.now(), taskQueue: [] });
+      usePomodoroStore.getState().completeCycle();
+      const s = usePomodoroStore.getState();
+      expect(s.phase).toBe('work');
+      expect(s.status).toBe('idle');
+      expect(s.secondsRemaining).toBe(25 * 60);
+    });
+
+    it('completeCycle: break phase with queue → advances to next task, status running', () => {
+      usePomodoroStore.setState({
+        phase: 'break',
+        cycleStartedAt: Date.now(),
+        taskQueue: ['task-b', 'task-c'],
+        selectedTaskId: 'task-a',
+      });
+      usePomodoroStore.getState().completeCycle();
+      const s = usePomodoroStore.getState();
+      expect(s.phase).toBe('work');
+      expect(s.status).toBe('running');
+      expect(s.selectedTaskId).toBe('task-b');
+      expect(s.taskQueue).toEqual(['task-c']);
+      expect(s.secondsRemaining).toBe(25 * 60);
+    });
+
+    it('completeCycle: break phase with single-item queue → queue empty after advance', () => {
+      usePomodoroStore.setState({
+        phase: 'break',
+        cycleStartedAt: Date.now(),
+        taskQueue: ['task-b'],
+        selectedTaskId: 'task-a',
+      });
+      usePomodoroStore.getState().completeCycle();
+      const s = usePomodoroStore.getState();
+      expect(s.selectedTaskId).toBe('task-b');
+      expect(s.taskQueue).toEqual([]);
+      expect(s.status).toBe('running');
+    });
+
+    it('completeCycle: work phase marks selectedTaskId task as completed', () => {
+      const taskId = 'task-queue-item';
+      useTaskStore.setState({
+        tasks: [
+          {
+            id: taskId,
+            title: 'Queue Task',
+            completed: false,
+            priority: 'medium' as const,
+            order: 0,
+            recurring: { enabled: false, days: [] },
+            createdAt: Date.now(),
+          },
+        ],
+        lastResetDate: new Date().toISOString().slice(0, 10),
+      });
+      usePomodoroStore.setState({
+        phase: 'work',
+        cycleStartedAt: Date.now(),
+        selectedTaskId: taskId,
+        taskQueue: ['next-task'],
+      });
+      usePomodoroStore.getState().completeCycle();
+      const task = useTaskStore.getState().tasks.find((t) => t.id === taskId);
+      expect(task?.completed).toBe(true);
+    });
+  });
+
+  describe('task queue', () => {
+    it('setTaskQueue replaces the queue', () => {
+      usePomodoroStore.getState().setTaskQueue(['t1', 't2']);
+      expect(usePomodoroStore.getState().taskQueue).toEqual(['t1', 't2']);
+    });
+
+    it('startQueue sets selectedTaskId to first, taskQueue to rest, and starts timer', () => {
+      usePomodoroStore.getState().startQueue(['t1', 't2', 't3']);
+      const s = usePomodoroStore.getState();
+      expect(s.selectedTaskId).toBe('t1');
+      expect(s.taskQueue).toEqual(['t2', 't3']);
+      expect(s.status).toBe('running');
+      expect(s.phase).toBe('work');
+      expect(s.secondsRemaining).toBe(25 * 60);
+    });
+
+    it('startQueue does nothing when given empty array', () => {
+      usePomodoroStore.getState().startQueue([]);
+      expect(usePomodoroStore.getState().status).toBe('idle');
     });
   });
 });
