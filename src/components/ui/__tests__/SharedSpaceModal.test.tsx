@@ -89,6 +89,18 @@ jest.mock('@/stores/spaceStore', () => ({
   ),
 }));
 
+let mockPomodoroStatus: 'idle' | 'running' | 'paused' = 'idle';
+const mockPomodoroReset = jest.fn();
+
+jest.mock('@/stores/pomodoroStore', () => ({
+  usePomodoroStore: {
+    getState: () => ({
+      status: mockPomodoroStatus,
+      reset: mockPomodoroReset,
+    }),
+  },
+}));
+
 jest.mock('@/hooks/useAppTheme', () => ({
   useAppTheme: () => ({
     primary: '#007AFF',
@@ -159,6 +171,8 @@ describe('SharedSpaceModal', () => {
     jest.clearAllMocks();
     resetStore();
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mockPomodoroStatus = 'idle';
+    mockPomodoroReset.mockReset();
   });
 
   it('does not render when not visible', () => {
@@ -696,6 +710,70 @@ describe('SharedSpaceModal', () => {
       const { queryByText } = render(<SharedSpaceModal {...defaultProps} />);
       // owner email should not appear in the member list
       expect(queryByText('me@example.com')).toBeNull();
+    });
+  });
+
+  describe('timer running guard', () => {
+    beforeEach(() => {
+      mockPomodoroStatus = 'idle';
+      mockPomodoroReset.mockReset();
+      mockPushToSharedSpace.mockResolvedValue(undefined);
+      mockPullSharedSpace.mockResolvedValue(undefined);
+      mockSpaceStoreState = {
+        ...mockSpaceStoreState,
+        spaces: [{ id: 'space-1', name: 'Team', ownerId: 'user-1', createdAt: '' }],
+        activeSpaceId: null,
+      };
+    });
+
+    it('switches space immediately when timer is idle', async () => {
+      mockPomodoroStatus = 'idle';
+      const { getByText } = render(<SharedSpaceModal visible onClose={jest.fn()} />);
+      fireEvent.press(getByText('Team'));
+      await waitFor(() => expect(mockPullSharedSpace).toHaveBeenCalledWith('space-1'));
+      expect(mockPomodoroReset).not.toHaveBeenCalled();
+    });
+
+    it('shows alert when timer is running and user taps a space', async () => {
+      mockPomodoroStatus = 'running';
+      const alertSpy = jest.spyOn(Alert, 'alert');
+      const { getByText } = render(<SharedSpaceModal visible onClose={jest.fn()} />);
+      fireEvent.press(getByText('Team'));
+      expect(alertSpy).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        expect.arrayContaining([
+          expect.objectContaining({ text: expect.stringMatching(/cancel/i) }),
+          expect.objectContaining({ text: expect.stringMatching(/switch|stop|yes/i) }),
+        ])
+      );
+      expect(mockPullSharedSpace).not.toHaveBeenCalled();
+    });
+
+    it('stops timer and switches space when user confirms alert', async () => {
+      mockPomodoroStatus = 'running';
+      jest.spyOn(Alert, 'alert').mockImplementation((_title, _msg, buttons) => {
+        const confirmBtn = buttons?.find(
+          (b) => b.text && /switch|stop|yes/i.test(b.text)
+        );
+        confirmBtn?.onPress?.();
+      });
+      const { getByText } = render(<SharedSpaceModal visible onClose={jest.fn()} />);
+      fireEvent.press(getByText('Team'));
+      await waitFor(() => expect(mockPomodoroReset).toHaveBeenCalled());
+      await waitFor(() => expect(mockPullSharedSpace).toHaveBeenCalledWith('space-1'));
+    });
+
+    it('does not switch when user cancels alert', async () => {
+      mockPomodoroStatus = 'running';
+      jest.spyOn(Alert, 'alert').mockImplementation((_title, _msg, buttons) => {
+        const cancelBtn = buttons?.find((b) => b.text && /cancel/i.test(b.text));
+        cancelBtn?.onPress?.();
+      });
+      const { getByText } = render(<SharedSpaceModal visible onClose={jest.fn()} />);
+      fireEvent.press(getByText('Team'));
+      await waitFor(() => expect(mockPullSharedSpace).not.toHaveBeenCalled());
+      expect(mockPomodoroReset).not.toHaveBeenCalled();
     });
   });
 

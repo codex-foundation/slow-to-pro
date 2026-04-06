@@ -24,6 +24,7 @@ import {
   removeMember,
   respondToInvite,
 } from '@/services/spaceSync';
+import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { Modal } from './Modal';
 
@@ -92,7 +93,7 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
     setBusy(false);
   };
 
-  const handleSwitch = async (spaceId: string | null) => {
+  const doSwitch = async (spaceId: string | null) => {
     setBusy(true);
     // Save current space data before switching so no pending changes are lost
     if (activeSpaceId) await pushToSharedSpace(activeSpaceId);
@@ -107,6 +108,29 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
     }
     setBusy(false);
     onClose();
+  };
+
+  const handleSwitch = async (spaceId: string | null) => {
+    if (usePomodoroStore.getState().status === 'running') {
+      Alert.alert(
+        'Timer is running',
+        'Switching spaces will stop the current focus session. Continue?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Switch anyway',
+            style: 'destructive',
+            onPress: () => {
+              usePomodoroStore.getState().reset();
+              void doSwitch(spaceId);
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    await doSwitch(spaceId);
   };
 
   const handleLeave = async (spaceId: string, spaceName: string) => {
