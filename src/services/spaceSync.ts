@@ -289,6 +289,7 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
       categories: [],
       budgets: [],
       expenses: [],
+      notifiedBudgetThresholdByKey: {},
       overallBudgetAmount: 0,
       overallBudgetPeriod: 'monthly',
     }));

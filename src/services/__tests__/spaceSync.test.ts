@@ -309,6 +309,23 @@ describe('pullSharedSpace', () => {
     expect(useFinanceStore.getState().overallBudgetPeriod).toBe('monthly');
   });
 
+  it('resets notifiedBudgetThresholdByKey when switching spaces', async () => {
+    useFinanceStore.setState({
+      notifiedBudgetThresholdByKey: { 'cat-food-2026-04': 1 },
+    });
+
+    const noDataBuilder = {
+      select: () => noDataBuilder,
+      eq: () => noDataBuilder,
+      single: () => Promise.resolve({ data: null, error: null }),
+    };
+    jest.requireMock('@/lib/supabase').supabase.from = jest.fn().mockReturnValue(noDataBuilder);
+
+    await pullSharedSpace('space-1');
+
+    expect(useFinanceStore.getState().notifiedBudgetThresholdByKey).toEqual({});
+  });
+
   it('loads overallBudgetAmount and overallBudgetPeriod from snapshot', async () => {
     const finSnapshot = {
       categories: [],
