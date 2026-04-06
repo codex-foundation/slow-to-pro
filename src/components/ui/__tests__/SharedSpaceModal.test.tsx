@@ -734,46 +734,33 @@ describe('SharedSpaceModal', () => {
       expect(mockPomodoroReset).not.toHaveBeenCalled();
     });
 
-    it('shows alert when timer is running and user taps a space', async () => {
+    it('shows inline confirmation when timer is running and user taps a space', () => {
       mockPomodoroStatus = 'running';
-      const alertSpy = jest.spyOn(Alert, 'alert');
-      const { getByText } = render(<SharedSpaceModal visible onClose={jest.fn()} />);
+      const { getByText, queryByText } = render(<SharedSpaceModal visible onClose={jest.fn()} />);
       fireEvent.press(getByText('Team'));
-      expect(alertSpy).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.arrayContaining([
-          expect.objectContaining({ text: expect.stringMatching(/cancel/i) }),
-          expect.objectContaining({ text: expect.stringMatching(/switch|stop|yes/i) }),
-        ])
-      );
+      expect(getByText(/focus session is running/i)).toBeTruthy();
+      expect(queryByText('Switch')).toBeTruthy();
+      expect(queryByText('Cancel')).toBeTruthy();
       expect(mockPullSharedSpace).not.toHaveBeenCalled();
     });
 
-    it('stops timer and switches space when user confirms alert', async () => {
+    it('stops timer and switches space when user confirms inline', async () => {
       mockPomodoroStatus = 'running';
-      jest.spyOn(Alert, 'alert').mockImplementation((_title, _msg, buttons) => {
-        const confirmBtn = buttons?.find(
-          (b) => b.text && /switch|stop|yes/i.test(b.text)
-        );
-        confirmBtn?.onPress?.();
-      });
       const { getByText } = render(<SharedSpaceModal visible onClose={jest.fn()} />);
       fireEvent.press(getByText('Team'));
+      fireEvent.press(getByText('Switch'));
       await waitFor(() => expect(mockPomodoroReset).toHaveBeenCalled());
       await waitFor(() => expect(mockPullSharedSpace).toHaveBeenCalledWith('space-1'));
     });
 
-    it('does not switch when user cancels alert', async () => {
+    it('does not switch when user cancels inline confirmation', async () => {
       mockPomodoroStatus = 'running';
-      jest.spyOn(Alert, 'alert').mockImplementation((_title, _msg, buttons) => {
-        const cancelBtn = buttons?.find((b) => b.text && /cancel/i.test(b.text));
-        cancelBtn?.onPress?.();
-      });
-      const { getByText } = render(<SharedSpaceModal visible onClose={jest.fn()} />);
+      const { getByText, queryByText } = render(<SharedSpaceModal visible onClose={jest.fn()} />);
       fireEvent.press(getByText('Team'));
+      fireEvent.press(getByText('Cancel'));
       await waitFor(() => expect(mockPullSharedSpace).not.toHaveBeenCalled());
       expect(mockPomodoroReset).not.toHaveBeenCalled();
+      expect(queryByText(/focus session is running/i)).toBeNull();
     });
   });
 

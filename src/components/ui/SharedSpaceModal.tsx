@@ -44,6 +44,9 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [pendingTimerSwitchId, setPendingTimerSwitchId] = useState<string | null | undefined>(
+    undefined
+  );
 
   useEffect(() => {
     supabase?.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
@@ -95,6 +98,7 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
 
   const doSwitch = async (spaceId: string | null) => {
     setBusy(true);
+    setPendingTimerSwitchId(undefined);
     // Save current space data before switching so no pending changes are lost
     if (activeSpaceId) await pushToSharedSpace(activeSpaceId);
     if (spaceId) {
@@ -110,27 +114,18 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
     onClose();
   };
 
-  const handleSwitch = async (spaceId: string | null) => {
+  const handleSwitch = (spaceId: string | null) => {
     if (usePomodoroStore.getState().status === 'running') {
-      Alert.alert(
-        'Timer is running',
-        'Switching spaces will stop the current focus session. Continue?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Switch anyway',
-            style: 'destructive',
-            onPress: () => {
-              usePomodoroStore.getState().reset();
-              void doSwitch(spaceId);
-            },
-          },
-        ]
-      );
+      setPendingTimerSwitchId(spaceId ?? null);
       return;
     }
+    void doSwitch(spaceId);
+  };
 
-    await doSwitch(spaceId);
+  const confirmTimerSwitch = () => {
+    if (pendingTimerSwitchId === undefined) return;
+    usePomodoroStore.getState().reset();
+    void doSwitch(pendingTimerSwitchId);
   };
 
   const handleLeave = async (spaceId: string, spaceName: string) => {
@@ -220,6 +215,31 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
                 <Ionicons name="refresh-outline" size={18} color={theme.textSubtle} />
               </TouchableOpacity>
             </View>
+
+            {/* Timer-running confirmation banner */}
+            {pendingTimerSwitchId !== undefined && (
+              <View
+                className="rounded-xl px-3 py-3 mb-3 flex-row items-center justify-between"
+                style={{ backgroundColor: theme.dangerSoft ?? theme.surface, borderColor: theme.danger, borderWidth: 1 }}>
+                <Text className="text-xs flex-1 mr-2" style={{ color: theme.danger }}>
+                  Focus session is running. Switch anyway?
+                </Text>
+                <View className="flex-row gap-2">
+                  <TouchableOpacity
+                    onPress={() => setPendingTimerSwitchId(undefined)}
+                    className="px-3 py-1 rounded-lg"
+                    style={{ borderColor: theme.border, borderWidth: 1 }}>
+                    <Text className="text-xs font-medium" style={{ color: theme.textMuted }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={confirmTimerSwitch}
+                    className="px-3 py-1 rounded-lg"
+                    style={{ backgroundColor: theme.danger }}>
+                    <Text className="text-xs font-semibold text-white">Switch</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
             {/* Personal (no space) */}
             <TouchableOpacity
