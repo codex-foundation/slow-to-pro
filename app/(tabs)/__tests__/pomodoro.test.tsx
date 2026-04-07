@@ -213,4 +213,58 @@ describe('PomodoroScreen UI', () => {
       expect(getByTestId('mock-task-queue')).toBeTruthy();
     });
   });
+
+  describe('session log clear button', () => {
+    it('renders the trash button next to Session log heading', () => {
+      const { getByTestId } = render(<PomodoroScreen />);
+      expect(getByTestId('clear-session-log-btn')).toBeTruthy();
+    });
+
+    it('shows inline confirmation when trash button is pressed', () => {
+      const { getByTestId, getByText, queryByText } = render(<PomodoroScreen />);
+      expect(queryByText('Clear all?')).toBeNull();
+      fireEvent.press(getByTestId('clear-session-log-btn'));
+      expect(getByText('Clear all?')).toBeTruthy();
+      expect(getByText('Clear')).toBeTruthy();
+      expect(getByText('Cancel')).toBeTruthy();
+    });
+
+    it('clears sessions when Clear is confirmed', () => {
+      usePomodoroStore.setState({
+        sessions: [
+          {
+            id: 's1',
+            phase: 'work',
+            durationMinutes: 25,
+            startedAt: Date.now(),
+            endedAt: Date.now(),
+          },
+        ],
+      });
+      const { getByTestId, getByText, queryByText } = render(<PomodoroScreen />);
+      fireEvent.press(getByTestId('clear-session-log-btn'));
+      fireEvent.press(getByText('Clear'));
+      expect(usePomodoroStore.getState().sessions).toEqual([]);
+      expect(queryByText('Clear all?')).toBeNull();
+    });
+
+    it('dismisses confirmation without clearing when Cancel is pressed', () => {
+      usePomodoroStore.setState({
+        sessions: [
+          {
+            id: 's1',
+            phase: 'work',
+            durationMinutes: 25,
+            startedAt: Date.now(),
+            endedAt: Date.now(),
+          },
+        ],
+      });
+      const { getByTestId, getByText, queryByText } = render(<PomodoroScreen />);
+      fireEvent.press(getByTestId('clear-session-log-btn'));
+      fireEvent.press(getByText('Cancel'));
+      expect(usePomodoroStore.getState().sessions).toHaveLength(1);
+      expect(queryByText('Clear all?')).toBeNull();
+    });
+  });
 });

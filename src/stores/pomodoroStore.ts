@@ -62,6 +62,7 @@ interface PomodoroStore {
   reconcileRunningTimer: () => void;
   setTaskQueue: (ids: string[]) => void;
   startQueue: (taskIds: string[]) => void;
+  clearSessions: () => void;
 }
 
 export const usePomodoroStore = create<PomodoroStore>()(
@@ -226,6 +227,8 @@ export const usePomodoroStore = create<PomodoroStore>()(
         });
         ensurePomodoroInterval();
       },
+
+      clearSessions: () => set({ sessions: [] }),
 
       reconcileRunningTimer: () => {
         const { status, phase, workDuration, breakDuration, secondsRemaining, cycleStartedAt } =

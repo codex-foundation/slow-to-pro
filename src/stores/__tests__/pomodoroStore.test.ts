@@ -581,4 +581,35 @@ describe('pomodoroStore', () => {
       expect(usePomodoroStore.getState().status).toBe('idle');
     });
   });
+
+  describe('clearSessions', () => {
+    it('removes all sessions', () => {
+      usePomodoroStore.setState({
+        sessions: [
+          {
+            id: 's1',
+            phase: 'work',
+            durationMinutes: 25,
+            startedAt: Date.now(),
+            endedAt: Date.now(),
+          },
+          {
+            id: 's2',
+            phase: 'break',
+            durationMinutes: 5,
+            startedAt: Date.now(),
+            endedAt: Date.now(),
+          },
+        ],
+      });
+      usePomodoroStore.getState().clearSessions();
+      expect(usePomodoroStore.getState().sessions).toEqual([]);
+    });
+
+    it('is a no-op when sessions are already empty', () => {
+      usePomodoroStore.setState({ sessions: [] });
+      usePomodoroStore.getState().clearSessions();
+      expect(usePomodoroStore.getState().sessions).toEqual([]);
+    });
+  });
 });
