@@ -48,7 +48,7 @@ describe('pomodoroStore', () => {
 
       jest.advanceTimersByTime(1000);
       const state = usePomodoroStore.getState();
-      expect(state.status).toBe('running');     // break auto-starts
+      expect(state.status).toBe('running'); // break auto-starts
       expect(state.phase).toBe('break');
       expect(state.secondsRemaining).toBe(state.breakDuration * 60);
       expect(state.sessions).toHaveLength(1);
@@ -228,7 +228,12 @@ describe('pomodoroStore', () => {
         ],
         lastResetDate: new Date().toISOString().slice(0, 10),
       });
-      usePomodoroStore.setState({ ...INITIAL_STATE, selectedTaskId: taskId, phase: 'work', cycleStartedAt: Date.now() });
+      usePomodoroStore.setState({
+        ...INITIAL_STATE,
+        selectedTaskId: taskId,
+        phase: 'work',
+        cycleStartedAt: Date.now(),
+      });
       usePomodoroStore.getState().completeCycle();
       const task = useTaskStore.getState().tasks.find((t) => t.id === taskId);
       expect(task?.completed).toBe(true);

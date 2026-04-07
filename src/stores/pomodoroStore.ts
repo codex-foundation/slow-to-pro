@@ -111,8 +111,15 @@ export const usePomodoroStore = create<PomodoroStore>()(
 
       completeCycle: () => {
         stopPomodoroInterval();
-        const { phase, workDuration, breakDuration, cycleCount, selectedTaskId, cycleStartedAt, taskQueue } =
-          get();
+        const {
+          phase,
+          workDuration,
+          breakDuration,
+          cycleCount,
+          selectedTaskId,
+          cycleStartedAt,
+          taskQueue,
+        } = get();
 
         // Only associate task metadata with work sessions; breaks are rests, not task execution
         const taskTitle =

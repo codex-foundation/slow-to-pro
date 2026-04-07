@@ -299,7 +299,11 @@ describe('pullSharedSpace', () => {
     };
     jest.requireMock('@/lib/supabase').supabase.from = jest.fn().mockReturnValue(noDataBuilder);
 
-    useFinanceStore.setState((s) => ({ ...s, overallBudgetAmount: 500, overallBudgetPeriod: 'annual' }));
+    useFinanceStore.setState((s) => ({
+      ...s,
+      overallBudgetAmount: 500,
+      overallBudgetPeriod: 'annual',
+    }));
 
     await pullSharedSpace('space-1');
 

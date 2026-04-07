@@ -55,9 +55,7 @@ describe('TimerSettings', () => {
   });
 
   it('renders focus and break inputs with current durations', () => {
-    const { getByDisplayValue } = render(
-      <TimerSettings visible={true} onClose={jest.fn()} />
-    );
+    const { getByDisplayValue } = render(<TimerSettings visible={true} onClose={jest.fn()} />);
     expect(getByDisplayValue('25')).toBeTruthy();
     expect(getByDisplayValue('5')).toBeTruthy();
   });
@@ -102,9 +100,7 @@ describe('TimerSettings', () => {
   });
 
   it('does not render when not visible', () => {
-    const { queryByTestId } = render(
-      <TimerSettings visible={false} onClose={jest.fn()} />
-    );
+    const { queryByTestId } = render(<TimerSettings visible={false} onClose={jest.fn()} />);
     expect(queryByTestId('modal')).toBeNull();
   });
 
@@ -119,9 +115,7 @@ describe('TimerSettings', () => {
         updateDurations: jest.fn(),
       })
     );
-    const { getByDisplayValue } = render(
-      <TimerSettings visible={true} onClose={jest.fn()} />
-    );
+    const { getByDisplayValue } = render(<TimerSettings visible={true} onClose={jest.fn()} />);
     expect(getByDisplayValue('30')).toBeTruthy();
     expect(getByDisplayValue('10')).toBeTruthy();
   });

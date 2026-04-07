@@ -220,7 +220,11 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
             {pendingTimerSwitchId !== undefined && (
               <View
                 className="rounded-xl px-3 py-3 mb-3 flex-row items-center justify-between"
-                style={{ backgroundColor: theme.dangerSoft ?? theme.surface, borderColor: theme.danger, borderWidth: 1 }}>
+                style={{
+                  backgroundColor: theme.dangerSoft ?? theme.surface,
+                  borderColor: theme.danger,
+                  borderWidth: 1,
+                }}>
                 <Text className="text-xs flex-1 mr-2" style={{ color: theme.danger }}>
                   Focus session is running. Switch anyway?
                 </Text>
@@ -229,7 +233,9 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
                     onPress={() => setPendingTimerSwitchId(undefined)}
                     className="px-3 py-1 rounded-lg"
                     style={{ borderColor: theme.border, borderWidth: 1 }}>
-                    <Text className="text-xs font-medium" style={{ color: theme.textMuted }}>Cancel</Text>
+                    <Text className="text-xs font-medium" style={{ color: theme.textMuted }}>
+                      Cancel
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={confirmTimerSwitch}

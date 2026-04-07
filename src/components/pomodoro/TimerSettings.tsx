@@ -28,9 +28,7 @@ export function TimerSettings({ visible, onClose }: Props) {
   const handleSave = () => {
     const parsedFocus = parseInt(focusInput, 10);
     const parsedBreak = parseInt(breakInput, 10);
-    const work = Number.isNaN(parsedFocus)
-      ? workDuration
-      : Math.min(60, Math.max(1, parsedFocus));
+    const work = Number.isNaN(parsedFocus) ? workDuration : Math.min(60, Math.max(1, parsedFocus));
     const breakMins = Number.isNaN(parsedBreak)
       ? breakDuration
       : Math.min(60, Math.max(1, parsedBreak));

@@ -24,9 +24,7 @@ jest.mock('@/stores/pomodoroStore', () => ({
     selector(mockPomodoroState),
 }));
 
-let mockTasks = [
-  { id: 'task-1', title: 'Write tests', completed: false },
-];
+let mockTasks = [{ id: 'task-1', title: 'Write tests', completed: false }];
 
 jest.mock('@/stores/taskStore', () => ({
   useTaskStore: (selector: (s: { tasks: typeof mockTasks }) => unknown) =>

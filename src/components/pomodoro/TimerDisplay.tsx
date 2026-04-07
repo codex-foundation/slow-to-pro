@@ -20,9 +20,7 @@ export function TimerDisplay() {
   const isWork = phase === 'work';
   const runningTaskTitle = useMemo(
     () =>
-      isWork && selectedTaskId
-        ? tasks.find((t) => t.id === selectedTaskId)?.title ?? null
-        : null,
+      isWork && selectedTaskId ? (tasks.find((t) => t.id === selectedTaskId)?.title ?? null) : null,
     [isWork, selectedTaskId, tasks]
   );
 
