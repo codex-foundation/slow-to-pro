@@ -256,6 +256,7 @@ describe('createSpace', () => {
       return callCount % 2 === 1 ? makeDataBuilder(finSnapshot) : makeDataBuilder(taskSnapshot);
     });
 
+    useSpaceStore.setState((s) => ({ ...s, activeSpaceId: 'space-1' }));
     await pullSharedSpace('space-1');
 
     expect(useFinanceStore.getState().categories).toEqual(DEFAULT_CATEGORIES);
@@ -290,6 +291,11 @@ describe('inviteMember', () => {
 
 // ---------------------------------------------------------------------------
 describe('pullSharedSpace', () => {
+  beforeEach(() => {
+    // pullSharedSpace checks activeSpaceId after fetch — set it so pulls aren't discarded
+    useSpaceStore.setState((s) => ({ ...s, activeSpaceId: 'space-1' }));
+  });
+
   it('clears stores when space has no data', async () => {
     // Override from() to return no data for both queries
     const noDataBuilder = {
@@ -353,8 +359,9 @@ describe('pullSharedSpace', () => {
     expect(usePomodoroStore.getState().sessions).toEqual([]);
   });
 
-  it('discards results from a stale pull when a newer pull wins the race', async () => {
-    // First pull (stale) resolves after a second pull has already applied its data.
+  it('discards results from a stale pull when a newer pull wins the generation race', async () => {
+    // Both pulls target the same space (e.g. two rapid foreground events).
+    // The stale pull resolves after the fresh pull has already applied its data.
     let resolveStale!: () => void;
     const staleFetch = new Promise<{ data: null; error: null }>((resolve) => {
       resolveStale = () => resolve({ data: null, error: null });
@@ -386,20 +393,44 @@ describe('pullSharedSpace', () => {
       }),
     });
 
-    // Start stale pull but don't await yet
-    const stalePull = pullSharedSpace('space-stale');
+    // Start stale pull but don't await yet — both target the same space
+    const stalePull = pullSharedSpace('space-1');
     // Start fresh pull immediately — it wins the generation race
-    await pullSharedSpace('space-fresh');
+    await pullSharedSpace('space-1');
 
     // Fresh data is applied
     expect(useFinanceStore.getState().categories[0]?.name).toBe('Fresh');
 
-    // Now let the stale pull resolve — it should be discarded
+    // Now let the stale pull resolve — it should be discarded by generation check
     resolveStale();
     await stalePull;
 
     // Fresh data is still intact
     expect(useFinanceStore.getState().categories[0]?.name).toBe('Fresh');
+  });
+
+  it('discards results when activeSpaceId no longer matches after fetch', async () => {
+    const noDataBuilder = {
+      select: () => noDataBuilder,
+      eq: () => noDataBuilder,
+      single: () => Promise.resolve({ data: null, error: null }),
+    };
+    jest.requireMock('@/lib/supabase').supabase.from = jest.fn().mockReturnValue(noDataBuilder);
+
+    useFinanceStore.setState((s) => ({
+      ...s,
+      categories: [{ id: 'c1', name: 'Personal', color: '#000' }],
+    }));
+
+    // Simulate: pull starts for space-1 but user switches to personal before it completes
+    useSpaceStore.setState((s) => ({ ...s, activeSpaceId: 'space-1' }));
+    const pull = pullSharedSpace('space-1');
+    // User switches to personal before pull finishes
+    useSpaceStore.setState((s) => ({ ...s, activeSpaceId: null }));
+    await pull;
+
+    // Store should not have been wiped by the stale pull
+    expect(useFinanceStore.getState().categories[0]?.name).toBe('Personal');
   });
 
   it('loads overallBudgetAmount and overallBudgetPeriod from snapshot', async () => {

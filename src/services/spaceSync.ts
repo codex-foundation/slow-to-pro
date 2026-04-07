@@ -290,8 +290,9 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
       supabase.from('space_task_snapshots').select('data').eq('space_id', spaceId).single(),
     ]);
 
-    // A newer pull started while we were fetching — discard stale results.
+    // Discard if a newer pull started, or if the user already switched away from this space.
     if (generation !== pullSpaceGeneration) return;
+    if (useSpaceStore.getState().activeSpaceId !== spaceId) return;
 
     // Always reset store slices so personal data never bleeds into a space view.
     // If the space has existing data, it will be applied below.
@@ -337,8 +338,12 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
       useTaskStore.setState((s) => ({ ...s, categories: [] }));
     }
   } finally {
+    // Always clear flags for the winning generation; always clear isSwitching when
+    // discarded due to space mismatch so the UI doesn't stay locked.
     if (generation === pullSpaceGeneration) {
       isApplyingSpaceSnapshot = false;
+      useSpaceStore.getState().setSwitching(false);
+    } else if (useSpaceStore.getState().activeSpaceId !== spaceId) {
       useSpaceStore.getState().setSwitching(false);
     }
   }
