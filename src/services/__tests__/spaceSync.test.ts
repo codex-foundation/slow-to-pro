@@ -353,6 +353,55 @@ describe('pullSharedSpace', () => {
     expect(usePomodoroStore.getState().sessions).toEqual([]);
   });
 
+  it('discards results from a stale pull when a newer pull wins the race', async () => {
+    // First pull (stale) resolves after a second pull has already applied its data.
+    let resolveStale!: () => void;
+    const staleFetch = new Promise<{ data: null; error: null }>((resolve) => {
+      resolveStale = () => resolve({ data: null, error: null });
+    });
+
+    const freshData = {
+      data: {
+        data: {
+          categories: [{ id: 'c1', name: 'Fresh', color: '#fff' }],
+          budgets: [],
+          expenses: [],
+          overallBudgetAmount: 0,
+          overallBudgetPeriod: 'monthly',
+        },
+      },
+      error: null,
+    };
+
+    let callCount = 0;
+    jest.requireMock('@/lib/supabase').supabase.from = jest.fn().mockReturnValue({
+      select: () => ({
+        eq: () => ({
+          single: () => {
+            callCount++;
+            // First two calls are the stale pull (finance + task), rest are fresh
+            return callCount <= 2 ? staleFetch : Promise.resolve(freshData);
+          },
+        }),
+      }),
+    });
+
+    // Start stale pull but don't await yet
+    const stalePull = pullSharedSpace('space-stale');
+    // Start fresh pull immediately — it wins the generation race
+    await pullSharedSpace('space-fresh');
+
+    // Fresh data is applied
+    expect(useFinanceStore.getState().categories[0]?.name).toBe('Fresh');
+
+    // Now let the stale pull resolve — it should be discarded
+    resolveStale();
+    await stalePull;
+
+    // Fresh data is still intact
+    expect(useFinanceStore.getState().categories[0]?.name).toBe('Fresh');
+  });
+
   it('loads overallBudgetAmount and overallBudgetPeriod from snapshot', async () => {
     const finSnapshot = {
       categories: [],

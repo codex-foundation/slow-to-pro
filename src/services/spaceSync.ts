@@ -9,6 +9,11 @@ import { DEFAULT_TASK_CATEGORIES, useTaskStore } from '@/stores/taskStore';
 // don't trigger a push of the intermediate cleared/loading state.
 export let isApplyingSpaceSnapshot = false;
 
+// Incremented on every pullSharedSpace call so a stale inflight pull
+// (e.g. the mount pull) doesn't overwrite results from a newer pull
+// triggered by a space switch.
+let pullSpaceGeneration = 0;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -276,12 +281,16 @@ export async function pushToSharedSpace(spaceId: string): Promise<void> {
 export async function pullSharedSpace(spaceId: string): Promise<void> {
   if (!supabase) return;
 
+  const generation = ++pullSpaceGeneration;
   isApplyingSpaceSnapshot = true;
   try {
     const [{ data: finData }, { data: taskData }] = await Promise.all([
       supabase.from('space_finance_snapshots').select('data').eq('space_id', spaceId).single(),
       supabase.from('space_task_snapshots').select('data').eq('space_id', spaceId).single(),
     ]);
+
+    // A newer pull started while we were fetching — discard stale results.
+    if (generation !== pullSpaceGeneration) return;
 
     // Always reset store slices so personal data never bleeds into a space view.
     // If the space has existing data, it will be applied below.
@@ -327,7 +336,9 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
       useTaskStore.setState((s) => ({ ...s, categories: [] }));
     }
   } finally {
-    isApplyingSpaceSnapshot = false;
+    if (generation === pullSpaceGeneration) {
+      isApplyingSpaceSnapshot = false;
+    }
   }
 }
 
