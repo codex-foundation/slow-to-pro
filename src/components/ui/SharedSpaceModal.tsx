@@ -35,7 +35,8 @@ interface Props {
 
 export function SharedSpaceModal({ visible, onClose }: Props) {
   const theme = useAppTheme();
-  const { spaces, members, pendingInvites, activeSpaceId, setActiveSpaceId } = useSpaceStore();
+  const { spaces, members, pendingInvites, activeSpaceId, setActiveSpaceId, isSwitching } =
+    useSpaceStore();
   const [tab, setTab] = useState<'spaces' | 'invites' | 'create'>('spaces');
   const [newSpaceName, setNewSpaceName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
@@ -250,6 +251,7 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
             {/* Personal (no space) */}
             <TouchableOpacity
               onPress={() => handleSwitch(null)}
+              disabled={isSwitching || busy}
               className="flex-row items-center justify-between rounded-xl px-3 py-3 mb-2"
               style={{
                 backgroundColor: activeSpaceId === null ? theme.primarySoft : theme.surface,
@@ -284,6 +286,7 @@ export function SharedSpaceModal({ visible, onClose }: Props) {
                 }}>
                 <TouchableOpacity
                   onPress={() => handleSwitch(space.id)}
+                  disabled={isSwitching || busy}
                   className="flex-row items-center justify-between px-3 py-3">
                   <View className="flex-row items-center gap-2">
                     <Ionicons

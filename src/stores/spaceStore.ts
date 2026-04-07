@@ -26,11 +26,13 @@ interface SpaceStore {
   // Pending invites for the current user (spaces they've been invited to)
   pendingInvites: (Space & { memberId: string })[];
   isLoading: boolean;
+  isSwitching: boolean;
   setActiveSpaceId: (id: string | null) => void;
   setSpaces: (spaces: Space[]) => void;
   setMembers: (members: SpaceMember[]) => void;
   setPendingInvites: (invites: (Space & { memberId: string })[]) => void;
   setLoading: (v: boolean) => void;
+  setSwitching: (v: boolean) => void;
 }
 
 export const useSpaceStore = create<SpaceStore>()((set) => ({
@@ -39,9 +41,11 @@ export const useSpaceStore = create<SpaceStore>()((set) => ({
   members: [],
   pendingInvites: [],
   isLoading: false,
+  isSwitching: false,
   setActiveSpaceId: (id) => set({ activeSpaceId: id }),
   setSpaces: (spaces) => set({ spaces }),
   setMembers: (members) => set({ members }),
   setPendingInvites: (pendingInvites) => set({ pendingInvites }),
   setLoading: (isLoading) => set({ isLoading }),
+  setSwitching: (isSwitching) => set({ isSwitching }),
 }));

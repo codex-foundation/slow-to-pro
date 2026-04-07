@@ -283,6 +283,7 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
 
   const generation = ++pullSpaceGeneration;
   isApplyingSpaceSnapshot = true;
+  useSpaceStore.getState().setSwitching(true);
   try {
     const [{ data: finData }, { data: taskData }] = await Promise.all([
       supabase.from('space_finance_snapshots').select('data').eq('space_id', spaceId).single(),
@@ -338,6 +339,7 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
   } finally {
     if (generation === pullSpaceGeneration) {
       isApplyingSpaceSnapshot = false;
+      useSpaceStore.getState().setSwitching(false);
     }
   }
 }
