@@ -16,7 +16,7 @@ import { AnimatedSplash } from '@/components/ui/AnimatedSplash';
 import { WebNotificationFallbackToast } from '@/components/ui/WebNotificationFallbackToast';
 import { supabase } from '@/lib/supabase';
 import { isApplyingSnapshot, pullForCurrentUser, pushForCurrentUser } from '@/services/cloudSync';
-import { isApplyingSpaceSnapshot, pushToSharedSpace } from '@/services/spaceSync';
+import { isApplyingSpaceSnapshot, pullSharedSpace, pushToSharedSpace } from '@/services/spaceSync';
 import { useEntitlementStore } from '@/stores/entitlementStore';
 import { useFinanceStore } from '@/stores/financeStore';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
@@ -74,7 +74,12 @@ export default function RootLayout() {
     });
     useTaskStore.getState().resetRecurringTasksIfNewDay();
     usePomodoroStore.getState().reconcileRunningTimer();
-    void pullForCurrentUser();
+    const initialActiveSpaceId = useSpaceStore.getState().activeSpaceId;
+    if (initialActiveSpaceId) {
+      void pullSharedSpace(initialActiveSpaceId);
+    } else {
+      void pullForCurrentUser();
+    }
 
     // Debounced push triggered on any store mutation.
     // When a shared space is active, push to the space instead of personal cloud
@@ -118,7 +123,12 @@ export default function RootLayout() {
           pendingPush.current = false;
           void pushForCurrentUser();
         }
-        void pullForCurrentUser();
+        const { activeSpaceId } = useSpaceStore.getState();
+        if (activeSpaceId) {
+          void pullSharedSpace(activeSpaceId);
+        } else {
+          void pullForCurrentUser();
+        }
       }
 
       if (nextState === 'background') {

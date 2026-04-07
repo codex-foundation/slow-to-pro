@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { DEFAULT_CATEGORIES, useFinanceStore } from '@/stores/financeStore';
+import { usePomodoroStore } from '@/stores/pomodoroStore';
 import type { Space, SpaceMember } from '@/stores/spaceStore';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { DEFAULT_TASK_CATEGORIES, useTaskStore } from '@/stores/taskStore';
@@ -294,6 +295,8 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
       overallBudgetPeriod: 'monthly',
     }));
     useTaskStore.setState((s) => ({ ...s, tasks: [], categories: [] }));
+    // Clear pomodoro selections that reference tasks from the previous space
+    usePomodoroStore.setState((s) => ({ ...s, selectedTaskId: null, taskQueue: [] }));
 
     if (finData?.data) {
       const d = finData.data as {

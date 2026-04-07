@@ -1,4 +1,5 @@
 import { DEFAULT_CATEGORIES, useFinanceStore } from '@/stores/financeStore';
+import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { DEFAULT_TASK_CATEGORIES, useTaskStore } from '@/stores/taskStore';
 import {
@@ -324,6 +325,26 @@ describe('pullSharedSpace', () => {
     await pullSharedSpace('space-1');
 
     expect(useFinanceStore.getState().notifiedBudgetThresholdByKey).toEqual({});
+  });
+
+  it('clears pomodoro selectedTaskId and taskQueue when switching spaces', async () => {
+    usePomodoroStore.setState((s) => ({
+      ...s,
+      selectedTaskId: 'task-from-previous-space',
+      taskQueue: ['t1', 't2'],
+    }));
+
+    const noDataBuilder = {
+      select: () => noDataBuilder,
+      eq: () => noDataBuilder,
+      single: () => Promise.resolve({ data: null, error: null }),
+    };
+    jest.requireMock('@/lib/supabase').supabase.from = jest.fn().mockReturnValue(noDataBuilder);
+
+    await pullSharedSpace('space-1');
+
+    expect(usePomodoroStore.getState().selectedTaskId).toBeNull();
+    expect(usePomodoroStore.getState().taskQueue).toEqual([]);
   });
 
   it('loads overallBudgetAmount and overallBudgetPeriod from snapshot', async () => {
