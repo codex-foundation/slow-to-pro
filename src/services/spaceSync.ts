@@ -295,8 +295,8 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
       overallBudgetPeriod: 'monthly',
     }));
     useTaskStore.setState((s) => ({ ...s, tasks: [], categories: [] }));
-    // Clear pomodoro selections that reference tasks from the previous space
-    usePomodoroStore.setState((s) => ({ ...s, selectedTaskId: null, taskQueue: [] }));
+    // Clear pomodoro state that references the previous space (tasks + session log)
+    usePomodoroStore.setState((s) => ({ ...s, selectedTaskId: null, taskQueue: [], sessions: [] }));
 
     if (finData?.data) {
       const d = finData.data as {

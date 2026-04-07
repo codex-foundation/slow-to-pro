@@ -331,11 +331,12 @@ describe('pullSharedSpace', () => {
     expect(useFinanceStore.getState().notifiedBudgetThresholdByKey).toEqual({});
   });
 
-  it('clears pomodoro selectedTaskId and taskQueue when switching spaces', async () => {
+  it('clears pomodoro selectedTaskId, taskQueue and sessions when switching spaces', async () => {
     usePomodoroStore.setState((s) => ({
       ...s,
       selectedTaskId: 'task-from-previous-space',
       taskQueue: ['t1', 't2'],
+      sessions: [{ id: 's1', phase: 'work', durationMin: 25, completedAt: Date.now() }],
     }));
 
     const noDataBuilder = {
@@ -349,6 +350,7 @@ describe('pullSharedSpace', () => {
 
     expect(usePomodoroStore.getState().selectedTaskId).toBeNull();
     expect(usePomodoroStore.getState().taskQueue).toEqual([]);
+    expect(usePomodoroStore.getState().sessions).toEqual([]);
   });
 
   it('loads overallBudgetAmount and overallBudgetPeriod from snapshot', async () => {
