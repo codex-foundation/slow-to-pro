@@ -81,6 +81,7 @@ const INITIAL_POMODORO_STATE = {
   secondsRemaining: 25 * 60,
   cycleCount: 0,
   selectedTaskId: null,
+  taskQueue: [],
   cycleStartedAt: null,
 };
 

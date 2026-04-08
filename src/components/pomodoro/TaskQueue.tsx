@@ -21,7 +21,7 @@ export function TaskQueue() {
     }
   };
 
-  const canStart = taskQueue.length > 0 && status !== 'running';
+  const canStart = taskQueue.length > 0 && status === 'idle';
 
   return (
     <View className="gap-3">

@@ -102,9 +102,15 @@ export const usePomodoroStore = create<PomodoroStore>()(
       },
 
       reset: () => {
-        const { phase, workDuration, breakDuration } = get();
-        const duration = phase === 'work' ? workDuration : breakDuration;
-        set({ status: 'idle', secondsRemaining: duration * 60, cycleStartedAt: null });
+        const { workDuration } = get();
+        set({
+          status: 'idle',
+          phase: 'work',
+          secondsRemaining: workDuration * 60,
+          cycleStartedAt: null,
+          selectedTaskId: null,
+          taskQueue: [],
+        });
         stopPomodoroInterval();
       },
 
@@ -142,7 +148,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
         scheduleTimerEndNotification(phase);
 
         if (phase === 'work') {
-          // After focus: auto-start the break
+          // After focus: auto-start the break, clear task linkage for the break phase
           set((s) => ({
             sessions: [session, ...s.sessions].slice(0, 50),
             phase: 'break',
@@ -150,6 +156,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
             secondsRemaining: breakDuration * 60,
             cycleCount: cycleCount + 1,
             cycleStartedAt: Date.now(),
+            selectedTaskId: null,
           }));
           // Mark the focused task as completed
           if (selectedTaskId) {
@@ -271,6 +278,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
         secondsRemaining: s.secondsRemaining,
         cycleCount: s.cycleCount,
         selectedTaskId: s.selectedTaskId,
+        taskQueue: s.taskQueue,
         cycleStartedAt: s.cycleStartedAt,
       }),
       onRehydrateStorage: () => (state) => {

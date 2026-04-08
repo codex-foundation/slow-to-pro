@@ -1,5 +1,4 @@
 import { fireEvent, render } from '@testing-library/react-native';
-import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { TimerSettings } from '../TimerSettings';
 
 jest.mock('@/hooks/useAppTheme', () => ({
