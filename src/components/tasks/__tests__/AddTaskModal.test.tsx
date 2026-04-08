@@ -255,18 +255,18 @@ describe('AddTaskModal date/reminder picker modals', () => {
       <AddTaskModal visible onClose={jest.fn()} />
     );
 
-    // No Clear button initially
+    // Clear is visible immediately because due date defaults to today
+    expect(getByText('Clear')).toBeTruthy();
+
+    // Press Clear — due date becomes null, Clear disappears
+    fireEvent.press(getByText('Clear'));
     expect(queryByText('Clear')).toBeNull();
 
-    // Open due date picker and set a date via mock picker
+    // Open picker and set a date via the mock — Clear reappears
     fireEvent.press(getByTestId('due-date-open'));
     fireEvent.press(getByTestId('mock-datetime-picker'));
     fireEvent.press(getByTestId('due-date-picker-modal-done'));
-
-    // Now Clear button should appear — press it
-    fireEvent.press(getByText('Clear'));
-    // After clearing, Clear disappears and due-date-open still present
-    expect(queryByText('Clear')).toBeNull();
+    expect(getByText('Clear')).toBeTruthy();
   });
 
   it('shows Clear button when reminder is set and clears it', () => {
@@ -285,8 +285,8 @@ describe('AddTaskModal date/reminder picker modals', () => {
     expect(clearBtns.length).toBeGreaterThan(0);
     fireEvent.press(clearBtns[clearBtns.length - 1]);
 
-    // After clearing, reminder is disabled
-    expect(queryAllByText('Clear')).toHaveLength(0);
+    // After clearing, reminder is disabled, but one Clear button remains (due-date Clear, which defaults to today)
+    expect(queryAllByText('Clear')).toHaveLength(1);
   });
 
   it('opens reminder time picker when reminderDateTime already set', () => {
@@ -363,7 +363,8 @@ describe('AddTaskModal web platform paths', () => {
 
     fireEvent.changeText(getByTestId('task-title-input'), 'Web task');
 
-    // With empty dueDateInput, parseDateToEndOfDay returns undefined (no due date)
+    // dueDateInput defaults to today's ISO date, so parseDateToEndOfDay
+    // returns today at 23:59 and addTask receives a valid dueDate timestamp.
     fireEvent.press(getByTestId('add-task-submit'));
 
     expect(mockAddTask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Web task' }));
