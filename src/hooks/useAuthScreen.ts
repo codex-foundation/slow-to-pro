@@ -52,6 +52,7 @@ export function useAuthScreen() {
     }
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally runs once on mount
   useEffect(() => {
     let cancelled = false;
 
@@ -90,7 +91,6 @@ export function useAuthScreen() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const canSubmit = useMemo(() => {

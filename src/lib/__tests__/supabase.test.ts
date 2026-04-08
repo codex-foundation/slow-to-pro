@@ -10,8 +10,8 @@ describe('supabase module', () => {
         appStorage: { getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn() },
       }));
 
-      // biome-ignore lint/style/noCommonJs: isolateModules requires sync require.
       const { isSupabaseConfigured, supabase } =
+        // biome-ignore lint/style/noCommonJs: isolateModules requires sync require.
         require('../supabase') as typeof import('../supabase');
       expect(isSupabaseConfigured).toBe(false);
       expect(supabase).toBeNull();
@@ -34,8 +34,8 @@ describe('supabase module', () => {
           appStorage: { getItem: jest.fn(() => null), setItem: jest.fn(), removeItem: jest.fn() },
         }));
 
-        // biome-ignore lint/style/noCommonJs: isolateModules requires sync require.
         const { isSupabaseConfigured, supabase } =
+          // biome-ignore lint/style/noCommonJs: isolateModules requires sync require.
           require('../supabase') as typeof import('../supabase');
         expect(isSupabaseConfigured).toBe(true);
         expect(supabase).not.toBeNull();

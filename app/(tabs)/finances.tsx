@@ -45,9 +45,7 @@ export default function FinancesScreen() {
   const allMonths = useMemo(() => availableMonths(expenses), [expenses]);
   const historyMonths = useMemo(() => allMonths.filter((m) => m < month), [allMonths, month]);
 
-  const [historyMonth, setHistoryMonth] = useState<string | null>(
-    () => historyMonths[0] ?? null
-  );
+  const [historyMonth, setHistoryMonth] = useState<string | null>(() => historyMonths[0] ?? null);
 
   useEffect(() => {
     setHistoryMonth((prev) => {
@@ -67,7 +65,9 @@ export default function FinancesScreen() {
   );
 
   const historySpentByCategory = (categoryId: string) =>
-    historyExpenses.filter((e) => e.categoryId === categoryId).reduce((sum, e) => sum + e.amount, 0);
+    historyExpenses
+      .filter((e) => e.categoryId === categoryId)
+      .reduce((sum, e) => sum + e.amount, 0);
 
   const historyGetBudgetLimit = (categoryId: string) =>
     budgets.find((b) => b.categoryId === categoryId && b.month === historyMonth)?.monthlyLimit ?? 0;

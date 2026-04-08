@@ -1,9 +1,4 @@
-import {
-  prevMonth,
-  nextMonth,
-  monthLabel,
-  availableMonths,
-} from '../historyUtils';
+import { availableMonths, monthLabel, nextMonth, prevMonth } from '../historyUtils';
 
 describe('prevMonth', () => {
   it('goes back one month within the same year', () => {
@@ -44,7 +39,7 @@ describe('availableMonths', () => {
     const expenses = [
       { id: 'e1', categoryId: 'c1', amount: 10, date: new Date('2026-03-15').getTime() },
       { id: 'e2', categoryId: 'c1', amount: 20, date: new Date('2026-01-05').getTime() },
-      { id: 'e3', categoryId: 'c1', amount: 5,  date: new Date('2026-03-01').getTime() },
+      { id: 'e3', categoryId: 'c1', amount: 5, date: new Date('2026-03-01').getTime() },
     ];
     expect(availableMonths(expenses)).toEqual(['2026-03', '2026-01']);
   });

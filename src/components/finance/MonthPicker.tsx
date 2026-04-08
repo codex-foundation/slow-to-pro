@@ -1,10 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { TouchableOpacity, View, Text } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { monthLabel } from '@/utils/historyUtils';
 
 interface Props {
-  month: string;       // 'YYYY-MM'
+  month: string; // 'YYYY-MM'
   onPrev: () => void;
   onNext: () => void;
   disableNext: boolean; // true when already at the newest available month
