@@ -180,6 +180,7 @@ jest.mock('@/stores/entitlementStore', () => ({
 }));
 
 const mockPushToSharedSpace = jest.fn(async () => {});
+const mockPullSharedSpace = jest.fn(async () => {});
 
 jest.mock('@/services/cloudSync', () => ({
   isApplyingSnapshot: false,
@@ -190,6 +191,7 @@ jest.mock('@/services/cloudSync', () => ({
 jest.mock('@/services/spaceSync', () => ({
   isApplyingSpaceSnapshot: false,
   pushToSharedSpace: () => mockPushToSharedSpace(),
+  pullSharedSpace: (...args: unknown[]) => mockPullSharedSpace(...args),
 }));
 
 describe('RootLayout', () => {
@@ -216,6 +218,7 @@ describe('RootLayout', () => {
     mockRefreshProStatus.mockClear();
     mockUnsubscribeAuth.mockClear();
     mockPushToSharedSpace.mockClear();
+    mockPullSharedSpace.mockClear();
     capturedNetInfoCallback = null;
     capturedAuthStateChangeCallback = null;
     capturedStoreSubscriptionCallback = null;
@@ -260,6 +263,40 @@ describe('RootLayout', () => {
     appStateListener?.('active');
     expect(mockReconcileRunningTimer).toHaveBeenCalledTimes(2);
     expect(mockPullForCurrentUser).toHaveBeenCalledTimes(2);
+  });
+
+  it('calls pullSharedSpace on mount when activeSpaceId is set', () => {
+    jest.requireMock('@/stores/spaceStore').useSpaceStore.getState = () => ({
+      activeSpaceId: 'space-1',
+    });
+    render(<RootLayout />);
+    expect(mockPullSharedSpace).toHaveBeenCalledWith('space-1');
+    expect(mockPullForCurrentUser).not.toHaveBeenCalled();
+    // Reset mock back to default
+    jest.requireMock('@/stores/spaceStore').useSpaceStore.getState = () => ({
+      activeSpaceId: null,
+    });
+  });
+
+  it('calls pullSharedSpace when app returns to active while in a shared space', () => {
+    jest.requireMock('@/stores/spaceStore').useSpaceStore.getState = () => ({
+      activeSpaceId: 'space-1',
+    });
+    render(<RootLayout />);
+    mockPullSharedSpace.mockClear();
+    mockPullForCurrentUser.mockClear();
+
+    const appStateListener = mockAppStateAddEventListener.mock.calls[0]?.[1] as
+      | ((state: string) => void)
+      | undefined;
+    appStateListener?.('active');
+
+    expect(mockPullSharedSpace).toHaveBeenCalledWith('space-1');
+    expect(mockPullForCurrentUser).not.toHaveBeenCalled();
+    // Reset mock back to default
+    jest.requireMock('@/stores/spaceStore').useSpaceStore.getState = () => ({
+      activeSpaceId: null,
+    });
   });
 
   it('calls initializePurchases on mount (native path)', () => {

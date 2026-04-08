@@ -40,7 +40,6 @@ jest.mock('@expo/vector-icons/Ionicons', () => {
 });
 
 // Mock window.location for redirect tests
-const mockLocationAssign = jest.fn();
 Object.defineProperty(window, 'location', {
   writable: true,
   value: { href: '', origin: 'http://localhost:8081' },

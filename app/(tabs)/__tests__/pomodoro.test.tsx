@@ -1,4 +1,4 @@
-import { act, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 import { ScrollView } from 'react-native';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useTaskStore } from '@/stores/taskStore';
@@ -55,6 +55,23 @@ jest.mock('@/components/pomodoro/SessionLog', () => ({
   SessionLog: () => null,
 }));
 
+jest.mock('@/components/pomodoro/TimerSettings', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { View } = jest.requireActual('react-native') as typeof import('react-native');
+  return {
+    TimerSettings: ({ visible }: { visible: boolean; onClose: () => void }) =>
+      visible ? React.createElement(View, { testID: 'mock-timer-settings' }) : null,
+  };
+});
+
+jest.mock('@/components/pomodoro/TaskQueue', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { View } = jest.requireActual('react-native') as typeof import('react-native');
+  return {
+    TaskQueue: () => React.createElement(View, { testID: 'mock-task-queue' }),
+  };
+});
+
 const INITIAL_POMODORO_STATE = {
   sessions: [],
   workDuration: 25,
@@ -64,6 +81,7 @@ const INITIAL_POMODORO_STATE = {
   secondsRemaining: 25 * 60,
   cycleCount: 0,
   selectedTaskId: null,
+  taskQueue: [],
   cycleStartedAt: null,
 };
 
@@ -170,5 +188,84 @@ describe('PomodoroScreen UI', () => {
       unmount();
     });
     // Verify no crash — the cleanup cleared the timeout
+  });
+
+  describe('timer settings', () => {
+    it('renders a settings button in the header', () => {
+      const { getByTestId } = render(<PomodoroScreen />);
+      expect(getByTestId('timer-settings-btn')).toBeTruthy();
+    });
+
+    it('opens TimerSettings modal when settings button is pressed', () => {
+      const { getByTestId } = render(<PomodoroScreen />);
+      fireEvent.press(getByTestId('timer-settings-btn'));
+      expect(getByTestId('mock-timer-settings')).toBeTruthy();
+    });
+  });
+
+  describe('bulk tasks section', () => {
+    it('renders the Bulk tasks section heading', () => {
+      const { getByText } = render(<PomodoroScreen />);
+      expect(getByText('Bulk tasks')).toBeTruthy();
+    });
+
+    it('renders the TaskQueue component', () => {
+      const { getByTestId } = render(<PomodoroScreen />);
+      expect(getByTestId('mock-task-queue')).toBeTruthy();
+    });
+  });
+
+  describe('session log clear button', () => {
+    it('renders the trash button next to Session log heading', () => {
+      const { getByTestId } = render(<PomodoroScreen />);
+      expect(getByTestId('clear-session-log-btn')).toBeTruthy();
+    });
+
+    it('shows inline confirmation when trash button is pressed', () => {
+      const { getByTestId, getByText, queryByText } = render(<PomodoroScreen />);
+      expect(queryByText('Clear all?')).toBeNull();
+      fireEvent.press(getByTestId('clear-session-log-btn'));
+      expect(getByText('Clear all?')).toBeTruthy();
+      expect(getByText('Clear')).toBeTruthy();
+      expect(getByText('Cancel')).toBeTruthy();
+    });
+
+    it('clears sessions when Clear is confirmed', () => {
+      usePomodoroStore.setState({
+        sessions: [
+          {
+            id: 's1',
+            phase: 'work',
+            durationMinutes: 25,
+            startedAt: Date.now(),
+            endedAt: Date.now(),
+          },
+        ],
+      });
+      const { getByTestId, getByText, queryByText } = render(<PomodoroScreen />);
+      fireEvent.press(getByTestId('clear-session-log-btn'));
+      fireEvent.press(getByText('Clear'));
+      expect(usePomodoroStore.getState().sessions).toEqual([]);
+      expect(queryByText('Clear all?')).toBeNull();
+    });
+
+    it('dismisses confirmation without clearing when Cancel is pressed', () => {
+      usePomodoroStore.setState({
+        sessions: [
+          {
+            id: 's1',
+            phase: 'work',
+            durationMinutes: 25,
+            startedAt: Date.now(),
+            endedAt: Date.now(),
+          },
+        ],
+      });
+      const { getByTestId, getByText, queryByText } = render(<PomodoroScreen />);
+      fireEvent.press(getByTestId('clear-session-log-btn'));
+      fireEvent.press(getByText('Cancel'));
+      expect(usePomodoroStore.getState().sessions).toHaveLength(1);
+      expect(queryByText('Clear all?')).toBeNull();
+    });
   });
 });

@@ -17,8 +17,8 @@ describe('fireConfetti (native no-op)', () => {
 describe('fireConfetti (native confetti.ts no-op directly)', () => {
   it('native file exports a callable no-op function', () => {
     jest.isolateModules(() => {
-      // biome-ignore lint/style/noCommonJs: isolateModules requires sync require.
       const { fireConfetti: nativeFireConfetti } =
+        // biome-ignore lint/style/noCommonJs: isolateModules requires sync require.
         require('../confetti.ts') as typeof import('../confetti');
       expect(() => nativeFireConfetti()).not.toThrow();
       expect(() => nativeFireConfetti(50, 80)).not.toThrow();

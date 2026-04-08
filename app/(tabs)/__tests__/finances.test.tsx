@@ -101,13 +101,52 @@ jest.mock('@/components/finance/CategoryBudgetModal', () => {
 
 jest.mock('@/components/finance/ExpenseItem', () => {
   const React = jest.requireActual('react') as typeof import('react');
-  const { TouchableOpacity } = jest.requireActual('react-native') as typeof import('react-native');
+  const { TouchableOpacity, Text } = jest.requireActual(
+    'react-native'
+  ) as typeof import('react-native');
   return {
-    ExpenseItem: ({ expense, onDelete }: { expense: { id: string }; onDelete?: () => void }) =>
-      React.createElement(TouchableOpacity, {
-        testID: `mock-expense-delete-${expense.id}`,
-        onPress: onDelete,
-      }),
+    ExpenseItem: ({
+      expense,
+      onDelete,
+    }: {
+      expense: { id: string; amount: number };
+      onDelete?: () => void;
+    }) =>
+      React.createElement(
+        TouchableOpacity,
+        { testID: `mock-expense-delete-${expense.id}`, onPress: onDelete },
+        React.createElement(Text, null, `$${expense.amount.toFixed(2)}`)
+      ),
+  };
+});
+
+jest.mock('@/components/finance/MonthPicker', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { View, TouchableOpacity, Text } = jest.requireActual(
+    'react-native'
+  ) as typeof import('react-native');
+  return {
+    MonthPicker: ({
+      month,
+      onPrev,
+      onNext,
+      disableNext,
+    }: {
+      month: string;
+      onPrev: () => void;
+      onNext: () => void;
+      disableNext: boolean;
+    }) =>
+      React.createElement(
+        View,
+        { testID: 'month-picker' },
+        React.createElement(Text, null, month),
+        React.createElement(TouchableOpacity, { testID: 'month-picker-prev', onPress: onPrev }),
+        React.createElement(View, {
+          testID: 'month-picker-next',
+          disabled: disableNext,
+        })
+      ),
   };
 });
 
@@ -468,5 +507,61 @@ describe('FinancesScreen additional branches', () => {
     const { getByText } = render(<FinancesScreen />);
     expect(getByText('Track a new transaction')).toBeTruthy();
     useSettingsStore.setState({ themePreference: 'light' });
+  });
+});
+
+describe('history section', () => {
+  const MAY = new Date('2025-05-10').getTime();
+  const JUNE = new Date('2025-06-20').getTime();
+
+  beforeEach(() => {
+    useFinanceStore.setState((s) => ({
+      ...s,
+      categories: [{ id: 'cat-food', name: 'Food', color: '#f97316' }],
+      expenses: [
+        { id: 'e-may', categoryId: 'cat-food', amount: 40, date: MAY },
+        { id: 'e-june', categoryId: 'cat-food', amount: 55, date: JUNE },
+      ],
+      budgets: [],
+    }));
+  });
+
+  it('renders the history section heading', () => {
+    const { getByText } = render(<FinancesScreen />);
+    expect(getByText('History')).toBeTruthy();
+  });
+
+  it('shows a MonthPicker defaulting to the most recent past month', () => {
+    const { getByTestId } = render(<FinancesScreen />);
+    expect(getByTestId('month-picker')).toBeTruthy();
+  });
+
+  it('shows expenses for the selected history month', () => {
+    const { getByText } = render(<FinancesScreen />);
+    // Default selected month is the newest past month (2025-06)
+    expect(getByText('$55.00')).toBeTruthy();
+  });
+
+  it('navigates to the previous month when prev is pressed', () => {
+    const { getByTestId, getByText } = render(<FinancesScreen />);
+    fireEvent.press(getByTestId('month-picker-prev'));
+    expect(getByText('$40.00')).toBeTruthy();
+  });
+
+  it('disables the next button when the selected month is the most recent month with expenses', () => {
+    const { getByTestId } = render(<FinancesScreen />);
+    const nextBtn = getByTestId('month-picker-next');
+    expect(nextBtn.props.disabled).toBe(true);
+  });
+
+  it('shows "No expenses this month" when the selected month has no expenses', () => {
+    useFinanceStore.setState((s) => ({
+      ...s,
+      expenses: [{ id: 'e-may', categoryId: 'cat-food', amount: 40, date: MAY }],
+    }));
+    const { getByText, getByTestId } = render(<FinancesScreen />);
+    // Default is 2025-05 (only month); press prev to go to 2025-04
+    fireEvent.press(getByTestId('month-picker-prev'));
+    expect(getByText('No expenses this month')).toBeTruthy();
   });
 });

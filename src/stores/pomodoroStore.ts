@@ -49,6 +49,7 @@ interface PomodoroStore {
   cycleCount: number;
   selectedTaskId: string | null;
   cycleStartedAt: number | null;
+  taskQueue: string[]; // task IDs queued after current selectedTaskId
 
   start: () => void;
   pause: () => void;
@@ -59,6 +60,9 @@ interface PomodoroStore {
   startWorkForTask: (id: string | null) => void;
   updateDurations: (work: number, breakMins: number) => void;
   reconcileRunningTimer: () => void;
+  setTaskQueue: (ids: string[]) => void;
+  startQueue: (taskIds: string[]) => void;
+  clearSessions: () => void;
 }
 
 export const usePomodoroStore = create<PomodoroStore>()(
@@ -74,6 +78,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
       cycleCount: 0,
       selectedTaskId: null,
       cycleStartedAt: null,
+      taskQueue: [],
 
       start: () => {
         const { status, phase, workDuration, breakDuration, secondsRemaining } = get();
@@ -97,9 +102,15 @@ export const usePomodoroStore = create<PomodoroStore>()(
       },
 
       reset: () => {
-        const { phase, workDuration, breakDuration } = get();
-        const duration = phase === 'work' ? workDuration : breakDuration;
-        set({ status: 'idle', secondsRemaining: duration * 60, cycleStartedAt: null });
+        const { workDuration } = get();
+        set({
+          status: 'idle',
+          phase: 'work',
+          secondsRemaining: workDuration * 60,
+          cycleStartedAt: null,
+          selectedTaskId: null,
+          taskQueue: [],
+        });
         stopPomodoroInterval();
       },
 
@@ -107,16 +118,24 @@ export const usePomodoroStore = create<PomodoroStore>()(
 
       completeCycle: () => {
         stopPomodoroInterval();
-        const { phase, workDuration, breakDuration, cycleCount, selectedTaskId, cycleStartedAt } =
-          get();
+        const {
+          phase,
+          workDuration,
+          breakDuration,
+          cycleCount,
+          selectedTaskId,
+          cycleStartedAt,
+          taskQueue,
+        } = get();
 
-        // Log the completed session
-        const taskTitle = selectedTaskId
-          ? useTaskStore.getState().tasks.find((t) => t.id === selectedTaskId)?.title
-          : undefined;
+        // Only associate task metadata with work sessions; breaks are rests, not task execution
+        const taskTitle =
+          phase === 'work' && selectedTaskId
+            ? useTaskStore.getState().tasks.find((t) => t.id === selectedTaskId)?.title
+            : undefined;
         const session: PomodoroSession = {
           id: generateId(),
-          taskId: selectedTaskId ?? undefined,
+          taskId: phase === 'work' ? (selectedTaskId ?? undefined) : undefined,
           taskTitle,
           phase,
           durationMinutes: phase === 'work' ? workDuration : breakDuration,
@@ -126,19 +145,53 @@ export const usePomodoroStore = create<PomodoroStore>()(
           endedAt: Date.now(),
         };
 
-        const nextPhase: TimerPhase = phase === 'work' ? 'break' : 'work';
-        const nextDuration = nextPhase === 'work' ? workDuration : breakDuration;
-
         scheduleTimerEndNotification(phase);
 
-        set((s) => ({
-          sessions: [session, ...s.sessions].slice(0, 50),
-          phase: nextPhase,
-          status: 'idle',
-          secondsRemaining: nextDuration * 60,
-          cycleCount: phase === 'work' ? cycleCount + 1 : cycleCount,
-          cycleStartedAt: null,
-        }));
+        if (phase === 'work') {
+          // After focus: auto-start the break, clear task linkage for the break phase
+          set((s) => ({
+            sessions: [session, ...s.sessions].slice(0, 50),
+            phase: 'break',
+            status: 'running',
+            secondsRemaining: breakDuration * 60,
+            cycleCount: cycleCount + 1,
+            cycleStartedAt: Date.now(),
+            selectedTaskId: null,
+          }));
+          // Mark the focused task as completed
+          if (selectedTaskId) {
+            useTaskStore.getState().updateTask(selectedTaskId, {
+              completed: true,
+              completedAt: Date.now(),
+            });
+          }
+          ensurePomodoroInterval();
+        } else {
+          // After break: advance queue or go idle
+          if (taskQueue.length > 0) {
+            const [nextTaskId, ...remainingQueue] = taskQueue;
+            set((s) => ({
+              sessions: [session, ...s.sessions].slice(0, 50),
+              phase: 'work',
+              status: 'running',
+              secondsRemaining: workDuration * 60,
+              cycleCount,
+              cycleStartedAt: Date.now(),
+              selectedTaskId: nextTaskId,
+              taskQueue: remainingQueue,
+            }));
+            ensurePomodoroInterval();
+          } else {
+            set((s) => ({
+              sessions: [session, ...s.sessions].slice(0, 50),
+              phase: 'work',
+              status: 'idle',
+              secondsRemaining: workDuration * 60,
+              cycleCount,
+              cycleStartedAt: null,
+            }));
+          }
+        }
       },
 
       setSelectedTask: (id) => set({ selectedTaskId: id }),
@@ -164,6 +217,25 @@ export const usePomodoroStore = create<PomodoroStore>()(
         }));
         stopPomodoroInterval();
       },
+
+      setTaskQueue: (ids) => set({ taskQueue: ids }),
+
+      startQueue: (taskIds) => {
+        if (taskIds.length === 0) return;
+        const [first, ...rest] = taskIds;
+        const { workDuration } = get();
+        set({
+          selectedTaskId: first,
+          taskQueue: rest,
+          phase: 'work',
+          status: 'running',
+          secondsRemaining: workDuration * 60,
+          cycleStartedAt: Date.now(),
+        });
+        ensurePomodoroInterval();
+      },
+
+      clearSessions: () => set({ sessions: [] }),
 
       reconcileRunningTimer: () => {
         const { status, phase, workDuration, breakDuration, secondsRemaining, cycleStartedAt } =
@@ -206,6 +278,7 @@ export const usePomodoroStore = create<PomodoroStore>()(
         secondsRemaining: s.secondsRemaining,
         cycleCount: s.cycleCount,
         selectedTaskId: s.selectedTaskId,
+        taskQueue: s.taskQueue,
         cycleStartedAt: s.cycleStartedAt,
       }),
       onRehydrateStorage: () => (state) => {

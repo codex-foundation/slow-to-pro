@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { DEFAULT_CATEGORIES, useFinanceStore } from '@/stores/financeStore';
+import { usePomodoroStore } from '@/stores/pomodoroStore';
 import type { Space, SpaceMember } from '@/stores/spaceStore';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { DEFAULT_TASK_CATEGORIES, useTaskStore } from '@/stores/taskStore';
@@ -7,6 +8,11 @@ import { DEFAULT_TASK_CATEGORIES, useTaskStore } from '@/stores/taskStore';
 // Set to true while pullSharedSpace is running so store subscriptions
 // don't trigger a push of the intermediate cleared/loading state.
 export let isApplyingSpaceSnapshot = false;
+
+// Incremented on every pullSharedSpace call so a stale inflight pull
+// (e.g. the mount pull) doesn't overwrite results from a newer pull
+// triggered by a space switch.
+let pullSpaceGeneration = 0;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -275,12 +281,18 @@ export async function pushToSharedSpace(spaceId: string): Promise<void> {
 export async function pullSharedSpace(spaceId: string): Promise<void> {
   if (!supabase) return;
 
+  const generation = ++pullSpaceGeneration;
   isApplyingSpaceSnapshot = true;
+  useSpaceStore.getState().setSwitching(true);
   try {
     const [{ data: finData }, { data: taskData }] = await Promise.all([
       supabase.from('space_finance_snapshots').select('data').eq('space_id', spaceId).single(),
       supabase.from('space_task_snapshots').select('data').eq('space_id', spaceId).single(),
     ]);
+
+    // Discard if a newer pull started, or if the user already switched away from this space.
+    if (generation !== pullSpaceGeneration) return;
+    if (useSpaceStore.getState().activeSpaceId !== spaceId) return;
 
     // Always reset store slices so personal data never bleeds into a space view.
     // If the space has existing data, it will be applied below.
@@ -289,10 +301,13 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
       categories: [],
       budgets: [],
       expenses: [],
+      notifiedBudgetThresholdByKey: {},
       overallBudgetAmount: 0,
       overallBudgetPeriod: 'monthly',
     }));
     useTaskStore.setState((s) => ({ ...s, tasks: [], categories: [] }));
+    // Clear pomodoro state that references the previous space (tasks + session log)
+    usePomodoroStore.setState((s) => ({ ...s, selectedTaskId: null, taskQueue: [], sessions: [] }));
 
     if (finData?.data) {
       const d = finData.data as {
@@ -323,7 +338,14 @@ export async function pullSharedSpace(spaceId: string): Promise<void> {
       useTaskStore.setState((s) => ({ ...s, categories: [] }));
     }
   } finally {
-    isApplyingSpaceSnapshot = false;
+    // Always clear flags for the winning generation; always clear isSwitching when
+    // discarded due to space mismatch so the UI doesn't stay locked.
+    if (generation === pullSpaceGeneration) {
+      isApplyingSpaceSnapshot = false;
+      useSpaceStore.getState().setSwitching(false);
+    } else if (useSpaceStore.getState().activeSpaceId !== spaceId) {
+      useSpaceStore.getState().setSwitching(false);
+    }
   }
 }
 
