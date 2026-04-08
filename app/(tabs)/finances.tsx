@@ -7,6 +7,7 @@ import { BudgetProgressBar } from '@/components/finance/BudgetProgressBar';
 import { CategoryBudgetModal } from '@/components/finance/CategoryBudgetModal';
 import { ExpenseForm } from '@/components/finance/ExpenseForm';
 import { ExpenseItem } from '@/components/finance/ExpenseItem';
+import { MonthPicker } from '@/components/finance/MonthPicker';
 import { Modal } from '@/components/ui/Modal';
 import { PaywallModal } from '@/components/ui/PaywallModal';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -15,6 +16,7 @@ import { useEntitlementStore } from '@/stores/entitlementStore';
 import { useFinanceStore } from '@/stores/financeStore';
 import { currentMonth, todayString } from '@/utils/date';
 import { exportFinancesAsCsv, exportFinancesAsPdf } from '@/utils/financeExport';
+import { availableMonths, nextMonth, prevMonth } from '@/utils/historyUtils';
 
 export default function FinancesScreen() {
   const theme = useAppTheme();
@@ -39,6 +41,48 @@ export default function FinancesScreen() {
   );
 
   const month = currentMonth();
+
+  const allMonths = useMemo(() => availableMonths(expenses), [expenses]);
+  const historyMonths = useMemo(() => allMonths.filter((m) => m < month), [allMonths, month]);
+
+  const [historyMonth, setHistoryMonth] = useState<string | null>(
+    () => historyMonths[0] ?? null
+  );
+
+  useEffect(() => {
+    setHistoryMonth((prev) => {
+      if (!prev || !historyMonths.includes(prev)) return historyMonths[0] ?? null;
+      return prev;
+    });
+  }, [historyMonths]);
+
+  const historyExpenses = useMemo(
+    () =>
+      historyMonth
+        ? expenses
+            .filter((e) => new Date(e.date).toISOString().slice(0, 7) === historyMonth)
+            .sort((a, b) => b.date - a.date)
+        : [],
+    [expenses, historyMonth]
+  );
+
+  const historySpentByCategory = (categoryId: string) =>
+    historyExpenses.filter((e) => e.categoryId === categoryId).reduce((sum, e) => sum + e.amount, 0);
+
+  const historyGetBudgetLimit = (categoryId: string) =>
+    budgets.find((b) => b.categoryId === categoryId && b.month === historyMonth)?.monthlyLimit ?? 0;
+
+  const handleHistoryPrev = () => {
+    if (historyMonth) setHistoryMonth(prevMonth(historyMonth));
+  };
+
+  const handleHistoryNext = () => {
+    if (!historyMonth || historyMonth === historyMonths[0]) return;
+    setHistoryMonth(nextMonth(historyMonth));
+  };
+
+  const isHistoryNextDisabled = !historyMonth || historyMonth === historyMonths[0];
+
   const today = todayString();
   const year = today.slice(0, 4);
 
@@ -298,7 +342,7 @@ export default function FinancesScreen() {
           </Text>
           {monthExpenses.length === 0 ? (
             <Text className="text-sm py-4 text-center" style={{ color: theme.textSubtle }}>
-              No expenses this month
+              No expenses recorded yet
             </Text>
           ) : (
             monthExpenses.map((expense) => {
@@ -314,6 +358,56 @@ export default function FinancesScreen() {
             })
           )}
         </Animated.View>
+
+        {historyMonths.length > 0 && (
+          <Animated.View
+            entering={FadeInUp.delay(240).duration(260)}
+            layout={Layout.springify()}
+            className="px-4 mt-6 mb-8">
+            <Text className="text-base font-semibold mb-2" style={{ color: theme.textMuted }}>
+              History
+            </Text>
+            <View
+              className="rounded-2xl overflow-hidden"
+              style={{ borderColor: theme.border, borderWidth: 1, backgroundColor: theme.surface }}>
+              <MonthPicker
+                month={historyMonth!}
+                onPrev={handleHistoryPrev}
+                onNext={handleHistoryNext}
+                disableNext={isHistoryNextDisabled}
+              />
+              <View className="h-px" style={{ backgroundColor: theme.border }} />
+              <View className="px-3 py-3">
+                {categories.map((cat) => (
+                  <BudgetProgressBar
+                    key={cat.id}
+                    category={cat}
+                    spent={historySpentByCategory(cat.id)}
+                    limit={historyGetBudgetLimit(cat.id)}
+                  />
+                ))}
+                <View className="h-px my-2" style={{ backgroundColor: theme.border }} />
+                {historyExpenses.length === 0 ? (
+                  <Text className="text-sm py-2 text-center" style={{ color: theme.textSubtle }}>
+                    No expenses this month
+                  </Text>
+                ) : (
+                  historyExpenses.map((expense) => {
+                    const cat = categories.find((c) => c.id === expense.categoryId);
+                    return (
+                      <ExpenseItem
+                        key={expense.id}
+                        expense={expense}
+                        category={cat}
+                        onDelete={() => deleteExpense(expense.id)}
+                      />
+                    );
+                  })
+                )}
+              </View>
+            </View>
+          </Animated.View>
+        )}
       </ScrollView>
 
       <CategoryBudgetModal visible={showSettings} onClose={() => setShowSettings(false)} />
