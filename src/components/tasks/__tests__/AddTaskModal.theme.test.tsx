@@ -49,12 +49,12 @@ jest.mock('@/hooks/useAppTheme', () => ({
   }),
 }));
 
-const mockAddTask = jest.fn(() => 'task-id');
+const _mockAddTask = jest.fn(() => 'task-id');
 const mockStartWorkForTask = jest.fn();
+const mockUseTaskStore = jest.fn();
 
 jest.mock('@/stores/taskStore', () => ({
-  useTaskStore: (selector: (s: { addTask: typeof mockAddTask; categories: [] }) => unknown) =>
-    selector({ addTask: mockAddTask, categories: [] }),
+  useTaskStore: (selector: Parameters<typeof mockUseTaskStore>[0]) => mockUseTaskStore(selector),
 }));
 
 jest.mock('@/stores/pomodoroStore', () => ({
@@ -68,7 +68,16 @@ jest.mock('@/stores/entitlementStore', () => ({
 
 import { AddTaskModal } from '../AddTaskModal';
 
+const DARK_TEXT_MUTED = '#cbd5e1';
+
 describe('AddTaskModal dark theme input', () => {
+  beforeEach(() => {
+    mockUseTaskStore.mockImplementation(
+      (selector: (s: { addTask: jest.Mock; categories: [] }) => unknown) =>
+        selector({ addTask: jest.fn(() => 'id'), categories: [] })
+    );
+  });
+
   it('uses theme colors for task title input text and placeholder', () => {
     mockDateTimePicker.mockClear();
     const { getByTestId } = render(<AddTaskModal visible onClose={jest.fn()} />);
@@ -118,5 +127,54 @@ describe('AddTaskModal dark theme input', () => {
     };
     expect(lastCallArgs?.themeVariant).toBe('dark');
     expect(lastCallArgs?.textColor).toBe('#f8fafc');
+  });
+
+  it('uses theme.textMuted colour for all section labels', () => {
+    const { getByText } = render(<AddTaskModal visible onClose={jest.fn()} />);
+
+    for (const label of [
+      'Priority',
+      'Recurring task',
+      'Start focus immediately',
+      'Due date',
+      'Reminder',
+    ]) {
+      const el = getByText(label);
+      expect(el.props.style).toEqual(expect.objectContaining({ color: DARK_TEXT_MUTED }));
+    }
+  });
+
+  it('uses theme.textMuted colour for inactive priority button text in dark mode', () => {
+    const { getAllByText } = render(<AddTaskModal visible onClose={jest.fn()} />);
+
+    // Default priority is 'medium' → High and Low are inactive
+    const highText = getAllByText('High')[0];
+    expect(highText.props.style).toEqual(expect.objectContaining({ color: DARK_TEXT_MUTED }));
+
+    const lowText = getAllByText('Low')[0];
+    expect(lowText.props.style).toEqual(expect.objectContaining({ color: DARK_TEXT_MUTED }));
+
+    // Medium is active → no textMuted colour applied
+    const medText = getAllByText('Medium')[0];
+    expect(medText.props.style).not.toEqual(expect.objectContaining({ color: DARK_TEXT_MUTED }));
+  });
+
+  it('uses theme.textMuted colour for Category label when categories exist', () => {
+    mockUseTaskStore.mockImplementation(
+      (
+        selector: (s: {
+          addTask: jest.Mock;
+          categories: { id: string; name: string; color: string }[];
+        }) => unknown
+      ) =>
+        selector({
+          addTask: jest.fn(() => 'id'),
+          categories: [{ id: 'c1', name: 'Work', color: '#6366f1' }],
+        })
+    );
+
+    const { getByText } = render(<AddTaskModal visible onClose={jest.fn()} />);
+    const el = getByText('Category');
+    expect(el.props.style).toEqual(expect.objectContaining({ color: DARK_TEXT_MUTED }));
   });
 });

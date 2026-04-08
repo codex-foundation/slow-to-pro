@@ -34,6 +34,11 @@ const PRIORITY_ACTIVE: Record<Priority, string> = {
   medium: 'bg-amber-400 border-amber-400',
   low: 'bg-green-500 border-green-500',
 };
+const PRIORITY_BG_DARK: Record<Priority, { backgroundColor: string; borderColor: string }> = {
+  high: { backgroundColor: 'rgba(239,68,68,0.15)', borderColor: 'rgba(239,68,68,0.5)' },
+  medium: { backgroundColor: 'rgba(251,191,36,0.15)', borderColor: 'rgba(251,191,36,0.5)' },
+  low: { backgroundColor: 'rgba(52,211,153,0.15)', borderColor: 'rgba(52,211,153,0.5)' },
+};
 
 interface Props {
   visible: boolean;
@@ -102,6 +107,13 @@ function PickerSheet({ visible, title, testID, onClose, onConfirm, children }: P
   );
 }
 
+const todayAtEod = () => {
+  const d = new Date();
+  d.setHours(23, 59, 0, 0);
+  return d;
+};
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
 export function AddTaskModal({ visible, onClose }: Props) {
   const theme = useAppTheme();
   const router = useRouter();
@@ -116,9 +128,9 @@ export function AddTaskModal({ visible, onClose }: Props) {
   const [recurring, setRecurring] = useState(false);
   const [days, setDays] = useState<number[]>([]);
   const [startFocusNow, setStartFocusNow] = useState(false);
-  const [dueDate, setDueDate] = useState<Date | null>(null);
+  const [dueDate, setDueDate] = useState<Date | null>(todayAtEod);
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
-  const [dueDateInput, setDueDateInput] = useState(''); // web fallback
+  const [dueDateInput, setDueDateInput] = useState(todayISO); // web fallback
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderDateTime, setReminderDateTime] = useState<Date | null>(null);
   const [showReminderDatePicker, setShowReminderDatePicker] = useState(false);
@@ -278,9 +290,9 @@ export function AddTaskModal({ visible, onClose }: Props) {
     setRecurring(false);
     setDays([]);
     setStartFocusNow(false);
-    setDueDate(null);
+    setDueDate(todayAtEod());
     setShowDueDatePicker(false);
-    setDueDateInput('');
+    setDueDateInput(todayISO());
     setReminderEnabled(false);
     setReminderDateTime(null);
     setShowReminderDatePicker(false);
@@ -342,15 +354,21 @@ export function AddTaskModal({ visible, onClose }: Props) {
           onSubmitEditing={Keyboard.dismiss}
         />
 
-        <Text className="text-sm font-medium text-gray-600 mb-2">Priority</Text>
+        <Text className="text-sm font-medium mb-2" style={{ color: theme.textMuted }}>
+          Priority
+        </Text>
         <View className="flex-row gap-2 mb-4">
           {PRIORITIES.map((p) => (
             <TouchableOpacity
               key={p}
               onPress={() => setPriority(p)}
-              className={`flex-1 py-2 rounded-lg border ${priority === p ? PRIORITY_ACTIVE[p] : PRIORITY_COLORS[p]}`}>
+              className={`flex-1 py-2 rounded-lg border ${
+                priority === p ? PRIORITY_ACTIVE[p] : theme.isDark ? '' : PRIORITY_COLORS[p]
+              }`}
+              style={priority !== p && theme.isDark ? PRIORITY_BG_DARK[p] : undefined}>
               <Text
-                className={`text-center text-sm font-medium ${priority === p ? 'text-white' : 'text-gray-700'}`}>
+                className={`text-center text-sm font-medium ${priority === p ? 'text-white' : ''}`}
+                style={priority !== p ? { color: theme.textMuted } : undefined}>
                 {PRIORITY_LABELS[p]}
               </Text>
             </TouchableOpacity>
@@ -359,7 +377,9 @@ export function AddTaskModal({ visible, onClose }: Props) {
 
         <View className="flex-row items-center justify-between mb-3">
           <View className="flex-row items-center gap-1">
-            <Text className="text-sm font-medium text-gray-600">Recurring task</Text>
+            <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
+              Recurring task
+            </Text>
             {!isPro && <Ionicons name="lock-closed-outline" size={12} color={theme.textSubtle} />}
           </View>
           <Switch
@@ -377,7 +397,9 @@ export function AddTaskModal({ visible, onClose }: Props) {
         </View>
 
         <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-sm font-medium text-gray-600">Start focus immediately</Text>
+          <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
+            Start focus immediately
+          </Text>
           <Switch
             testID="start-focus-switch"
             value={startFocusNow}
@@ -387,7 +409,9 @@ export function AddTaskModal({ visible, onClose }: Props) {
         </View>
 
         <View className="flex-row items-center justify-between mb-2">
-          <Text className="text-sm font-medium text-gray-600">Due date</Text>
+          <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
+            Due date
+          </Text>
           {hasDueDateValue ? (
             <TouchableOpacity onPress={clearDueDate}>
               <Text className="text-xs font-medium text-gray-400">Clear</Text>
@@ -436,7 +460,9 @@ export function AddTaskModal({ visible, onClose }: Props) {
 
         <View className="flex-row items-center justify-between mb-3">
           <View className="flex-row items-center gap-1">
-            <Text className="text-sm font-medium text-gray-600">Reminder</Text>
+            <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
+              Reminder
+            </Text>
             {!isPro && <Ionicons name="lock-closed-outline" size={12} color={theme.textSubtle} />}
           </View>
           <View className="flex-row items-center gap-3">
@@ -562,7 +588,9 @@ export function AddTaskModal({ visible, onClose }: Props) {
 
         {categories.length > 0 && (
           <>
-            <Text className="text-sm font-medium text-gray-600 mb-2">Category</Text>
+            <Text className="text-sm font-medium mb-2" style={{ color: theme.textMuted }}>
+              Category
+            </Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
