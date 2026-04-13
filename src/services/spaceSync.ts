@@ -158,6 +158,9 @@ export async function createSpace(name: string): Promise<{ space: Space | null; 
 
   const store = useSpaceStore.getState();
   store.setSpaces([...store.spaces, space]);
+
+  usePomodoroStore.getState().updateDurations(25, 5);
+
   return { space };
 }
 
