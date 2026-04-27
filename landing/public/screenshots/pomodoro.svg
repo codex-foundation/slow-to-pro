@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844">
+  <defs>
+    <radialGradient id="ring" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.6" stop-color="#2563eb" stop-opacity="0"/>
+      <stop offset="1" stop-color="#2563eb" stop-opacity="0.35"/>
+    </radialGradient>
+  </defs>
+  <rect width="390" height="844" fill="#020617"/>
+  <text x="28" y="110" fill="#e5e7eb" font-family="Inter, system-ui" font-size="28" font-weight="700">Pomodoro</text>
+  <text x="28" y="138" fill="#94a3b8" font-family="Inter, system-ui" font-size="14">Cycle 2 of 4 · Focus</text>
+
+  <circle cx="195" cy="420" r="180" fill="url(#ring)"/>
+  <circle cx="195" cy="420" r="160" fill="none" stroke="#1e3a8a" stroke-width="14"/>
+  <circle cx="195" cy="420" r="160" fill="none" stroke="#60a5fa" stroke-width="14" stroke-linecap="round" stroke-dasharray="700 1005" transform="rotate(-90 195 420)"/>
+
+  <text x="195" y="410" text-anchor="middle" fill="#e5e7eb" font-family="Inter, system-ui" font-size="72" font-weight="700" letter-spacing="-3">24:48</text>
+  <text x="195" y="446" text-anchor="middle" fill="#94a3b8" font-family="Inter, system-ui" font-size="14" letter-spacing="3">FOCUS</text>
+
+  <!-- Buttons -->
+  <rect x="60" y="640" width="120" height="56" rx="28" fill="#0b1220" stroke="#273244"/>
+  <text x="120" y="675" text-anchor="middle" fill="#e5e7eb" font-family="Inter, system-ui" font-size="14" font-weight="600">Reset</text>
+  <rect x="210" y="640" width="120" height="56" rx="28" fill="#60a5fa"/>
+  <text x="270" y="675" text-anchor="middle" fill="#020617" font-family="Inter, system-ui" font-size="14" font-weight="600">Pause</text>
+
+  <text x="195" y="750" text-anchor="middle" fill="#94a3b8" font-family="Inter, system-ui" font-size="13">Next: 5-min break · 15:12</text>
+</svg>

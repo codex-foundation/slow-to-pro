@@ -1,0 +1,19 @@
+---
+import FeatureCard from './FeatureCard.astro';
+import { features } from '@/content/features';
+---
+
+<section id="features" class="mx-auto max-w-[1200px] px-5 py-24 sm:px-8 md:py-32">
+  <div class="mx-auto max-w-3xl text-center">
+    <p class="text-xs font-medium uppercase tracking-[0.18em] text-[var(--color-primary)]">
+      Three calm tools
+    </p>
+    <h2 class="mt-3 text-balance text-4xl font-semibold tracking-tight md:text-5xl">
+      Everything for a focused day.<br /><span class="text-[var(--color-text-subtle)]">Nothing for a noisy one.</span>
+    </h2>
+  </div>
+
+  <div class="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    {features.map((feature) => <FeatureCard feature={feature} />)}
+  </div>
+</section>

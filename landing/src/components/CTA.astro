@@ -1,0 +1,31 @@
+---
+import StoreBadges from './StoreBadges.astro';
+---
+
+<section class="relative overflow-hidden">
+  <div class="mx-auto max-w-[1200px] px-5 py-24 sm:px-8 md:py-32">
+    <div
+      class="relative overflow-hidden rounded-[32px] bg-[var(--color-text)] px-8 py-16 text-center text-[var(--color-bg)] md:px-14 md:py-24"
+    >
+      <div
+        class="pointer-events-none absolute inset-0 opacity-[0.25]"
+        style="background: radial-gradient(40% 60% at 20% 20%, var(--color-primary), transparent 60%), radial-gradient(50% 60% at 80% 80%, var(--color-primary), transparent 60%);"
+      >
+      </div>
+
+      <div class="relative">
+        <h2
+          class="mx-auto max-w-3xl text-balance text-4xl font-semibold tracking-[-0.03em] md:text-6xl"
+        >
+          Your calmest productive day is one tap away.
+        </h2>
+        <p class="mx-auto mt-5 max-w-xl text-lg text-[var(--color-bg)]/70 md:text-xl">
+          Download Slow to Pro and start your first focused cycle today.
+        </p>
+        <div class="mt-10 flex justify-center">
+          <StoreBadges variant="inverse" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
