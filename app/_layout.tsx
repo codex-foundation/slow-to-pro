@@ -2,6 +2,7 @@ import '../global.css';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import NetInfo from '@react-native-community/netinfo';
+import { StripeProvider } from '@stripe/stripe-react-native';
 import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
@@ -23,7 +24,7 @@ import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useSpaceStore } from '@/stores/spaceStore';
 import { useTaskStore } from '@/stores/taskStore';
-import { initializePurchases, readProStatusFromDb, refreshProStatus } from '@/utils/purchases';
+import { initializePurchases, refreshProStatus, STRIPE_PUBLISHABLE_KEY } from '@/utils/purchases';
 
 if (Platform.OS !== 'web') {
   void SplashScreen.preventAutoHideAsync();
@@ -53,11 +54,7 @@ export default function RootLayout() {
       Notifications.requestPermissionsAsync();
       void initializePurchases();
     } else {
-      // On web RevenueCat isn't available — still load DB Pro flag
-      void readProStatusFromDb().then((isPro) => {
-        useEntitlementStore.getState().setIsPro(isPro);
-        useEntitlementStore.getState().setLoading(false);
-      });
+      void refreshProStatus();
     }
 
     // Refresh Pro status whenever the auth session changes:
@@ -69,7 +66,6 @@ export default function RootLayout() {
         void refreshProStatus();
       } else if (event === 'SIGNED_OUT') {
         useEntitlementStore.getState().setIsPro(false);
-        useEntitlementStore.getState().setIsRcPro(false);
       }
     });
     useTaskStore.getState().resetRecurringTasksIfNewDay();
@@ -152,7 +148,7 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontsError]);
 
-  return (
+  const inner = (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <View style={{ flex: 1 }}>
@@ -166,4 +162,8 @@ export default function RootLayout() {
       )}
     </GestureHandlerRootView>
   );
+
+  if (Platform.OS === 'web') return inner;
+
+  return <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>{inner}</StripeProvider>;
 }

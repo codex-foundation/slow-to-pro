@@ -82,15 +82,14 @@ jest.mock('@/services/spaceSync', () => ({
 }));
 
 jest.mock('@/utils/purchases', () => ({
-  isRevenueCatConfigured: jest.fn().mockReturnValue(false),
+  isStripeConfigured: jest.fn().mockReturnValue(false),
   refreshProStatus: jest.fn().mockResolvedValue(undefined),
   readProStatusFromDb: jest.fn().mockResolvedValue(false),
   initializePurchases: jest.fn().mockResolvedValue(undefined),
-  refreshEntitlements: jest.fn().mockResolvedValue(undefined),
-  getOfferings: jest.fn().mockResolvedValue(null),
-  purchasePackage: jest.fn().mockResolvedValue({ success: false }),
+  purchase: jest.fn().mockResolvedValue({ success: false }),
   restorePurchases: jest.fn().mockResolvedValue({ success: false }),
-  PRO_ENTITLEMENT: 'pro',
+  STRIPE_PUBLISHABLE_KEY: '',
+  STRIPE_PRICE_ID: '',
 }));
 
 jest.mock('@/lib/supabase', () => ({
@@ -109,8 +108,8 @@ jest.mock('@/lib/supabase', () => ({
 }));
 
 jest.mock('@/stores/entitlementStore', () => ({
-  useEntitlementStore: jest.fn((selector: (s: { isPro: boolean; isRcPro: boolean }) => unknown) =>
-    selector({ isPro: false, isRcPro: false })
+  useEntitlementStore: jest.fn((selector: (s: { isPro: boolean }) => unknown) =>
+    selector({ isPro: false })
   ),
 }));
 
@@ -413,8 +412,7 @@ describe('SettingsScreen syncTimeAgo utility', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useEntitlementStore as jest.Mock).mockImplementation(
-      (selector: (s: { isPro: boolean; isRcPro: boolean }) => unknown) =>
-        selector({ isPro: false, isRcPro: false })
+      (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: false })
     );
     mockGetUser.mockResolvedValue({
       data: { user: { id: 'u1', email: 'user@example.com' } },
@@ -488,8 +486,7 @@ describe('SettingsScreen pro/non-pro sections', () => {
 
   it('shows Upgrade to Pro button when not pro and presses it', async () => {
     (useEntitlementStore as jest.Mock).mockImplementation(
-      (selector: (s: { isPro: boolean; isRcPro: boolean }) => unknown) =>
-        selector({ isPro: false, isRcPro: false })
+      (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: false })
     );
 
     const { getAllByText } = render(<SettingsScreen />);
@@ -503,8 +500,7 @@ describe('SettingsScreen pro/non-pro sections', () => {
 
   it("shows You're on Pro message when isPro is true", async () => {
     (useEntitlementStore as jest.Mock).mockImplementation(
-      (selector: (s: { isPro: boolean; isRcPro: boolean }) => unknown) =>
-        selector({ isPro: true, isRcPro: false })
+      (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: true })
     );
 
     const { getByText } = render(<SettingsScreen />);
@@ -513,27 +509,9 @@ describe('SettingsScreen pro/non-pro sections', () => {
     });
   });
 
-  it('shows Manage Subscription button when isRcPro is true', async () => {
-    (useEntitlementStore as jest.Mock).mockImplementation(
-      (selector: (s: { isPro: boolean; isRcPro: boolean }) => unknown) =>
-        selector({ isPro: true, isRcPro: true })
-    );
-
-    const { getByText } = render(<SettingsScreen />);
-    await waitFor(() => {
-      expect(getByText('Manage Subscription')).toBeTruthy();
-    });
-
-    fireEvent.press(getByText('Manage Subscription'));
-    await waitFor(() => {
-      expect(mockOpenURL).toHaveBeenCalledWith(expect.stringContaining('apps.apple.com'));
-    });
-  });
-
   it('shows Manage Spaces button when isPro is true', async () => {
     (useEntitlementStore as jest.Mock).mockImplementation(
-      (selector: (s: { isPro: boolean; isRcPro: boolean }) => unknown) =>
-        selector({ isPro: true, isRcPro: false })
+      (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: true })
     );
 
     const { getByText } = render(<SettingsScreen />);
@@ -547,8 +525,7 @@ describe('SettingsScreen pro/non-pro sections', () => {
 
   it('shows pro SharedSpace upgrade button when non-pro', async () => {
     (useEntitlementStore as jest.Mock).mockImplementation(
-      (selector: (s: { isPro: boolean; isRcPro: boolean }) => unknown) =>
-        selector({ isPro: false, isRcPro: false })
+      (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: false })
     );
 
     const { getAllByText } = render(<SettingsScreen />);
@@ -561,8 +538,7 @@ describe('SettingsScreen pro/non-pro sections', () => {
 
   it('presses theme options to change theme', async () => {
     (useEntitlementStore as jest.Mock).mockImplementation(
-      (selector: (s: { isPro: boolean; isRcPro: boolean }) => unknown) =>
-        selector({ isPro: false, isRcPro: false })
+      (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: false })
     );
 
     const { getByText } = render(<SettingsScreen />);
@@ -579,8 +555,7 @@ describe('SettingsScreen OAuth edge cases', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useEntitlementStore as jest.Mock).mockImplementation(
-      (selector: (s: { isPro: boolean; isRcPro: boolean }) => unknown) =>
-        selector({ isPro: false, isRcPro: false })
+      (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: false })
     );
     mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
     mockOnAuthStateChange.mockReturnValue({
@@ -642,8 +617,7 @@ describe('SettingsScreen active space and modal callbacks', () => {
       pendingInvites: [],
     };
     (useEntitlementStore as jest.Mock).mockImplementation(
-      (selector: (s: { isPro: boolean; isRcPro: boolean }) => unknown) =>
-        selector({ isPro: true, isRcPro: false })
+      (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: true })
     );
     const { getByText } = render(<SettingsScreen />);
     await waitFor(() => {
@@ -658,8 +632,7 @@ describe('SettingsScreen active space and modal callbacks', () => {
       pendingInvites: [],
     };
     (useEntitlementStore as jest.Mock).mockImplementation(
-      (selector: (s: { isPro: boolean; isRcPro: boolean }) => unknown) =>
-        selector({ isPro: true, isRcPro: false })
+      (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: true })
     );
     const { getByText } = render(<SettingsScreen />);
     await waitFor(() => {
@@ -670,8 +643,7 @@ describe('SettingsScreen active space and modal callbacks', () => {
   it('calls PaywallModal callbacks without error', async () => {
     mockSpaceState = { activeSpaceId: null, spaces: [], pendingInvites: [] };
     (useEntitlementStore as jest.Mock).mockImplementation(
-      (selector: (s: { isPro: boolean; isRcPro: boolean }) => unknown) =>
-        selector({ isPro: false, isRcPro: false })
+      (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: false })
     );
     render(<SettingsScreen />);
     await waitFor(() => expect(mockPaywallOnClose).toBeDefined());
@@ -686,8 +658,7 @@ describe('SettingsScreen active space and modal callbacks', () => {
   it('calls SharedSpaceModal onClose callback without error', async () => {
     mockSpaceState = { activeSpaceId: null, spaces: [], pendingInvites: [] };
     (useEntitlementStore as jest.Mock).mockImplementation(
-      (selector: (s: { isPro: boolean; isRcPro: boolean }) => unknown) =>
-        selector({ isPro: true, isRcPro: false })
+      (selector: (s: { isPro: boolean }) => unknown) => selector({ isPro: true })
     );
     const { getByText } = render(<SettingsScreen />);
     await waitFor(() => expect(getByText('Manage Spaces')).toBeTruthy());

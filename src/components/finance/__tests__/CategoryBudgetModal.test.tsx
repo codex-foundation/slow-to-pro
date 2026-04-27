@@ -159,7 +159,7 @@ describe('CategoryBudgetModal', () => {
   });
 
   it('shows paywall when free user tries to add 4th category', () => {
-    useEntitlementStore.setState({ isPro: false, isRcPro: false, isLoading: false });
+    useEntitlementStore.setState({ isPro: false, isLoading: false });
     // Add 2 more categories to reach limit of 3
     useFinanceStore.setState({
       categories: [
@@ -348,7 +348,7 @@ describe('CategoryBudgetModal', () => {
   });
 
   it('shows paywall onClose and onUpgraded do not throw', () => {
-    useEntitlementStore.setState({ isPro: false, isRcPro: false, isLoading: false });
+    useEntitlementStore.setState({ isPro: false, isLoading: false });
     useFinanceStore.setState({
       categories: [
         { id: 'c1', name: 'Food', color: '#f97316' },

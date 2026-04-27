@@ -4,16 +4,14 @@ import { PaywallModal } from '../PaywallModal';
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
-const mockGetOfferings = jest.fn();
-const mockPurchasePackage = jest.fn();
+const mockPurchase = jest.fn();
 const mockRestorePurchases = jest.fn();
-let mockIsRcConfigured = false;
+let mockIsStripeConfigured = false;
 
 jest.mock('@/utils/purchases', () => ({
-  getOfferings: (...a: unknown[]) => mockGetOfferings(...a),
-  purchasePackage: (...a: unknown[]) => mockPurchasePackage(...a),
+  purchase: (...a: unknown[]) => mockPurchase(...a),
   restorePurchases: (...a: unknown[]) => mockRestorePurchases(...a),
-  isRevenueCatConfigured: () => mockIsRcConfigured,
+  isStripeConfigured: () => mockIsStripeConfigured,
 }));
 
 jest.mock('@/hooks/useAppTheme', () => ({
@@ -43,13 +41,6 @@ jest.mock('@expo/vector-icons/Ionicons', () => {
   return Icon;
 });
 
-function makePkg(id: string, title = 'Pro Monthly', price = '$4.99') {
-  return {
-    identifier: id,
-    product: { title, description: 'Full access', priceString: price },
-  };
-}
-
 const defaultProps = {
   visible: true,
   onClose: jest.fn(),
@@ -58,8 +49,7 @@ const defaultProps = {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockIsRcConfigured = false;
-  mockGetOfferings.mockResolvedValue(null);
+  mockIsStripeConfigured = false;
 });
 
 // ---------------------------------------------------------------------------
@@ -71,49 +61,23 @@ describe('PaywallModal', () => {
     expect(queryByText('Upgrade to Pro')).toBeNull();
   });
 
-  it('shows RC not configured message when RC is not configured', async () => {
-    mockIsRcConfigured = false;
+  it('shows Stripe not configured message when env vars missing', () => {
+    mockIsStripeConfigured = false;
     const { getByText } = render(<PaywallModal {...defaultProps} />);
-    await waitFor(() => {
-      expect(getByText(/EXPO_PUBLIC_REVENUECAT_API_KEY_IOS/)).toBeTruthy();
-    });
+    expect(getByText(/EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY/)).toBeTruthy();
   });
 
-  it('shows loading indicator when RC is configured and loading', async () => {
-    mockIsRcConfigured = true;
-    // Keep getOfferings pending so loading state persists
-    mockGetOfferings.mockReturnValue(new Promise(() => {}));
-    const { getByText } = render(<PaywallModal {...defaultProps} />);
-    expect(getByText('Upgrade to Pro')).toBeTruthy();
-    // ActivityIndicator is shown (loading=true)
+  it('shows Get Pro button when Stripe is configured', () => {
+    mockIsStripeConfigured = true;
+    const { getByTestId } = render(<PaywallModal {...defaultProps} />);
+    expect(getByTestId('paywall-cta')).toBeTruthy();
   });
 
-  it('shows no offerings message when offering is empty', async () => {
-    mockIsRcConfigured = true;
-    mockGetOfferings.mockResolvedValue({ availablePackages: [] });
-    const { getByText } = render(<PaywallModal {...defaultProps} />);
-    await waitFor(() => {
-      expect(getByText('No offerings available right now.')).toBeTruthy();
-    });
-  });
-
-  it('shows packages when offerings are available', async () => {
-    mockIsRcConfigured = true;
-    const pkg = makePkg('monthly');
-    mockGetOfferings.mockResolvedValue({ availablePackages: [pkg] });
-    const { getByText } = render(<PaywallModal {...defaultProps} />);
-    await waitFor(() => {
-      expect(getByText('Pro Monthly')).toBeTruthy();
-    });
-  });
-
-  it('calls onClose when backdrop is pressed', async () => {
+  it('calls onClose when backdrop is pressed', () => {
     const onClose = jest.fn();
-    mockGetOfferings.mockResolvedValue(null);
     const { UNSAFE_getAllByType } = render(
       <PaywallModal visible={true} onClose={onClose} onUpgraded={jest.fn()} />
     );
-    // First TouchableOpacity is the backdrop
     const { TouchableOpacity } = jest.requireActual(
       'react-native'
     ) as typeof import('react-native');
@@ -122,191 +86,121 @@ describe('PaywallModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('calls onClose when close button is pressed', async () => {
-    const onClose = jest.fn();
-    const { UNSAFE_getAllByType } = render(
-      <PaywallModal visible={true} onClose={onClose} onUpgraded={jest.fn()} />
-    );
-    const { TouchableOpacity } = jest.requireActual(
-      'react-native'
-    ) as typeof import('react-native');
-    const touchables = UNSAFE_getAllByType(TouchableOpacity);
-    // Second TouchableOpacity is the close X button
-    fireEvent.press(touchables[1]);
-    expect(onClose).toHaveBeenCalled();
-  });
-
   it('handles purchase success: calls onUpgraded and onClose', async () => {
-    mockIsRcConfigured = true;
-    const pkg = makePkg('monthly');
-    mockGetOfferings.mockResolvedValue({ availablePackages: [pkg] });
-    mockPurchasePackage.mockResolvedValue({ success: true });
+    mockIsStripeConfigured = true;
+    mockPurchase.mockResolvedValue({ success: true });
 
     const onClose = jest.fn();
     const onUpgraded = jest.fn();
-    const { getByText } = render(
+    const { getByTestId } = render(
       <PaywallModal visible={true} onClose={onClose} onUpgraded={onUpgraded} />
     );
 
-    await waitFor(() => expect(getByText('Pro Monthly')).toBeTruthy());
-
     await act(async () => {
-      fireEvent.press(getByText(/Get Pro/));
+      fireEvent.press(getByTestId('paywall-cta'));
     });
 
     expect(onUpgraded).toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('shows error message when purchase fails with error', async () => {
-    mockIsRcConfigured = true;
-    const pkg = makePkg('monthly');
-    mockGetOfferings.mockResolvedValue({ availablePackages: [pkg] });
-    mockPurchasePackage.mockResolvedValue({ success: false, error: 'Payment failed' });
+  it('shows error message when purchase fails', async () => {
+    mockIsStripeConfigured = true;
+    mockPurchase.mockResolvedValue({ success: false, error: 'Payment failed' });
 
-    const { getByText } = render(<PaywallModal {...defaultProps} />);
-
-    await waitFor(() => expect(getByText('Pro Monthly')).toBeTruthy());
+    const { getByTestId, getByText } = render(<PaywallModal {...defaultProps} />);
 
     await act(async () => {
-      fireEvent.press(getByText(/Get Pro/));
+      fireEvent.press(getByTestId('paywall-cta'));
     });
 
     await waitFor(() => expect(getByText('Payment failed')).toBeTruthy());
   });
 
-  it('handles purchase failure without error message (silent failure)', async () => {
-    mockIsRcConfigured = true;
-    const pkg = makePkg('monthly');
-    mockGetOfferings.mockResolvedValue({ availablePackages: [pkg] });
-    mockPurchasePackage.mockResolvedValue({ success: false });
+  it('handles silent failure (cancelled) without showing error', async () => {
+    mockIsStripeConfigured = true;
+    mockPurchase.mockResolvedValue({ success: false });
 
-    const { getByText } = render(<PaywallModal {...defaultProps} />);
-
-    await waitFor(() => expect(getByText('Pro Monthly')).toBeTruthy());
+    const { getByTestId, queryByTestId } = render(<PaywallModal {...defaultProps} />);
 
     await act(async () => {
-      fireEvent.press(getByText(/Get Pro/));
+      fireEvent.press(getByTestId('paywall-cta'));
     });
 
-    // No error message shown
+    expect(queryByTestId('paywall-error')).toBeNull();
     expect(defaultProps.onUpgraded).not.toHaveBeenCalled();
   });
 
   it('handles restore success: calls onUpgraded and onClose', async () => {
-    mockIsRcConfigured = true;
-    mockGetOfferings.mockResolvedValue({ availablePackages: [] });
+    mockIsStripeConfigured = true;
     mockRestorePurchases.mockResolvedValue({ success: true });
 
     const onClose = jest.fn();
     const onUpgraded = jest.fn();
-    const { getByText } = render(
+    const { getByTestId } = render(
       <PaywallModal visible={true} onClose={onClose} onUpgraded={onUpgraded} />
     );
 
-    await waitFor(() => expect(getByText('No offerings available right now.')).toBeTruthy());
-
     await act(async () => {
-      fireEvent.press(getByText('Restore purchases'));
+      fireEvent.press(getByTestId('paywall-restore'));
     });
 
     expect(onUpgraded).toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('shows error when restore fails with no error message', async () => {
-    mockIsRcConfigured = true;
-    mockGetOfferings.mockResolvedValue({ availablePackages: [] });
+  it('shows fallback error when restore fails with no error message', async () => {
+    mockIsStripeConfigured = true;
     mockRestorePurchases.mockResolvedValue({ success: false });
 
-    const { getByText } = render(<PaywallModal {...defaultProps} />);
-
-    await waitFor(() => expect(getByText('No offerings available right now.')).toBeTruthy());
+    const { getByTestId, getByText } = render(<PaywallModal {...defaultProps} />);
 
     await act(async () => {
-      fireEvent.press(getByText('Restore purchases'));
+      fireEvent.press(getByTestId('paywall-restore'));
     });
 
     await waitFor(() =>
-      expect(getByText('No previous purchases found for this account.')).toBeTruthy()
+      expect(getByText('No active subscription found for this account.')).toBeTruthy()
     );
   });
 
   it('shows specific error when restore returns error message', async () => {
-    mockIsRcConfigured = true;
-    mockGetOfferings.mockResolvedValue({ availablePackages: [] });
+    mockIsStripeConfigured = true;
     mockRestorePurchases.mockResolvedValue({ success: false, error: 'Not found' });
 
-    const { getByText } = render(<PaywallModal {...defaultProps} />);
-
-    await waitFor(() => expect(getByText('No offerings available right now.')).toBeTruthy());
+    const { getByTestId, getByText } = render(<PaywallModal {...defaultProps} />);
 
     await act(async () => {
-      fireEvent.press(getByText('Restore purchases'));
+      fireEvent.press(getByTestId('paywall-restore'));
     });
 
     await waitFor(() => expect(getByText('Not found')).toBeTruthy());
   });
 
-  it('selecting a package updates selected state', async () => {
-    mockIsRcConfigured = true;
-    const pkg1 = makePkg('monthly', 'Monthly', '$4.99');
-    const pkg2 = makePkg('annual', 'Annual', '$39.99');
-    mockGetOfferings.mockResolvedValue({ availablePackages: [pkg1, pkg2] });
-
-    const { getByText } = render(<PaywallModal {...defaultProps} />);
-
-    await waitFor(() => expect(getByText('Monthly')).toBeTruthy());
-
-    fireEvent.press(getByText('Annual'));
-    expect(getByText(/Get Pro · \$39.99/)).toBeTruthy();
-  });
-
-  it('handlePurchase returns early when no package is selected', async () => {
-    mockIsRcConfigured = true;
-    // Return no packages so selected=null
-    mockGetOfferings.mockResolvedValue({ availablePackages: [] });
-
-    const { getByText } = render(<PaywallModal {...defaultProps} />);
-
-    await waitFor(() => expect(getByText('No offerings available right now.')).toBeTruthy());
-
-    // Press Get Pro with no selection — should not call purchasePackage
-    fireEvent.press(getByText('Get Pro'));
-    expect(mockPurchasePackage).not.toHaveBeenCalled();
-  });
-
   it('shows ActivityIndicator while purchase is in progress', async () => {
-    mockIsRcConfigured = true;
-    const pkg = makePkg('monthly');
-    mockGetOfferings.mockResolvedValue({ availablePackages: [pkg] });
-    // Keep purchase pending so busy=true state is observable
+    mockIsStripeConfigured = true;
     let resolvePurchase!: (v: { success: boolean }) => void;
-    mockPurchasePackage.mockReturnValue(
+    mockPurchase.mockReturnValue(
       new Promise((r) => {
         resolvePurchase = r;
       })
     );
 
-    const { getByText, queryByText } = render(<PaywallModal {...defaultProps} />);
-    await waitFor(() => expect(getByText('Pro Monthly')).toBeTruthy());
+    const { getByTestId, queryByText } = render(<PaywallModal {...defaultProps} />);
 
     act(() => {
-      fireEvent.press(getByText(/Get Pro/));
+      fireEvent.press(getByTestId('paywall-cta'));
     });
 
-    // While busy, ActivityIndicator replaces the text
-    expect(queryByText(/Get Pro/)).toBeNull();
+    expect(queryByText('Get Pro')).toBeNull();
 
-    // Clean up
     await act(async () => {
       resolvePurchase({ success: false });
     });
   });
 
   it('shows ActivityIndicator while restore is in progress', async () => {
-    mockIsRcConfigured = true;
-    mockGetOfferings.mockResolvedValue({ availablePackages: [] });
+    mockIsStripeConfigured = true;
     let resolveRestore!: (v: { success: boolean }) => void;
     mockRestorePurchases.mockReturnValue(
       new Promise((r) => {
@@ -314,17 +208,14 @@ describe('PaywallModal', () => {
       })
     );
 
-    const { getByText, queryByText } = render(<PaywallModal {...defaultProps} />);
-    await waitFor(() => expect(getByText('No offerings available right now.')).toBeTruthy());
+    const { getByTestId, queryByText } = render(<PaywallModal {...defaultProps} />);
 
     act(() => {
-      fireEvent.press(getByText('Restore purchases'));
+      fireEvent.press(getByTestId('paywall-restore'));
     });
 
-    // While restoring, Restore text is replaced by ActivityIndicator
     expect(queryByText('Restore purchases')).toBeNull();
 
-    // Clean up
     await act(async () => {
       resolveRestore({ success: false });
     });

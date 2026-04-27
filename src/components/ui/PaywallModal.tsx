@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Modal as RNModal,
@@ -8,15 +8,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import type { PurchasesPackage } from 'react-native-purchases';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
-import {
-  getOfferings,
-  isRevenueCatConfigured,
-  purchasePackage,
-  restorePurchases,
-} from '@/utils/purchases';
+import { isStripeConfigured, purchase, restorePurchases } from '@/utils/purchases';
 
 const PRO_FEATURES = [
   { icon: 'repeat' as const, label: 'Recurring tasks' },
@@ -34,31 +28,15 @@ interface Props {
 
 export function PaywallModal({ visible, onClose, onUpgraded }: Props) {
   const theme = useAppTheme();
-  const [packages, setPackages] = useState<PurchasesPackage[]>([]);
-  const [selected, setSelected] = useState<PurchasesPackage | null>(null);
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const configured = isRevenueCatConfigured();
-
-  useEffect(() => {
-    if (!visible) return;
-    setErrorMsg(null);
-    setLoading(true);
-    getOfferings().then((offering) => {
-      const pkgs = offering?.availablePackages ?? [];
-      setPackages(pkgs);
-      setSelected(pkgs[0] ?? null);
-      setLoading(false);
-    });
-  }, [visible]);
+  const configured = isStripeConfigured();
 
   const handlePurchase = async () => {
-    if (!selected) return;
     setBusy(true);
     setErrorMsg(null);
-    const { success, error } = await purchasePackage(selected);
+    const { success, error } = await purchase();
     setBusy(false);
     if (success) {
       onUpgraded();
@@ -77,7 +55,7 @@ export function PaywallModal({ visible, onClose, onUpgraded }: Props) {
       onUpgraded();
       onClose();
     } else {
-      setErrorMsg(error ?? 'No previous purchases found for this account.');
+      setErrorMsg(error ?? 'No active subscription found for this account.');
     }
   };
 
@@ -120,7 +98,6 @@ export function PaywallModal({ visible, onClose, onUpgraded }: Props) {
         </TouchableOpacity>
 
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Header */}
           <Text
             style={{
               fontSize: 26,
@@ -162,8 +139,8 @@ export function PaywallModal({ visible, onClose, onUpgraded }: Props) {
             ))}
           </View>
 
-          {/* Packages */}
-          {!configured ? (
+          {/* Stripe not configured */}
+          {!configured && (
             <View
               style={{
                 padding: 16,
@@ -174,66 +151,16 @@ export function PaywallModal({ visible, onClose, onUpgraded }: Props) {
                 marginBottom: 16,
               }}>
               <Text style={{ fontSize: 13, color: theme.textSubtle, textAlign: 'center' }}>
-                Add <Text style={{ color: theme.primary }}>EXPO_PUBLIC_REVENUECAT_API_KEY_IOS</Text>{' '}
-                and{' '}
-                <Text style={{ color: theme.primary }}>EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID</Text>{' '}
-                to your .env to enable in-app purchases.
+                Add <Text style={{ color: theme.primary }}>EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY</Text>{' '}
+                and <Text style={{ color: theme.primary }}>EXPO_PUBLIC_STRIPE_PRICE_ID</Text> to
+                your .env to enable in-app purchases.
               </Text>
-            </View>
-          ) : loading ? (
-            <ActivityIndicator size="small" color={theme.primary} style={{ marginBottom: 16 }} />
-          ) : packages.length === 0 ? (
-            <Text
-              style={{
-                fontSize: 13,
-                color: theme.textSubtle,
-                textAlign: 'center',
-                marginBottom: 16,
-              }}>
-              No offerings available right now.
-            </Text>
-          ) : (
-            <View style={{ gap: 10, marginBottom: 16 }}>
-              {packages.map((pkg) => {
-                const isSelected = selected?.identifier === pkg.identifier;
-                return (
-                  <TouchableOpacity
-                    key={pkg.identifier}
-                    onPress={() => setSelected(pkg)}
-                    style={{
-                      borderRadius: 14,
-                      borderWidth: 2,
-                      borderColor: isSelected ? theme.primary : theme.border,
-                      backgroundColor: isSelected ? theme.primarySoft : theme.surface,
-                      padding: 14,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}>
-                    <View>
-                      <Text
-                        style={{
-                          fontWeight: '700',
-                          fontSize: 15,
-                          color: theme.text,
-                        }}>
-                        {pkg.product.title}
-                      </Text>
-                      <Text style={{ fontSize: 12, color: theme.textSubtle, marginTop: 2 }}>
-                        {pkg.product.description}
-                      </Text>
-                    </View>
-                    <Text style={{ fontWeight: '800', fontSize: 17, color: theme.primary }}>
-                      {pkg.product.priceString}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
             </View>
           )}
 
           {errorMsg && (
             <Text
+              testID="paywall-error"
               style={{
                 fontSize: 12,
                 color: theme.danger,
@@ -246,10 +173,11 @@ export function PaywallModal({ visible, onClose, onUpgraded }: Props) {
 
           {/* CTA */}
           <TouchableOpacity
+            testID="paywall-cta"
             onPress={handlePurchase}
-            disabled={!configured || !selected || busy}
+            disabled={!configured || busy}
             style={{
-              backgroundColor: !configured || !selected ? theme.surfaceMuted : theme.primary,
+              backgroundColor: !configured ? theme.surfaceMuted : theme.primary,
               borderRadius: 14,
               paddingVertical: 14,
               alignItems: 'center',
@@ -258,14 +186,13 @@ export function PaywallModal({ visible, onClose, onUpgraded }: Props) {
             {busy ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
-                {selected ? `Get Pro · ${selected.product.priceString}` : 'Get Pro'}
-              </Text>
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Get Pro</Text>
             )}
           </TouchableOpacity>
 
           {/* Restore */}
           <TouchableOpacity
+            testID="paywall-restore"
             onPress={handleRestore}
             disabled={!configured || restoring}
             style={{ alignItems: 'center', paddingVertical: 8 }}>

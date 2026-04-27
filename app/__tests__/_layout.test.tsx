@@ -101,13 +101,20 @@ jest.mock('@/components/ui/WebNotificationFallbackToast', () => ({
 }));
 
 const mockInitializePurchases = jest.fn(async () => {});
-const mockReadProStatusFromDb = jest.fn(async () => false);
 const mockRefreshProStatus = jest.fn(async () => {});
 
 jest.mock('@/utils/purchases', () => ({
   initializePurchases: () => mockInitializePurchases(),
-  readProStatusFromDb: () => mockReadProStatusFromDb(),
   refreshProStatus: () => mockRefreshProStatus(),
+  STRIPE_PUBLISHABLE_KEY: '',
+}));
+
+jest.mock('@stripe/stripe-react-native', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  StripeProvider: ({ children }: { children: any }) => children,
+  initStripe: jest.fn().mockResolvedValue(undefined),
+  initPaymentSheet: jest.fn().mockResolvedValue({ error: null }),
+  presentPaymentSheet: jest.fn().mockResolvedValue({ error: null }),
 }));
 
 const mockUnsubscribeAuth = jest.fn();
@@ -174,7 +181,6 @@ jest.mock('@/stores/entitlementStore', () => ({
     getState: () => ({
       setIsPro: jest.fn(),
       setLoading: jest.fn(),
-      setIsRcPro: jest.fn(),
     }),
   },
 }));
@@ -214,7 +220,6 @@ describe('RootLayout', () => {
     mockPullForCurrentUser.mockClear();
     mockPushForCurrentUser.mockClear();
     mockInitializePurchases.mockClear();
-    mockReadProStatusFromDb.mockClear();
     mockRefreshProStatus.mockClear();
     mockUnsubscribeAuth.mockClear();
     mockPushToSharedSpace.mockClear();
@@ -330,11 +335,9 @@ describe('RootLayout', () => {
 
   it('clears Pro status on SIGNED_OUT auth event', async () => {
     const mockSetIsPro = jest.fn();
-    const mockSetIsRcPro = jest.fn();
     jest.requireMock('@/stores/entitlementStore').useEntitlementStore.getState = () => ({
       setIsPro: mockSetIsPro,
       setLoading: jest.fn(),
-      setIsRcPro: mockSetIsRcPro,
     });
 
     render(<RootLayout />);
@@ -342,7 +345,6 @@ describe('RootLayout', () => {
       capturedAuthStateChangeCallback?.('SIGNED_OUT');
     });
     expect(mockSetIsPro).toHaveBeenCalledWith(false);
-    expect(mockSetIsRcPro).toHaveBeenCalledWith(false);
   });
 
   it('pushes on NetInfo reconnect when there is a pending push', async () => {
@@ -406,27 +408,16 @@ describe('RootLayout', () => {
     expect(queryByTestId('navigator')).toBeNull();
   });
 
-  it('loads readProStatusFromDb on web platform', async () => {
+  it('calls refreshProStatus on web platform', async () => {
     const RN = jest.requireActual('react-native') as typeof import('react-native');
     jest.replaceProperty(RN.Platform, 'OS', 'web');
-    mockReadProStatusFromDb.mockResolvedValue(true);
-    const mockSetIsPro = jest.fn();
-    const mockSetLoading = jest.fn();
-    jest.requireMock('@/stores/entitlementStore').useEntitlementStore.getState = () => ({
-      setIsPro: mockSetIsPro,
-      setLoading: mockSetLoading,
-      setIsRcPro: jest.fn(),
-    });
 
     render(<RootLayout />);
-    // Let the async readProStatusFromDb resolve
     await act(async () => {
       await Promise.resolve();
     });
 
-    expect(mockReadProStatusFromDb).toHaveBeenCalledTimes(1);
-    expect(mockSetIsPro).toHaveBeenCalledWith(true);
-    expect(mockSetLoading).toHaveBeenCalledWith(false);
+    expect(mockRefreshProStatus).toHaveBeenCalled();
     jest.restoreAllMocks();
   });
 

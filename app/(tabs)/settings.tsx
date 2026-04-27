@@ -62,7 +62,6 @@ export default function SettingsScreen() {
     'login' | 'signup' | 'google' | 'apple' | 'logout' | null
   >(null);
   const isPro = useEntitlementStore((s) => s.isPro);
-  const isRcPro = useEntitlementStore((s) => s.isRcPro);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showSpaces, setShowSpaces] = useState(false);
   const activeSpaceId = useSpaceStore((s) => s.activeSpaceId);
@@ -416,21 +415,6 @@ export default function SettingsScreen() {
                 <Text style={{ fontSize: 14, fontWeight: '600', color: theme.success }}>
                   ✓ You're on Pro
                 </Text>
-                {isRcPro && (
-                  <TouchableOpacity
-                    onPress={() =>
-                      void ExpoLinking.openURL(
-                        Platform.OS === 'android'
-                          ? 'https://play.google.com/store/account/subscriptions'
-                          : 'itms-apps://apps.apple.com/account/subscriptions'
-                      )
-                    }
-                    style={secondaryBtn}>
-                    <Text style={{ fontWeight: '600', color: theme.textMuted }}>
-                      Manage Subscription
-                    </Text>
-                  </TouchableOpacity>
-                )}
               </View>
             ) : (
               <>

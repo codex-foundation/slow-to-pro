@@ -1,14 +1,13 @@
 import { useEntitlementStore } from '../../stores/entitlementStore';
 
 beforeEach(() => {
-  useEntitlementStore.setState({ isPro: false, isRcPro: false, isLoading: true });
+  useEntitlementStore.setState({ isPro: false, isLoading: true });
 });
 
 describe('entitlementStore', () => {
   it('has correct initial state', () => {
     const state = useEntitlementStore.getState();
     expect(state.isPro).toBe(false);
-    expect(state.isRcPro).toBe(false);
     expect(state.isLoading).toBe(true);
   });
 
@@ -17,13 +16,6 @@ describe('entitlementStore', () => {
     expect(useEntitlementStore.getState().isPro).toBe(true);
     useEntitlementStore.getState().setIsPro(false);
     expect(useEntitlementStore.getState().isPro).toBe(false);
-  });
-
-  it('setIsRcPro updates isRcPro', () => {
-    useEntitlementStore.getState().setIsRcPro(true);
-    expect(useEntitlementStore.getState().isRcPro).toBe(true);
-    useEntitlementStore.getState().setIsRcPro(false);
-    expect(useEntitlementStore.getState().isRcPro).toBe(false);
   });
 
   it('setLoading updates isLoading', () => {

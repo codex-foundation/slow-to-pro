@@ -1,9 +1,11 @@
+import { initPaymentSheet, initStripe, presentPaymentSheet } from '@stripe/stripe-react-native';
 import { Platform } from 'react-native';
-import Purchases, { LOG_LEVEL, type PurchasesOffering } from 'react-native-purchases';
+
 import { supabase } from '@/lib/supabase';
 import { useEntitlementStore } from '@/stores/entitlementStore';
 
-export const PRO_ENTITLEMENT = 'pro';
+export const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
+export const STRIPE_PRICE_ID = process.env.EXPO_PUBLIC_STRIPE_PRICE_ID ?? '';
 
 async function syncProStatusToDb(isPro: boolean): Promise<void> {
   if (!supabase) return;
@@ -33,109 +35,80 @@ export async function readProStatusFromDb(): Promise<boolean> {
   return data?.is_pro === true;
 }
 
-const API_KEY_IOS = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS ?? '';
-const API_KEY_ANDROID = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID ?? '';
-
-export function isRevenueCatConfigured(): boolean {
+export function isStripeConfigured(): boolean {
   if (Platform.OS === 'web') return false;
-  return Platform.OS === 'ios' ? API_KEY_IOS.length > 0 : API_KEY_ANDROID.length > 0;
+  return STRIPE_PUBLISHABLE_KEY.length > 0 && STRIPE_PRICE_ID.length > 0;
 }
 
 export async function initializePurchases(): Promise<void> {
-  if (!isRevenueCatConfigured()) {
-    // Still read DB flag so manually-granted Pro is respected
-    const dbIsPro = await readProStatusFromDb();
-    useEntitlementStore.getState().setIsPro(dbIsPro);
-    useEntitlementStore.getState().setLoading(false);
-    return;
+  if (isStripeConfigured()) {
+    await initStripe({ publishableKey: STRIPE_PUBLISHABLE_KEY });
   }
+  const dbIsPro = await readProStatusFromDb();
+  useEntitlementStore.getState().setIsPro(dbIsPro);
+  useEntitlementStore.getState().setLoading(false);
+}
+
+export async function refreshProStatus(): Promise<void> {
+  const dbIsPro = await readProStatusFromDb();
+  useEntitlementStore.getState().setIsPro(dbIsPro);
+  useEntitlementStore.getState().setLoading(false);
+}
+
+export async function purchase(): Promise<{ success: boolean; error?: string }> {
+  if (!isStripeConfigured()) return { success: false, error: 'Stripe not configured.' };
+  if (!supabase) return { success: false, error: 'Supabase not configured.' };
 
   try {
-    if (__DEV__) {
-      Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+    const { data, error: sessionError } = await supabase.functions.invoke('create-payment-sheet', {
+      body: { priceId: STRIPE_PRICE_ID },
+    });
+
+    if (sessionError) return { success: false, error: sessionError.message };
+
+    if (data?.alreadySubscribed) {
+      await refreshProStatus();
+      return { success: true };
     }
 
-    const apiKey = Platform.OS === 'ios' ? API_KEY_IOS : API_KEY_ANDROID;
-    Purchases.configure({ apiKey });
+    const { paymentIntent, ephemeralKey, customer } = data as {
+      paymentIntent: string;
+      ephemeralKey: string;
+      customer: string;
+    };
 
-    await refreshEntitlements();
-  } catch {
-    useEntitlementStore.getState().setLoading(false);
-  }
-}
+    const { error: initError } = await initPaymentSheet({
+      merchantDisplayName: 'Slow to Pro',
+      customerId: customer,
+      customerEphemeralKeySecret: ephemeralKey,
+      paymentIntentClientSecret: paymentIntent,
+      allowsDelayedPaymentMethods: false,
+    });
 
-export async function refreshEntitlements(): Promise<void> {
-  if (!isRevenueCatConfigured()) return;
-  const { setIsPro, setIsRcPro, setLoading } = useEntitlementStore.getState();
-  try {
-    const [info, dbIsPro] = await Promise.all([Purchases.getCustomerInfo(), readProStatusFromDb()]);
-    const rcIsPro = info.entitlements.active[PRO_ENTITLEMENT] !== undefined;
-    const isPro = rcIsPro || dbIsPro;
-    setIsRcPro(rcIsPro);
-    setIsPro(isPro);
-    void syncProStatusToDb(isPro);
-  } finally {
-    setLoading(false);
-  }
-}
+    if (initError) return { success: false, error: initError.message };
 
-/**
- * Refresh Pro status from both RevenueCat and DB.
- * Safe to call after login — handles both RC and non-RC environments.
- */
-export async function refreshProStatus(): Promise<void> {
-  if (isRevenueCatConfigured()) {
-    await refreshEntitlements();
-  } else {
-    const dbIsPro = await readProStatusFromDb();
-    useEntitlementStore.getState().setIsPro(dbIsPro);
-    useEntitlementStore.getState().setLoading(false);
-  }
-}
+    const { error: presentError } = await presentPaymentSheet();
 
-export async function getOfferings(): Promise<PurchasesOffering | null> {
-  if (!isRevenueCatConfigured()) return null;
-  try {
-    const offerings = await Purchases.getOfferings();
-    return offerings.current;
-  } catch {
-    return null;
-  }
-}
+    if (presentError) {
+      if (presentError.code === 'Canceled') return { success: false };
+      return { success: false, error: presentError.message };
+    }
 
-export async function purchasePackage(
-  pkg: Awaited<ReturnType<typeof getOfferings>> extends infer O
-    ? O extends object
-      ? NonNullable<O>['availablePackages'][number]
-      : never
-    : never
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const { customerInfo } = await Purchases.purchasePackage(pkg);
-    const isPro = customerInfo.entitlements.active[PRO_ENTITLEMENT] !== undefined;
-    useEntitlementStore.getState().setIsRcPro(isPro);
-    useEntitlementStore.getState().setIsPro(isPro);
-    void syncProStatusToDb(isPro);
-    return { success: isPro };
+    // Webhook will sync is_pro asynchronously; poll DB briefly for UX
+    await refreshProStatus();
+    return { success: true };
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    // User cancelled — don't treat as an error
-    if (msg.includes('userCancelled') || msg.includes('1')) return { success: false };
-    return { success: false, error: msg };
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
 export async function restorePurchases(): Promise<{ success: boolean; error?: string }> {
-  if (!isRevenueCatConfigured()) return { success: false };
   try {
-    const info = await Purchases.restorePurchases();
-    const isPro = info.entitlements.active[PRO_ENTITLEMENT] !== undefined;
-    useEntitlementStore.getState().setIsRcPro(isPro);
-    useEntitlementStore.getState().setIsPro(isPro);
-    void syncProStatusToDb(isPro);
+    await refreshProStatus();
+    const isPro = useEntitlementStore.getState().isPro;
+    if (!isPro) void syncProStatusToDb(false);
     return { success: isPro };
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return { success: false, error: msg };
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
   }
 }

@@ -268,7 +268,7 @@ describe('FinancesScreen export', () => {
   });
 
   it('shows paywall when export is pressed and user is not pro', async () => {
-    useEntitlementStore.setState({ isPro: false, isRcPro: false, isLoading: false });
+    useEntitlementStore.setState({ isPro: false, isLoading: false });
     const { getByText, getByTestId } = render(<FinancesScreen />);
     fireEvent.press(getByText('Export'));
     await waitFor(() => {
@@ -277,7 +277,7 @@ describe('FinancesScreen export', () => {
   });
 
   it('calls exportFinancesAsCsv directly on web when user is pro', async () => {
-    useEntitlementStore.setState({ isPro: true, isRcPro: true, isLoading: false });
+    useEntitlementStore.setState({ isPro: true, isLoading: false });
     const Platform = jest.requireActual('react-native').Platform as { OS: string };
     const original = Platform.OS;
     (Platform as { OS: string }).OS = 'web';
@@ -292,7 +292,7 @@ describe('FinancesScreen export', () => {
   });
 
   it('shows alert with CSV/PDF options on native when user is pro', async () => {
-    useEntitlementStore.setState({ isPro: true, isRcPro: true, isLoading: false });
+    useEntitlementStore.setState({ isPro: true, isLoading: false });
     const Platform = jest.requireActual('react-native').Platform as { OS: string };
     const original = Platform.OS;
     (Platform as { OS: string }).OS = 'ios';
@@ -333,7 +333,7 @@ describe('FinancesScreen additional branches', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetFinanceStore();
-    useEntitlementStore.setState({ isPro: true, isRcPro: true, isLoading: false });
+    useEntitlementStore.setState({ isPro: true, isLoading: false });
   });
 
   it('filters expenses by daily period', () => {
@@ -406,7 +406,7 @@ describe('FinancesScreen additional branches', () => {
   });
 
   it('closes PaywallModal via onClose callback', async () => {
-    useEntitlementStore.setState({ isPro: false, isRcPro: false, isLoading: false });
+    useEntitlementStore.setState({ isPro: false, isLoading: false });
     const { getByText, getByTestId, queryByTestId } = render(<FinancesScreen />);
     fireEvent.press(getByText('Export'));
     await waitFor(() => expect(getByTestId('mock-paywall')).toBeTruthy());
@@ -415,7 +415,7 @@ describe('FinancesScreen additional branches', () => {
   });
 
   it('closes PaywallModal via onUpgraded callback', async () => {
-    useEntitlementStore.setState({ isPro: false, isRcPro: false, isLoading: false });
+    useEntitlementStore.setState({ isPro: false, isLoading: false });
     const { getByText, getByTestId, queryByTestId } = render(<FinancesScreen />);
     fireEvent.press(getByText('Export'));
     await waitFor(() => expect(getByTestId('mock-paywall')).toBeTruthy());
@@ -471,7 +471,7 @@ describe('FinancesScreen additional branches', () => {
   });
 
   it('shows Exporting text while export is in progress', async () => {
-    useEntitlementStore.setState({ isPro: true, isRcPro: true, isLoading: false });
+    useEntitlementStore.setState({ isPro: true, isLoading: false });
     const { resolve: resolveCsv, promise: csvPromise } = (() => {
       let resolve!: () => void;
       const promise = new Promise<void>((res) => {
