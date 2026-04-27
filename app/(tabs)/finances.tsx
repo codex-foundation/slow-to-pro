@@ -10,6 +10,7 @@ import { ExpenseItem } from '@/components/finance/ExpenseItem';
 import { MonthPicker } from '@/components/finance/MonthPicker';
 import { Modal } from '@/components/ui/Modal';
 import { PaywallModal } from '@/components/ui/PaywallModal';
+import { Card, Halo, PillGroup, ScreenHeader, SectionLabel } from '@/design';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import type { BudgetPeriod } from '@/models/finance';
 import { useEntitlementStore } from '@/stores/entitlementStore';
@@ -17,6 +18,17 @@ import { useFinanceStore } from '@/stores/financeStore';
 import { currentMonth, todayString } from '@/utils/date';
 import { exportFinancesAsCsv, exportFinancesAsPdf } from '@/utils/financeExport';
 import { availableMonths, nextMonth, prevMonth } from '@/utils/historyUtils';
+
+const PERIOD_OPTIONS: { value: BudgetPeriod; label: string }[] = [
+  { value: 'daily', label: 'daily' },
+  { value: 'monthly', label: 'monthly' },
+  { value: 'annual', label: 'annual' },
+];
+
+const CHART_OPTIONS = [
+  { value: 'bar' as const, label: 'bar chart' },
+  { value: 'pie' as const, label: 'pie chart' },
+];
 
 export default function FinancesScreen() {
   const theme = useAppTheme();
@@ -163,250 +175,348 @@ export default function FinancesScreen() {
   const getBudgetLimit = (categoryId: string) =>
     budgets.find((b) => b.categoryId === categoryId && b.month === month)?.monthlyLimit ?? 0;
 
+  const subtitle = `${periodLabel} · ${overallBudgetAmount > 0 ? 'spent so far' : 'tracking expenses'}`;
+
+  const pillBtn = (active: boolean) => ({
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: active ? theme.primary : theme.surface,
+    borderColor: active ? theme.primary : theme.border,
+  });
+
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top']}>
+      <Halo size={380} top={-140} right={-80} opacity={theme.isDark ? 0.14 : 0.1} />
       <ScrollView
         testID="finances-scroll-view"
         showsVerticalScrollIndicator={false}
         scrollEnabled
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 12 }}>
-        <View className="px-4 pt-4 pb-2 flex-row justify-between items-center">
-          <Text className="text-2xl font-bold" style={{ color: theme.text }}>
-            Money
-          </Text>
-          <View className="flex-row items-center gap-3">
-            <TouchableOpacity onPress={handleExport} disabled={exporting} className="p-1">
-              <Text
-                className="font-medium"
-                style={{ color: exporting ? theme.textSubtle : theme.primary }}>
-                {exporting ? 'Exporting…' : 'Export'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowSettings(true)} className="p-1">
-              <Text className="font-medium" style={{ color: theme.primary }}>
-                Budgets
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <Animated.View
-          entering={FadeInUp.delay(40).duration(260)}
-          layout={Layout.springify()}
-          className="px-4 mt-2">
-          <TouchableOpacity
-            onPress={() => setShowAddExpense(true)}
-            className="rounded-2xl px-4 py-4 flex-row items-center justify-between"
-            style={{ backgroundColor: theme.primary }}>
-            <View>
-              <Text className="text-white text-base font-semibold">Add expense</Text>
-              <Text
-                className="text-xs mt-0.5"
-                style={{ color: theme.isDark ? '#c7d2fe' : '#e0e7ff' }}>
-                Track a new transaction
-              </Text>
-            </View>
-            <Text className="text-white text-2xl leading-none">＋</Text>
-          </TouchableOpacity>
-        </Animated.View>
-
-        <Animated.View
-          entering={FadeInUp.delay(80).duration(260)}
-          layout={Layout.springify()}
-          className="px-4 mt-6">
-          <Text className="text-base font-semibold mb-3" style={{ color: theme.textMuted }}>
-            Overall budget
-          </Text>
-
-          <TouchableOpacity
-            onPress={() => setShowSetBudget(true)}
-            className="mb-3 border rounded-2xl px-4 py-3 flex-row items-center justify-between"
-            style={{ backgroundColor: theme.primarySoft, borderColor: theme.border }}>
-            <View>
-              <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
-                Set overall budget
-              </Text>
-              <Text className="text-xs mt-0.5 capitalize" style={{ color: theme.textSubtle }}>
-                {overallBudgetPeriod} period
-              </Text>
-            </View>
-            <Text className="text-lg" style={{ color: theme.primary }}>
-              ✎
-            </Text>
-          </TouchableOpacity>
-
-          <View
-            className="rounded-2xl p-4"
-            style={{
-              backgroundColor: theme.surfaceMuted,
-              borderColor: theme.border,
-              borderWidth: 1,
-            }}>
-            <Text
-              className="text-xs font-semibold uppercase tracking-wide mb-2"
-              style={{ color: theme.textSubtle }}>
-              {overallBudgetPeriod} budget ({periodLabel})
-            </Text>
-            <View className="flex-row justify-between mb-1">
-              <Text className="text-sm" style={{ color: theme.textSubtle }}>
-                Budget
-              </Text>
-              <Text className="text-sm font-semibold" style={{ color: theme.textMuted }}>
-                ${overallBudgetAmount.toFixed(2)}
-              </Text>
-            </View>
-            <View className="flex-row justify-between mb-1">
-              <Text className="text-sm" style={{ color: theme.textSubtle }}>
-                Spent
-              </Text>
-              <View className="items-end">
-                <Text className="text-sm font-semibold" style={{ color: theme.textMuted }}>
-                  ${periodSpent.toFixed(2)}
-                </Text>
-                <Text className="text-xs" style={{ color: theme.textSubtle }}>
-                  {spentPercentage === null
-                    ? 'No budget set'
-                    : `${spentPercentage.toFixed(0)}% used`}
-                </Text>
-              </View>
-            </View>
-            <View className="h-px my-2" style={{ backgroundColor: theme.border }} />
-            <View className="flex-row justify-between">
-              <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
-                Remaining
-              </Text>
-              <Text
-                className="text-base font-bold"
-                style={{ color: remainingBudget >= 0 ? theme.success : theme.danger }}>
-                ${remainingBudget.toFixed(2)}
-              </Text>
-            </View>
-          </View>
-        </Animated.View>
-
-        <Animated.View
-          entering={FadeInUp.delay(120).duration(260)}
-          layout={Layout.springify()}
-          className="px-4 mt-6">
-          <Text className="text-base font-semibold mb-3" style={{ color: theme.textMuted }}>
-            Budget overview
-          </Text>
-          {categories.map((cat) => (
-            <BudgetProgressBar
-              key={cat.id}
-              category={cat}
-              spent={spentByCategory(cat.id)}
-              limit={getBudgetLimit(cat.id)}
-            />
-          ))}
-        </Animated.View>
-
-        <Animated.View
-          entering={FadeInUp.delay(160).duration(260)}
-          layout={Layout.springify()}
-          className="px-4 mt-6">
-          <View className="flex-row gap-2 mb-3">
-            {(['bar', 'pie'] as const).map((t) => (
+        contentContainerStyle={{ paddingBottom: 32 }}>
+        <ScreenHeader
+          eyebrow="Money"
+          title="Finances"
+          subtitle={subtitle}
+          right={
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <TouchableOpacity
-                key={t}
-                onPress={() => setChartType(t)}
-                className="px-4 py-1.5 rounded-full"
+                onPress={handleExport}
+                disabled={exporting}
                 style={{
-                  backgroundColor: chartType === t ? theme.primary : theme.surface,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 999,
+                  borderWidth: 1,
                   borderColor: theme.border,
-                  borderWidth: chartType === t ? 0 : 1,
+                  backgroundColor: theme.surface,
                 }}>
                 <Text
-                  className="text-sm font-medium capitalize"
-                  style={{ color: chartType === t ? '#fff' : theme.textMuted }}>
-                  {t} chart
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '600',
+                    color: exporting ? theme.textSubtle : theme.text,
+                  }}>
+                  {exporting ? 'Exporting…' : 'Export'}
                 </Text>
               </TouchableOpacity>
-            ))}
-          </View>
-          <BarChartView
-            categories={categories}
-            spentByCategory={spentByCategory}
-            type={chartType}
-          />
-        </Animated.View>
+              <TouchableOpacity
+                onPress={() => setShowSettings(true)}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
+                }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: theme.text }}>Budgets</Text>
+              </TouchableOpacity>
+            </View>
+          }
+        />
 
-        <Animated.View
-          entering={FadeInUp.delay(200).duration(260)}
-          layout={Layout.springify()}
-          className="px-4 mt-6 mb-8">
-          <Text className="text-base font-semibold mb-2" style={{ color: theme.textMuted }}>
-            Recent expenses ({month})
+        <View style={{ paddingHorizontal: 20 }}>
+          <Text
+            style={{
+              fontSize: 56,
+              fontWeight: '700',
+              letterSpacing: -2,
+              color: theme.text,
+              fontVariant: ['tabular-nums'],
+              lineHeight: 64,
+            }}>
+            ${periodSpent.toFixed(2)}
           </Text>
-          {monthExpenses.length === 0 ? (
-            <Text className="text-sm py-4 text-center" style={{ color: theme.textSubtle }}>
-              No expenses recorded yet
+          {overallBudgetAmount > 0 && spentPercentage !== null && (
+            <Text
+              style={{
+                marginTop: 4,
+                fontSize: 13,
+                fontWeight: '600',
+                color: remainingBudget >= 0 ? theme.success : theme.danger,
+              }}>
+              {remainingBudget >= 0
+                ? `${(100 - spentPercentage).toFixed(0)}% of budget remaining`
+                : `Over budget by $${(-remainingBudget).toFixed(2)}`}
             </Text>
-          ) : (
-            monthExpenses.map((expense) => {
-              const cat = categories.find((c) => c.id === expense.categoryId);
-              return (
-                <ExpenseItem
-                  key={expense.id}
-                  expense={expense}
-                  category={cat}
-                  onDelete={() => deleteExpense(expense.id)}
-                />
-              );
-            })
           )}
-        </Animated.View>
+        </View>
+
+        <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+          <Animated.View entering={FadeInUp.delay(40).duration(260)} layout={Layout.springify()}>
+            <TouchableOpacity
+              onPress={() => setShowAddExpense(true)}
+              style={{
+                backgroundColor: theme.primary,
+                borderRadius: 20,
+                paddingHorizontal: 18,
+                paddingVertical: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+              <View>
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Add expense</Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    marginTop: 2,
+                    color: theme.isDark ? '#c7d2fe' : '#e0e7ff',
+                  }}>
+                  Track a new transaction
+                </Text>
+              </View>
+              <Text style={{ color: '#fff', fontSize: 26, lineHeight: 26 }}>＋</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+
+        <SectionLabel>Overall budget</SectionLabel>
+        <View style={{ paddingHorizontal: 20 }}>
+          <Animated.View entering={FadeInUp.delay(80).duration(260)} layout={Layout.springify()}>
+            <TouchableOpacity
+              onPress={() => setShowSetBudget(true)}
+              style={{
+                marginBottom: 12,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: theme.border,
+                backgroundColor: theme.primarySoft,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.primary }}>
+                  Set overall budget
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    marginTop: 2,
+                    color: theme.textSubtle,
+                    textTransform: 'capitalize',
+                  }}>
+                  {overallBudgetPeriod} period
+                </Text>
+              </View>
+              <Text style={{ fontSize: 18, color: theme.primary }}>✎</Text>
+            </TouchableOpacity>
+
+            <Card>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '600',
+                  letterSpacing: 1.4,
+                  textTransform: 'uppercase',
+                  color: theme.textSubtle,
+                  marginBottom: 10,
+                }}>
+                {overallBudgetPeriod} budget ({periodLabel})
+              </Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginBottom: 4,
+                }}>
+                <Text style={{ fontSize: 13, color: theme.textSubtle }}>Budget</Text>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted }}>
+                  ${overallBudgetAmount.toFixed(2)}
+                </Text>
+              </View>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginBottom: 4,
+                }}>
+                <Text style={{ fontSize: 13, color: theme.textSubtle }}>Spent</Text>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted }}>
+                    ${periodSpent.toFixed(2)}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: theme.textSubtle }}>
+                    {spentPercentage === null
+                      ? 'No budget set'
+                      : `${spentPercentage.toFixed(0)}% used`}
+                  </Text>
+                </View>
+              </View>
+              <View style={{ height: 1, marginVertical: 10, backgroundColor: theme.border }} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 13, fontWeight: '500', color: theme.textMuted }}>
+                  Remaining
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: '700',
+                    color: remainingBudget >= 0 ? theme.success : theme.danger,
+                  }}>
+                  ${remainingBudget.toFixed(2)}
+                </Text>
+              </View>
+            </Card>
+          </Animated.View>
+        </View>
+
+        <SectionLabel>Budget overview</SectionLabel>
+        <View style={{ paddingHorizontal: 20 }}>
+          <Animated.View entering={FadeInUp.delay(120).duration(260)} layout={Layout.springify()}>
+            <Card>
+              {categories.map((cat) => (
+                <BudgetProgressBar
+                  key={cat.id}
+                  category={cat}
+                  spent={spentByCategory(cat.id)}
+                  limit={getBudgetLimit(cat.id)}
+                />
+              ))}
+            </Card>
+          </Animated.View>
+        </View>
+
+        <SectionLabel>Breakdown</SectionLabel>
+        <View style={{ paddingHorizontal: 20 }}>
+          <Animated.View entering={FadeInUp.delay(160).duration(260)} layout={Layout.springify()}>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+              {CHART_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  onPress={() => setChartType(opt.value)}
+                  style={pillBtn(chartType === opt.value)}>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: '500',
+                      color: chartType === opt.value ? '#fff' : theme.textMuted,
+                    }}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Card>
+              <BarChartView
+                categories={categories}
+                spentByCategory={spentByCategory}
+                type={chartType}
+              />
+            </Card>
+          </Animated.View>
+        </View>
+
+        <SectionLabel>Recent expenses ({month})</SectionLabel>
+        <View style={{ paddingHorizontal: 20 }}>
+          <Animated.View entering={FadeInUp.delay(200).duration(260)} layout={Layout.springify()}>
+            <Card>
+              {monthExpenses.length === 0 ? (
+                <Text
+                  style={{
+                    fontSize: 13,
+                    paddingVertical: 12,
+                    textAlign: 'center',
+                    color: theme.textSubtle,
+                  }}>
+                  No expenses recorded yet
+                </Text>
+              ) : (
+                monthExpenses.map((expense) => {
+                  const cat = categories.find((c) => c.id === expense.categoryId);
+                  return (
+                    <ExpenseItem
+                      key={expense.id}
+                      expense={expense}
+                      category={cat}
+                      onDelete={() => deleteExpense(expense.id)}
+                    />
+                  );
+                })
+              )}
+            </Card>
+          </Animated.View>
+        </View>
 
         {historyMonths.length > 0 && (
-          <Animated.View
-            entering={FadeInUp.delay(240).duration(260)}
-            layout={Layout.springify()}
-            className="px-4 mt-6 mb-8">
-            <Text className="text-base font-semibold mb-2" style={{ color: theme.textMuted }}>
-              History
-            </Text>
-            <View
-              className="rounded-2xl overflow-hidden"
-              style={{ borderColor: theme.border, borderWidth: 1, backgroundColor: theme.surface }}>
-              <MonthPicker
-                month={historyMonth!}
-                onPrev={handleHistoryPrev}
-                onNext={handleHistoryNext}
-                disableNext={isHistoryNextDisabled}
-              />
-              <View className="h-px" style={{ backgroundColor: theme.border }} />
-              <View className="px-3 py-3">
-                {categories.map((cat) => (
-                  <BudgetProgressBar
-                    key={cat.id}
-                    category={cat}
-                    spent={historySpentByCategory(cat.id)}
-                    limit={historyGetBudgetLimit(cat.id)}
+          <>
+            <SectionLabel>History</SectionLabel>
+            <View style={{ paddingHorizontal: 20 }}>
+              <Animated.View
+                entering={FadeInUp.delay(240).duration(260)}
+                layout={Layout.springify()}>
+                <Card padded={false}>
+                  <MonthPicker
+                    month={historyMonth!}
+                    onPrev={handleHistoryPrev}
+                    onNext={handleHistoryNext}
+                    disableNext={isHistoryNextDisabled}
                   />
-                ))}
-                <View className="h-px my-2" style={{ backgroundColor: theme.border }} />
-                {historyExpenses.length === 0 ? (
-                  <Text className="text-sm py-2 text-center" style={{ color: theme.textSubtle }}>
-                    No expenses this month
-                  </Text>
-                ) : (
-                  historyExpenses.map((expense) => {
-                    const cat = categories.find((c) => c.id === expense.categoryId);
-                    return (
-                      <ExpenseItem
-                        key={expense.id}
-                        expense={expense}
+                  <View style={{ height: 1, backgroundColor: theme.border }} />
+                  <View style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
+                    {categories.map((cat) => (
+                      <BudgetProgressBar
+                        key={cat.id}
                         category={cat}
-                        onDelete={() => deleteExpense(expense.id)}
+                        spent={historySpentByCategory(cat.id)}
+                        limit={historyGetBudgetLimit(cat.id)}
                       />
-                    );
-                  })
-                )}
-              </View>
+                    ))}
+                    <View style={{ height: 1, marginVertical: 8, backgroundColor: theme.border }} />
+                    {historyExpenses.length === 0 ? (
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          paddingVertical: 8,
+                          textAlign: 'center',
+                          color: theme.textSubtle,
+                        }}>
+                        No expenses this month
+                      </Text>
+                    ) : (
+                      historyExpenses.map((expense) => {
+                        const cat = categories.find((c) => c.id === expense.categoryId);
+                        return (
+                          <ExpenseItem
+                            key={expense.id}
+                            expense={expense}
+                            category={cat}
+                            onDelete={() => deleteExpense(expense.id)}
+                          />
+                        );
+                      })
+                    )}
+                  </View>
+                </Card>
+              </Animated.View>
             </View>
-          </Animated.View>
+          </>
         )}
       </ScrollView>
 
@@ -423,31 +533,21 @@ export default function FinancesScreen() {
       </Modal>
 
       <Modal visible={showSetBudget} onClose={() => setShowSetBudget(false)} title="Set budget">
-        <View className="gap-3">
-          <View className="flex-row gap-2">
-            {(['daily', 'monthly', 'annual'] as BudgetPeriod[]).map((period) => (
-              <TouchableOpacity
-                key={period}
-                onPress={() => handleChangePeriod(period)}
-                className="px-4 py-1.5 rounded-full"
-                style={{
-                  backgroundColor: overallBudgetPeriod === period ? theme.primary : theme.surface,
-                  borderColor: theme.border,
-                  borderWidth: overallBudgetPeriod === period ? 0 : 1,
-                }}>
-                <Text
-                  className="text-sm font-medium capitalize"
-                  style={{ color: overallBudgetPeriod === period ? '#fff' : theme.textMuted }}>
-                  {period}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        <View style={{ gap: 12 }}>
+          <PillGroup
+            options={PERIOD_OPTIONS}
+            value={overallBudgetPeriod}
+            onChange={handleChangePeriod}
+          />
 
-          <View className="flex-row gap-2">
+          <View style={{ flexDirection: 'row', gap: 8 }}>
             <TextInput
-              className="flex-1 rounded-xl px-4 py-3 text-base"
               style={{
+                flex: 1,
+                borderRadius: 14,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                fontSize: 15,
                 borderColor: theme.border,
                 borderWidth: 1,
                 backgroundColor: theme.surface,
@@ -461,9 +561,14 @@ export default function FinancesScreen() {
             />
             <TouchableOpacity
               onPress={handleSaveOverallBudget}
-              className="px-4 rounded-xl items-center justify-center"
-              style={{ backgroundColor: theme.primary }}>
-              <Text className="text-white font-semibold">Save</Text>
+              style={{
+                paddingHorizontal: 18,
+                borderRadius: 14,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.primary,
+              }}>
+              <Text style={{ color: '#fff', fontWeight: '600' }}>Save</Text>
             </TouchableOpacity>
           </View>
         </View>

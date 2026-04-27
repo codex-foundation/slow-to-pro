@@ -17,14 +17,23 @@ import { TaskQueue } from '@/components/pomodoro/TaskQueue';
 import { TimerControls } from '@/components/pomodoro/TimerControls';
 import { TimerDisplay } from '@/components/pomodoro/TimerDisplay';
 import { TimerSettings } from '@/components/pomodoro/TimerSettings';
+import { Halo, ScreenHeader, SectionLabel } from '@/design';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePomodoroStore } from '@/stores/pomodoroStore';
 import { fireConfetti } from '@/utils/confetti';
+
+function pad(n: number) {
+  return String(n).padStart(2, '0');
+}
 
 export default function PomodoroScreen() {
   const theme = useAppTheme();
   const { width, height } = useWindowDimensions();
   const sessionsCount = usePomodoroStore((s) => s.sessions.length);
+  const phase = usePomodoroStore((s) => s.phase);
+  const cycleCount = usePomodoroStore((s) => s.cycleCount);
+  const breakDuration = usePomodoroStore((s) => s.breakDuration);
+  const workDuration = usePomodoroStore((s) => s.workDuration);
   const previousSessionsCountRef = useRef(sessionsCount);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -60,58 +69,98 @@ export default function PomodoroScreen() {
     []
   );
 
+  const isWork = phase === 'work';
+  const nextLabel = isWork ? `Next: ${breakDuration}-min break` : `Next: ${workDuration}-min focus`;
+  const subtitle = `Cycle ${cycleCount + 1} · ${isWork ? 'Focus' : 'Break'} · ${pad(workDuration)}:00`;
+
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top']}>
+      <Halo size={420} top={60} right={-140} opacity={theme.isDark ? 0.2 : 0.12} />
       <ScrollView
-        contentContainerStyle={{ minHeight: height, backgroundColor: theme.bg }}
+        contentContainerStyle={{ minHeight: height, backgroundColor: 'transparent' }}
         showsVerticalScrollIndicator={false}>
-        <View className="px-4 pt-4 pb-2 flex-row justify-between items-center">
-          <Text className="text-2xl font-bold" style={{ color: theme.text }}>
-            Focus
-          </Text>
-          <TouchableOpacity
-            testID="timer-settings-btn"
-            onPress={() => setShowSettings(true)}
-            className="p-1">
-            <Ionicons name="settings-outline" size={22} color={theme.textMuted} />
-          </TouchableOpacity>
-        </View>
+        <ScreenHeader
+          title="Pomodoro"
+          subtitle={subtitle}
+          right={
+            <TouchableOpacity
+              testID="timer-settings-btn"
+              onPress={() => setShowSettings(true)}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.surface,
+                borderWidth: 1,
+                borderColor: theme.border,
+              }}>
+              <Ionicons name="settings-outline" size={18} color={theme.textMuted} />
+            </TouchableOpacity>
+          }
+        />
 
         <TimerDisplay />
 
-        <View className="px-4 mt-2">
-          <TimerControls />
+        <TimerControls />
+
+        <Text
+          style={{
+            textAlign: 'center',
+            marginTop: 18,
+            fontSize: 13,
+            color: theme.textSubtle,
+          }}>
+          {nextLabel}
+        </Text>
+
+        <View style={{ marginTop: 24 }}>
+          <SectionLabel>Link to task</SectionLabel>
+          <View style={{ paddingHorizontal: 20 }}>
+            <TaskPicker />
+          </View>
         </View>
 
-        <View className="px-4 mt-6">
-          <Text className="text-base font-semibold mb-2" style={{ color: theme.textMuted }}>
-            Link to task
-          </Text>
-          <TaskPicker />
+        <View style={{ marginTop: 20 }}>
+          <SectionLabel>Bulk tasks</SectionLabel>
+          <View style={{ paddingHorizontal: 20 }}>
+            <TaskQueue />
+          </View>
         </View>
 
-        <View className="px-4 mt-6">
-          <Text className="text-base font-semibold mb-2" style={{ color: theme.textMuted }}>
-            Bulk tasks
-          </Text>
-          <TaskQueue />
-        </View>
-
-        <View className="px-4 mt-6 mb-8">
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-base font-semibold" style={{ color: theme.textMuted }}>
+        <View style={{ marginTop: 20, marginBottom: 32 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: 20,
+              paddingBottom: 8,
+            }}>
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: '600',
+                letterSpacing: 1.4,
+                textTransform: 'uppercase',
+                color: theme.textSubtle,
+              }}>
               Session log
             </Text>
             {confirmClearLog ? (
-              <View className="flex-row items-center gap-2">
-                <Text className="text-xs" style={{ color: theme.textMuted }}>
-                  Clear all?
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 12, color: theme.textMuted }}>Clear all?</Text>
                 <TouchableOpacity
                   onPress={() => setConfirmClearLog(false)}
-                  className="px-2 py-1 rounded-lg"
-                  style={{ borderColor: theme.border, borderWidth: 1 }}>
-                  <Text className="text-xs font-medium" style={{ color: theme.textMuted }}>
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 10,
+                    borderColor: theme.border,
+                    borderWidth: 1,
+                  }}>
+                  <Text style={{ fontSize: 12, fontWeight: '500', color: theme.textMuted }}>
                     Cancel
                   </Text>
                 </TouchableOpacity>
@@ -120,21 +169,26 @@ export default function PomodoroScreen() {
                     clearSessions();
                     setConfirmClearLog(false);
                   }}
-                  className="px-2 py-1 rounded-lg"
-                  style={{ backgroundColor: theme.danger }}>
-                  <Text className="text-xs font-semibold text-white">Clear</Text>
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 10,
+                    backgroundColor: theme.danger,
+                  }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#fff' }}>Clear</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity
                 testID="clear-session-log-btn"
-                onPress={() => setConfirmClearLog(true)}
-                className="p-1">
+                onPress={() => setConfirmClearLog(true)}>
                 <Ionicons name="trash-outline" size={16} color={theme.textSubtle} />
               </TouchableOpacity>
             )}
           </View>
-          <SessionLog />
+          <View style={{ paddingHorizontal: 20 }}>
+            <SessionLog />
+          </View>
         </View>
       </ScrollView>
 

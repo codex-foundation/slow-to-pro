@@ -3,20 +3,6 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { useTaskStore } from '@/stores/taskStore';
 import { TaskList } from '../TaskList';
 
-jest.mock('react-native-reanimated', () => {
-  const { FlatList } = jest.requireActual('react-native') as typeof import('react-native');
-
-  return {
-    __esModule: true,
-    default: {
-      FlatList,
-    },
-    Layout: {
-      springify: jest.fn(() => ({ name: 'mock-spring-layout-transition' })),
-    },
-  };
-});
-
 jest.mock('react-native-draggable-flatlist', () => {
   const React = jest.requireActual('react') as typeof import('react');
   const { FlatList } = jest.requireActual('react-native') as typeof import('react-native');
@@ -61,29 +47,15 @@ jest.mock('../TaskItem', () => {
   return {
     TaskItem: ({
       item,
-      onMoveUp,
-      onMoveDown,
       onCompleted,
     }: {
       item: { id: string; title: string };
-      onMoveUp?: () => void;
-      onMoveDown?: () => void;
       onCompleted?: () => void;
     }) =>
       React.createElement(
         View,
         null,
         React.createElement(Text, null, item.title),
-        React.createElement(
-          Pressable,
-          { testID: `move-up-${item.id}`, onPress: onMoveUp, disabled: !onMoveUp },
-          React.createElement(Text, null, 'up')
-        ),
-        React.createElement(
-          Pressable,
-          { testID: `move-down-${item.id}`, onPress: onMoveDown, disabled: !onMoveDown },
-          React.createElement(Text, null, 'down')
-        ),
         React.createElement(
           Pressable,
           { testID: `complete-${item.id}`, onPress: onCompleted, disabled: !onCompleted },
@@ -128,33 +100,17 @@ function seedTaskStore() {
   });
 }
 
-describe('TaskList ordering controls', () => {
+describe('TaskList', () => {
   beforeEach(() => {
     seedTaskStore();
   });
 
-  it('enables iOS item layout animation on non-android list path', () => {
-    const reanimated = jest.requireMock('react-native-reanimated') as {
-      Layout: { springify: jest.Mock };
-    };
+  it('renders tasks via DraggableFlatList', () => {
     const tasks = [...useTaskStore.getState().tasks].sort((a, b) => a.order - b.order);
-
-    render(<TaskList tasks={tasks} />);
-
-    expect(reanimated.Layout.springify).toHaveBeenCalledTimes(1);
-  });
-
-  it('reorders tasks when move down is pressed (iOS/web path)', () => {
-    const tasks = [...useTaskStore.getState().tasks].sort((a, b) => a.order - b.order);
-    const { getByTestId } = render(<TaskList tasks={tasks} />);
-
-    fireEvent.press(getByTestId('move-down-t1'));
-
-    const orderedTitles = [...useTaskStore.getState().tasks]
-      .sort((a, b) => a.order - b.order)
-      .map((t) => t.title);
-
-    expect(orderedTitles).toEqual(['Second', 'First', 'Third']);
+    const { getByText } = render(<TaskList tasks={tasks} />);
+    expect(getByText('First')).toBeTruthy();
+    expect(getByText('Second')).toBeTruthy();
+    expect(getByText('Third')).toBeTruthy();
   });
 
   it('calls completion callback when a task completion action happens', () => {
@@ -163,39 +119,11 @@ describe('TaskList ordering controls', () => {
     const { getByTestId } = render(<TaskList tasks={tasks} onTaskCompleted={onTaskCompleted} />);
 
     fireEvent.press(getByTestId('complete-t1'));
-
     expect(onTaskCompleted).toHaveBeenCalledTimes(1);
-  });
-
-  it('reorders tasks when move up is pressed on non-first task', () => {
-    const tasks = [...useTaskStore.getState().tasks].sort((a, b) => a.order - b.order);
-    const { getByTestId } = render(<TaskList tasks={tasks} />);
-
-    // t2 is at index 1 — pressing move-up calls moveVisibleTask(1, 0)
-    fireEvent.press(getByTestId('move-up-t2'));
-
-    const orderedTitles = [...useTaskStore.getState().tasks]
-      .sort((a, b) => a.order - b.order)
-      .map((t) => t.title);
-
-    expect(orderedTitles).toEqual(['Second', 'First', 'Third']);
   });
 
   it('renders empty state when tasks list is empty', () => {
     const { getByText } = render(<TaskList tasks={[]} />);
     expect(getByText('No tasks yet — tap + to add one')).toBeTruthy();
-  });
-
-  it('renders DraggableFlatList on android platform', () => {
-    const { Platform } = jest.requireActual('react-native') as typeof import('react-native');
-    const origOS = Platform.OS;
-    Object.defineProperty(Platform, 'OS', { value: 'android', configurable: true });
-
-    const tasks = [...useTaskStore.getState().tasks].sort((a, b) => a.order - b.order);
-    const { getByText } = render(<TaskList tasks={tasks} />);
-
-    expect(getByText('First')).toBeTruthy();
-
-    Object.defineProperty(Platform, 'OS', { value: origOS, configurable: true });
   });
 });

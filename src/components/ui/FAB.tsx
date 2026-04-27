@@ -5,10 +5,14 @@ interface FABProps {
   onPress: () => void;
   label?: string;
   bottomOffset?: number;
+  align?: 'center' | 'right';
 }
 
-export function FAB({ onPress, label = '+', bottomOffset = 16 }: FABProps) {
+export function FAB({ onPress, label = '+', bottomOffset = 16, align = 'center' }: FABProps) {
   const theme = useAppTheme();
+
+  const positionStyle =
+    align === 'right' ? { right: 20 } : { left: '50%' as const, transform: [{ translateX: -28 }] };
 
   return (
     <TouchableOpacity
@@ -24,10 +28,9 @@ export function FAB({ onPress, label = '+', bottomOffset = 16 }: FABProps) {
         borderRadius: 28,
         backgroundColor: theme.primary,
         bottom: bottomOffset,
-        left: '50%',
-        transform: [{ translateX: -28 }],
         zIndex: 30,
         elevation: 30,
+        ...positionStyle,
       }}
       activeOpacity={0.8}>
       <Text className="text-white text-3xl font-light leading-none">{label}</Text>

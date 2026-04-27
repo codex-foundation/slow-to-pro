@@ -1,36 +1,31 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useRef, useState } from 'react';
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AddTaskModal } from '@/components/tasks/AddTaskModal';
-import { ManageCategoriesModal } from '@/components/tasks/ManageCategoriesModal';
 import { NextReminderDebugPanel } from '@/components/tasks/NextReminderDebugPanel';
 import { TaskList } from '@/components/tasks/TaskList';
 import { FAB } from '@/components/ui/FAB';
+import { Halo, ScreenHeader } from '@/design';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useTaskStore } from '@/stores/taskStore';
 import { fireConfetti } from '@/utils/confetti';
 
-type Filter = 'all' | 'active' | 'completed';
+const WEEKDAYS = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+] as const;
 
 export default function TasksScreen() {
   const theme = useAppTheme();
   const tasks = useTaskStore((s) => s.tasks);
-  const categories = useTaskStore((s) => s.categories);
   const { width } = useWindowDimensions();
-  const [filter, setFilter] = useState<Filter>('active');
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [showManageCategories, setShowManageCategories] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const confettiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -39,10 +34,7 @@ export default function TasksScreen() {
       fireConfetti();
       return;
     }
-
-    if (confettiTimeoutRef.current) {
-      clearTimeout(confettiTimeoutRef.current);
-    }
+    if (confettiTimeoutRef.current) clearTimeout(confettiTimeoutRef.current);
     setShowConfetti(true);
     confettiTimeoutRef.current = setTimeout(() => {
       setShowConfetti(false);
@@ -52,116 +44,30 @@ export default function TasksScreen() {
 
   useEffect(
     () => () => {
-      if (confettiTimeoutRef.current) {
-        clearTimeout(confettiTimeoutRef.current);
-      }
+      if (confettiTimeoutRef.current) clearTimeout(confettiTimeoutRef.current);
     },
     []
   );
 
-  const filtered = tasks
-    .filter((t) => {
-      if (filter === 'active' && t.completed) return false;
-      if (filter === 'completed' && !t.completed) return false;
-      if (categoryFilter && t.categoryId !== categoryFilter) return false;
-      return true;
-    })
-    .sort((a, b) => a.order - b.order);
+  const ordered = useMemo(() => [...tasks].sort((a, b) => a.order - b.order), [tasks]);
+  const toDo = useMemo(() => tasks.filter((t) => !t.completed).length, [tasks]);
+  const done = useMemo(() => tasks.filter((t) => t.completed).length, [tasks]);
+  const today = WEEKDAYS[new Date().getDay()];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
-      <View className="px-4 pt-4 pb-2">
-        <View className="flex-row items-center justify-between">
-          <Text className="text-2xl font-bold" style={{ color: theme.text }}>
-            Tasks
-          </Text>
-          <TouchableOpacity
-            testID="manage-categories-open"
-            onPress={() => setShowManageCategories(true)}
-            className="p-1">
-            <Ionicons name="pricetag-outline" size={20} color={theme.textSubtle} />
-          </TouchableOpacity>
-        </View>
-        <View className="flex-row mt-3 gap-2">
-          {(['all', 'active', 'completed'] as Filter[]).map((f) => (
-            <TouchableOpacity
-              key={f}
-              onPress={() => setFilter(f)}
-              className="px-4 py-1.5 rounded-full"
-              style={{
-                backgroundColor: filter === f ? theme.primary : theme.surface,
-                borderWidth: filter === f ? 0 : 1,
-                borderColor: theme.border,
-              }}>
-              <Text
-                className="text-sm font-medium capitalize"
-                style={{ color: filter === f ? '#fff' : theme.textMuted }}>
-                {f}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top']}>
+      <Halo size={380} top={-140} right={-80} opacity={theme.isDark ? 0.12 : 0.1} />
 
-        {categories.length > 0 && (
-          <>
-            <Text
-              className="text-xs font-semibold uppercase mt-3 mb-1"
-              style={{ color: theme.textSubtle }}>
-              Categories
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8 }}>
-              <TouchableOpacity
-                onPress={() => setCategoryFilter(null)}
-                className="px-3 py-1 rounded-full"
-                style={{
-                  backgroundColor: categoryFilter === null ? theme.primary : theme.surface,
-                  borderWidth: 1,
-                  borderColor: categoryFilter === null ? theme.primary : theme.border,
-                }}>
-                <Text
-                  className="text-xs font-medium"
-                  style={{ color: categoryFilter === null ? '#fff' : theme.textMuted }}>
-                  All
-                </Text>
-              </TouchableOpacity>
-              {categories.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  onPress={() => setCategoryFilter(categoryFilter === cat.id ? null : cat.id)}
-                  className="flex-row items-center gap-1.5 px-3 py-1 rounded-full"
-                  style={{
-                    backgroundColor: categoryFilter === cat.id ? cat.color + '22' : theme.surface,
-                    borderWidth: 1,
-                    borderColor: categoryFilter === cat.id ? cat.color : theme.border,
-                  }}>
-                  <View
-                    style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: cat.color }}
-                  />
-                  <Text
-                    className="text-xs font-medium"
-                    style={{ color: categoryFilter === cat.id ? cat.color : theme.textMuted }}>
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </>
-        )}
-      </View>
+      <ScreenHeader title="Tasks" subtitle={`${today} · ${toDo} to do · ${done} done`} />
 
       {__DEV__ && Platform.OS === 'web' ? <NextReminderDebugPanel tasks={tasks} /> : null}
 
-      <TaskList tasks={filtered} onTaskCompleted={handleTaskCompleted} />
+      <View style={{ flex: 1, marginTop: 4 }}>
+        <TaskList tasks={ordered} onTaskCompleted={handleTaskCompleted} />
+      </View>
 
-      <FAB onPress={() => setShowAdd(true)} bottomOffset={20} />
+      <FAB onPress={() => setShowAdd(true)} bottomOffset={24} align="right" />
       <AddTaskModal visible={showAdd} onClose={() => setShowAdd(false)} />
-      <ManageCategoriesModal
-        visible={showManageCategories}
-        onClose={() => setShowManageCategories(false)}
-      />
 
       {Platform.OS !== 'web' && showConfetti && (
         <View pointerEvents="none" style={styles.confettiOverlay}>

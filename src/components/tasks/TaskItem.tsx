@@ -77,8 +77,13 @@ function PickerSheet({ visible, title, testID, onClose, onConfirm, children }: P
           <TouchableOpacity
             testID={`${testID}-done`}
             onPress={onConfirm}
-            className="px-3 py-2 rounded-lg bg-indigo-500">
-            <Text className="text-sm font-semibold text-white">Done</Text>
+            style={{
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 12,
+              backgroundColor: theme.primary,
+            }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#fff' }}>Done</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -90,19 +95,10 @@ interface Props {
   item: Task;
   drag?: () => void;
   isActive?: boolean;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
   onCompleted?: () => void;
 }
 
-export function TaskItem({
-  item,
-  drag,
-  isActive = false,
-  onMoveUp,
-  onMoveDown,
-  onCompleted,
-}: Props) {
+export function TaskItem({ item, drag, isActive = false, onCompleted }: Props) {
   const theme = useAppTheme();
   const router = useRouter();
   const { toggleTask, deleteTask, updateTask } = useTaskStore();
@@ -325,12 +321,6 @@ export function TaskItem({
     setShowEditReminderTimePicker(true);
   };
 
-  const getPriorityBorderColor = (priority: Priority): string => {
-    if (priority === 'high') return theme.danger;
-    if (priority === 'low') return theme.success;
-    return '#f59e0b';
-  };
-
   const handleStartFocus = () => {
     startWorkForTask(item.id);
     router.replace('/(tabs)/pomodoro');
@@ -430,6 +420,16 @@ export function TaskItem({
     backgroundColor: theme.surface,
   };
 
+  const category = item.categoryId ? categories.find((c) => c.id === item.categoryId) : null;
+  const priorityPill =
+    item.priority === 'high' ? { label: 'P1', bg: theme.primarySoft, fg: theme.primary } : null;
+
+  const metaParts: string[] = [];
+  if (dueDateText) metaParts.push(`Due: ${dueDateText}`);
+  if (reminderText) metaParts.push(`Reminder: ${reminderText}`);
+  const metaLine = metaParts.join(' · ');
+  const showMeta = item.recurring.enabled || category || metaLine.length > 0;
+
   const rowContent = (
     <Animated.View
       testID="task-item-row"
@@ -439,132 +439,114 @@ export function TaskItem({
       style={[
         itemAnimatedStyle,
         {
+          marginHorizontal: 20,
+          marginBottom: 8,
+          paddingVertical: 14,
+          paddingHorizontal: 16,
+          borderRadius: 18,
           backgroundColor: theme.surface,
-          borderBottomColor: theme.border,
-          borderBottomWidth: 1,
-          borderRightColor: getPriorityBorderColor(item.priority),
-          borderRightWidth: 4,
+          borderWidth: 1,
+          borderColor: theme.border,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
           opacity: isActive ? 0.8 : 1,
         },
-      ]}
-      className="flex-row items-center px-4 py-3">
-      {drag ? (
-        <TouchableOpacity
-          onLongPress={drag}
-          className="pr-3 py-1"
-          accessibilityRole="button"
-          accessibilityLabel={`Reorder task ${item.title}`}
-          accessibilityHint="Long press and drag to reorder this task">
-          <Ionicons name="reorder-three-outline" size={18} color={theme.textSubtle} />
-        </TouchableOpacity>
-      ) : (
-        <View className="pr-3 py-1 flex-row gap-1">
-          <TouchableOpacity
-            onPress={onMoveUp}
-            disabled={!onMoveUp}
-            accessibilityRole="button"
-            accessibilityLabel={`Move ${item.title} up`}
-            accessibilityHint="Moves this task one position up">
-            <Ionicons
-              name="chevron-up"
-              size={16}
-              color={onMoveUp ? theme.textSubtle : theme.border}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={onMoveDown}
-            disabled={!onMoveDown}
-            accessibilityRole="button"
-            accessibilityLabel={`Move ${item.title} down`}
-            accessibilityHint="Moves this task one position down">
-            <Ionicons
-              name="chevron-down"
-              size={16}
-              color={onMoveDown ? theme.textSubtle : theme.border}
-            />
-          </TouchableOpacity>
-        </View>
-      )}
-
+      ]}>
       <TouchableOpacity
         onPress={handleToggle}
-        className="pr-3"
+        onLongPress={drag}
         accessibilityRole="checkbox"
         accessibilityLabel={item.title}
         accessibilityState={{ checked: item.completed }}
         accessibilityHint={item.completed ? 'Marks task as incomplete' : 'Marks task as complete'}>
         <Animated.View
-          className="w-5 h-5 rounded border-2 items-center justify-center"
           style={[
             checkboxAnimatedStyle,
             {
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              borderWidth: 2,
+              alignItems: 'center',
+              justifyContent: 'center',
               backgroundColor: item.completed ? theme.primary : 'transparent',
               borderColor: item.completed ? theme.primary : theme.border,
             },
           ]}>
-          {item.completed && <Ionicons name="checkmark" size={12} color="#fff" />}
+          {item.completed && <Ionicons name="checkmark" size={14} color="#fff" />}
         </Animated.View>
       </TouchableOpacity>
 
-      <View className="flex-1">
-        <View className="flex-row items-center gap-2">
-          <Text
-            className="flex-1 text-base"
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          numberOfLines={1}
+          style={{
+            fontSize: 16,
+            fontWeight: '600',
+            textDecorationLine: item.completed ? 'line-through' : 'none',
+            color: item.completed ? theme.textSubtle : theme.text,
+          }}>
+          {item.title}
+        </Text>
+
+        {showMeta && (
+          <View
             style={{
-              textDecorationLine: item.completed ? 'line-through' : 'none',
-              color: item.completed ? theme.textSubtle : theme.text,
-            }}
-            numberOfLines={2}>
-            {item.title}
-          </Text>
-        </View>
-
-        {item.categoryId &&
-          (() => {
-            const cat = categories.find((c) => c.id === item.categoryId);
-            return cat ? (
-              <View className="flex-row items-center gap-1 mt-1">
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              marginTop: 3,
+              flexWrap: 'wrap',
+            }}>
+            {category && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <View
-                  style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: cat.color }}
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: category.color,
+                  }}
                 />
-                <Text className="text-xs" style={{ color: cat.color }}>
-                  {cat.name}
-                </Text>
+                <Text style={{ fontSize: 11, color: theme.textSubtle }}>{category.name}</Text>
               </View>
-            ) : null;
-          })()}
-
-        {(item.recurring.enabled || dueDateText || reminderText) && (
-          <View className="mt-1 gap-0.5">
+            )}
             {item.recurring.enabled && (
-              <View className="flex-row items-center gap-1">
-                <Ionicons name="repeat" size={13} color={theme.textSubtle} />
-                <Text className="text-xs" style={{ color: theme.textSubtle }}>
-                  Recurring
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Ionicons name="repeat" size={11} color={theme.textSubtle} />
+                <Text style={{ fontSize: 11, color: theme.textSubtle }}>Recurring</Text>
               </View>
             )}
-            {dueDateText && (
-              <Text className="text-xs" style={{ color: theme.textSubtle }}>
-                Due: {dueDateText}
-              </Text>
-            )}
-            {reminderText && (
-              <Text className="text-xs" style={{ color: theme.textSubtle }}>
-                Reminder: {reminderText}
+            {metaLine.length > 0 && (
+              <Text style={{ fontSize: 11, color: theme.textSubtle }} numberOfLines={1}>
+                {metaLine}
               </Text>
             )}
           </View>
         )}
       </View>
 
+      {priorityPill && (
+        <View
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderRadius: 14,
+            backgroundColor: priorityPill.bg,
+          }}>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: priorityPill.fg }}>
+            {priorityPill.label}
+          </Text>
+        </View>
+      )}
+
       {Platform.OS === 'web' && (
-        <View className="flex-row items-center">
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           {!item.completed && (
             <TouchableOpacity
               onPress={handleStartFocus}
               testID="focus-task-start"
-              className="pl-2 py-1"
               accessibilityRole="button"
               accessibilityLabel={`Start focus on ${item.title}`}>
               <Ionicons name="timer-outline" size={16} color={theme.success} />
@@ -575,7 +557,6 @@ export function TaskItem({
             <TouchableOpacity
               onPress={openEdit}
               testID="edit-task-open"
-              className="pl-2 py-1"
               accessibilityRole="button"
               accessibilityLabel={`Edit task ${item.title}`}
               accessibilityHint="Opens task edit form">
@@ -585,7 +566,6 @@ export function TaskItem({
 
           <TouchableOpacity
             onPress={() => deleteTask(item.id)}
-            className="pl-3 py-1"
             accessibilityRole="button"
             accessibilityLabel={`Delete task ${item.title}`}
             accessibilityHint="Removes this task">
@@ -632,8 +612,11 @@ export function TaskItem({
             <TouchableOpacity
               key={p}
               onPress={() => setEditPriority(p)}
-              className="flex-1 py-2 rounded-lg border"
               style={{
+                flex: 1,
+                paddingVertical: 10,
+                borderRadius: 14,
+                borderWidth: 1,
                 backgroundColor: editPriority === p ? theme.primary : theme.surface,
                 borderColor: editPriority === p ? theme.primary : theme.border,
               }}>
@@ -709,7 +692,7 @@ export function TaskItem({
               }
               setEditRecurring(v);
             }}
-            trackColor={{ true: '#6366f1' }}
+            trackColor={{ true: theme.primary }}
           />
         </View>
 
@@ -726,9 +709,9 @@ export function TaskItem({
                   borderRadius: 18,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: editDays.includes(i) ? '#6366f1' : theme.surface,
+                  backgroundColor: editDays.includes(i) ? theme.primary : theme.surface,
                   borderWidth: 1,
-                  borderColor: editDays.includes(i) ? '#6366f1' : theme.border,
+                  borderColor: editDays.includes(i) ? theme.primary : theme.border,
                 }}>
                 <Text
                   style={{
@@ -816,7 +799,7 @@ export function TaskItem({
                 }
                 enableEditReminder(v);
               }}
-              trackColor={{ true: '#6366f1' }}
+              trackColor={{ true: theme.primary }}
             />
           </View>
         </View>
@@ -911,21 +894,32 @@ export function TaskItem({
             </View>
           ))}
 
-        <View className="flex-row gap-2">
+        <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity
             onPress={() => setShowEdit(false)}
-            className="flex-1 py-3 rounded-xl items-center"
-            style={{ borderColor: theme.border, borderWidth: 1, backgroundColor: theme.surface }}>
-            <Text className="font-semibold" style={{ color: theme.textMuted }}>
-              Cancel
-            </Text>
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              borderRadius: 14,
+              alignItems: 'center',
+              borderColor: theme.border,
+              borderWidth: 1,
+              backgroundColor: theme.surface,
+            }}>
+            <Text style={{ fontWeight: '600', color: theme.textMuted }}>Cancel</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={saveEdit}
-            className="flex-1 py-3 rounded-xl items-center"
-            style={{ backgroundColor: theme.primary }}
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              borderRadius: 14,
+              alignItems: 'center',
+              backgroundColor: theme.primary,
+              opacity: editTitle.trim() ? 1 : 0.6,
+            }}
             disabled={!editTitle.trim()}>
-            <Text className="text-white font-semibold">Save</Text>
+            <Text style={{ color: '#fff', fontWeight: '700' }}>Save</Text>
           </TouchableOpacity>
         </View>
       </Modal>

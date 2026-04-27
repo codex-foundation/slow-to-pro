@@ -54,11 +54,11 @@ describe('TimerControls', () => {
     mockStatus = 'idle';
   });
 
-  it('shows text controls and START label when idle', () => {
+  it('shows text controls and Start label when idle', () => {
     const { getByText } = render(<TimerControls />);
 
-    expect(getByText('RESET')).toBeTruthy();
-    expect(getByText('START')).toBeTruthy();
+    expect(getByText('Reset')).toBeTruthy();
+    expect(getByText('Start')).toBeTruthy();
   });
 
   it('starts when primary button is pressed while idle', () => {
@@ -74,7 +74,7 @@ describe('TimerControls', () => {
     mockStatus = 'running';
     const { getByText, getByTestId } = render(<TimerControls />);
 
-    expect(getByText('PAUSE')).toBeTruthy();
+    expect(getByText('Pause')).toBeTruthy();
 
     fireEvent.press(getByTestId('timer-primary-button'));
 

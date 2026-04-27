@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PaywallModal } from '@/components/ui/PaywallModal';
 import { SharedSpaceModal } from '@/components/ui/SharedSpaceModal';
+import { Card, Halo, PillGroup, ScreenHeader, SectionLabel } from '@/design';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { syncFromCloudOrSeed } from '@/services/cloudSync';
@@ -25,7 +26,11 @@ import { useSpaceStore } from '@/stores/spaceStore';
 import { useSyncStore } from '@/stores/syncStore';
 import { refreshProStatus } from '@/utils/purchases';
 
-const THEME_OPTIONS: ThemePreference[] = ['system', 'light', 'dark'];
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'system', label: 'system' },
+  { value: 'light', label: 'light' },
+  { value: 'dark', label: 'dark' },
+];
 
 function syncTimeAgo(ms: number): string {
   const secs = Math.floor((Date.now() - ms) / 1000);
@@ -40,7 +45,6 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { pro } = useLocalSearchParams<{ pro?: string }>();
 
-  // On web: refresh pro status when returning from Stripe Checkout
   useEffect(() => {
     if (Platform.OS === 'web' && pro === 'success') {
       void refreshProStatus();
@@ -208,262 +212,210 @@ export default function SettingsScreen() {
     });
   };
 
-  return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.bg }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
-        <View className="px-4 pt-4 pb-2">
-          <Text className="text-2xl font-bold" style={{ color: theme.text }}>
-            Settings
-          </Text>
-        </View>
+  const syncDotColor = isSyncing
+    ? theme.primary
+    : syncError
+      ? theme.danger
+      : lastSyncedAt
+        ? theme.success
+        : theme.textSubtle;
 
-        <View className="px-4 mt-4">
-          <View
-            className="rounded-2xl p-4"
-            style={{
-              backgroundColor: theme.surfaceMuted,
-              borderColor: theme.border,
-              borderWidth: 1,
-            }}>
-            <Text className="text-sm font-semibold" style={{ color: theme.textMuted }}>
-              Theme
-            </Text>
-            <Text className="text-xs mt-1 mb-3" style={{ color: theme.textSubtle }}>
+  const syncLabel = isSyncing
+    ? 'Syncing…'
+    : syncError
+      ? `Sync error: ${syncError}`
+      : lastSyncedAt
+        ? `Synced · ${syncTimeAgo(lastSyncedAt)}`
+        : 'Sync pending…';
+
+  const inputStyle = {
+    borderColor: theme.border,
+    borderWidth: 1,
+    backgroundColor: theme.bg,
+    color: theme.text,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    marginBottom: 10,
+  } as const;
+
+  const secondaryBtn = {
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+  } as const;
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top']}>
+      <Halo size={380} top={-140} right={-80} opacity={theme.isDark ? 0.14 : 0.1} />
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}>
+        <ScreenHeader
+          eyebrow="Preferences"
+          title="Settings"
+          subtitle="Theme, account, sync, and Pro — all in one calm place."
+        />
+
+        <SectionLabel>Theme</SectionLabel>
+        <View style={{ paddingHorizontal: 20 }}>
+          <Card>
+            <Text style={{ fontSize: 13, color: theme.textSubtle, marginBottom: 12 }}>
               Choose your preferred appearance.
             </Text>
-
-            <View className="flex-row gap-2">
-              {THEME_OPTIONS.map((option) => {
-                const active = themePreference === option;
-                return (
-                  <TouchableOpacity
-                    key={option}
-                    onPress={() => setThemePreference(option)}
-                    className="px-4 py-2 rounded-full"
-                    style={{
-                      backgroundColor: active ? theme.primary : theme.surface,
-                      borderColor: active ? theme.primary : theme.border,
-                      borderWidth: 1,
-                    }}>
-                    <Text
-                      className="text-sm font-medium capitalize"
-                      style={{ color: active ? '#fff' : theme.textMuted }}>
-                      {option}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+            <PillGroup
+              options={THEME_OPTIONS}
+              value={themePreference}
+              onChange={(v) => setThemePreference(v)}
+            />
+          </Card>
         </View>
 
-        <View className="px-4 mt-4">
-          <View
-            className="rounded-2xl p-4"
-            style={{
-              backgroundColor: theme.surfaceMuted,
-              borderColor: theme.border,
-              borderWidth: 1,
-            }}>
-            <Text className="text-sm font-semibold mb-2" style={{ color: theme.textMuted }}>
-              Account & Sync
-            </Text>
+        <SectionLabel>Account & Sync</SectionLabel>
+        <View style={{ paddingHorizontal: 20 }}>
+          <Card>
             {!authEnabled ? (
-              <Text className="text-xs" style={{ color: theme.textSubtle }}>
+              <Text style={{ fontSize: 13, color: theme.textSubtle, lineHeight: 19 }}>
                 Configure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env to
                 enable login and cross-device sync.
               </Text>
+            ) : authLoading ? (
+              <ActivityIndicator size="small" color={theme.textSubtle} />
             ) : (
               <>
-                {authLoading ? (
-                  <ActivityIndicator size="small" color={theme.textSubtle} />
-                ) : (
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: theme.textSubtle,
+                    lineHeight: 19,
+                    marginBottom: 14,
+                  }}>
+                  {userEmail
+                    ? `Logged in as ${userEmail}`
+                    : 'Log in or sign up to sync your tasks, finances, focus sessions, and settings across devices.'}
+                </Text>
+
+                {!userEmail && (
                   <>
-                    <Text className="text-xs mb-3" style={{ color: theme.textSubtle }}>
-                      {userEmail
-                        ? `Logged in as ${userEmail}`
-                        : 'Log in or sign up to sync your tasks, finances, focus sessions, and settings across devices.'}
-                    </Text>
+                    <TextInput
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      placeholder="Email"
+                      placeholderTextColor={theme.textSubtle}
+                      style={inputStyle}
+                    />
+                    <TextInput
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry
+                      placeholder="Password (min 6 chars)"
+                      placeholderTextColor={theme.textSubtle}
+                      style={inputStyle}
+                    />
 
-                    {!authLoading && !userEmail && (
-                      <>
-                        <TextInput
-                          value={email}
-                          onChangeText={setEmail}
-                          autoCapitalize="none"
-                          keyboardType="email-address"
-                          placeholder="Email"
-                          placeholderTextColor={theme.textSubtle}
-                          className="rounded-xl px-4 py-3 text-sm mb-2"
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                      <TouchableOpacity
+                        onPress={handleLogin}
+                        disabled={!canAuthSubmit}
+                        style={{
+                          flex: 1,
+                          paddingVertical: 12,
+                          borderRadius: 14,
+                          alignItems: 'center',
+                          backgroundColor: canAuthSubmit ? theme.primary : theme.surfaceMuted,
+                        }}>
+                        <Text
                           style={{
-                            borderColor: theme.border,
-                            borderWidth: 1,
-                            backgroundColor: theme.surface,
-                            color: theme.text,
-                          }}
-                        />
-                        <TextInput
-                          value={password}
-                          onChangeText={setPassword}
-                          secureTextEntry
-                          placeholder="Password (min 6 chars)"
-                          placeholderTextColor={theme.textSubtle}
-                          className="rounded-xl px-4 py-3 text-sm mb-3"
-                          style={{
-                            borderColor: theme.border,
-                            borderWidth: 1,
-                            backgroundColor: theme.surface,
-                            color: theme.text,
-                          }}
-                        />
-
-                        <View className="flex-row gap-2 mb-2">
-                          <TouchableOpacity
-                            onPress={handleLogin}
-                            disabled={!canAuthSubmit}
-                            className="flex-1 py-2.5 rounded-xl items-center"
-                            style={{
-                              backgroundColor: canAuthSubmit ? theme.primary : theme.surface,
-                              borderColor: theme.border,
-                              borderWidth: canAuthSubmit ? 0 : 1,
-                            }}>
-                            <Text
-                              className="font-semibold"
-                              style={{ color: canAuthSubmit ? '#fff' : theme.textSubtle }}>
-                              {busyAction === 'login' ? 'Logging in...' : 'Log in'}
-                            </Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            onPress={handleSignUp}
-                            disabled={!canAuthSubmit}
-                            className="flex-1 py-2.5 rounded-xl items-center"
-                            style={{
-                              backgroundColor: canAuthSubmit ? theme.surface : theme.surfaceMuted,
-                              borderColor: theme.border,
-                              borderWidth: 1,
-                            }}>
-                            <Text className="font-semibold" style={{ color: theme.textMuted }}>
-                              {busyAction === 'signup' ? 'Signing up...' : 'Sign up'}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        <View className="gap-2 mb-2">
-                          <TouchableOpacity
-                            onPress={() => handleSocialLogin('google')}
-                            disabled={isBusy}
-                            className="py-2.5 rounded-xl items-center"
-                            style={{
-                              backgroundColor: theme.surface,
-                              borderColor: theme.border,
-                              borderWidth: 1,
-                              opacity: isBusy ? 0.65 : 1,
-                            }}>
-                            <Text className="font-semibold" style={{ color: theme.textMuted }}>
-                              {busyAction === 'google'
-                                ? 'Opening Google...'
-                                : 'Continue with Google'}
-                            </Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            onPress={() => handleSocialLogin('apple')}
-                            disabled={isBusy}
-                            className="py-2.5 rounded-xl items-center"
-                            style={{
-                              backgroundColor: theme.surface,
-                              borderColor: theme.border,
-                              borderWidth: 1,
-                              opacity: isBusy ? 0.65 : 1,
-                            }}>
-                            <Text className="font-semibold" style={{ color: theme.textMuted }}>
-                              {busyAction === 'apple' ? 'Opening Apple...' : 'Continue with Apple'}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      </>
-                    )}
-
-                    {userEmail && (
-                      <>
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 8,
-                            marginBottom: 12,
+                            fontWeight: '600',
+                            color: canAuthSubmit ? '#fff' : theme.textSubtle,
                           }}>
-                          <View
-                            style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: 4,
-                              backgroundColor: isSyncing
-                                ? theme.primary
-                                : syncError
-                                  ? '#ef4444'
-                                  : lastSyncedAt
-                                    ? '#22c55e'
-                                    : '#94a3b8',
-                            }}
-                          />
-                          <Text style={{ fontSize: 12, color: theme.textSubtle }}>
-                            {isSyncing
-                              ? 'Syncing…'
-                              : syncError
-                                ? `Sync error: ${syncError}`
-                                : lastSyncedAt
-                                  ? `Synced · ${syncTimeAgo(lastSyncedAt)}`
-                                  : 'Sync pending…'}
-                          </Text>
-                        </View>
+                          {busyAction === 'login' ? 'Logging in...' : 'Log in'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handleSignUp}
+                        disabled={!canAuthSubmit}
+                        style={{ flex: 1, ...secondaryBtn }}>
+                        <Text style={{ fontWeight: '600', color: theme.textMuted }}>
+                          {busyAction === 'signup' ? 'Signing up...' : 'Sign up'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
 
-                        <TouchableOpacity
-                          onPress={handleLogout}
-                          disabled={isBusy}
-                          className="py-2.5 rounded-xl items-center"
-                          style={{
-                            backgroundColor: theme.surface,
-                            borderColor: theme.border,
-                            borderWidth: 1,
-                          }}>
-                          <Text className="font-semibold" style={{ color: theme.textMuted }}>
-                            {busyAction === 'logout' ? 'Logging out…' : 'Log out'}
-                          </Text>
-                        </TouchableOpacity>
-                      </>
-                    )}
+                    <View style={{ gap: 8 }}>
+                      <TouchableOpacity
+                        onPress={() => handleSocialLogin('google')}
+                        disabled={isBusy}
+                        style={{ ...secondaryBtn, opacity: isBusy ? 0.65 : 1 }}>
+                        <Text style={{ fontWeight: '600', color: theme.textMuted }}>
+                          {busyAction === 'google' ? 'Opening Google...' : 'Continue with Google'}
+                        </Text>
+                      </TouchableOpacity>
 
-                    {!!statusMessage && (
-                      <Text className="text-xs mt-3" style={{ color: theme.textSubtle }}>
-                        {statusMessage}
-                      </Text>
-                    )}
+                      <TouchableOpacity
+                        onPress={() => handleSocialLogin('apple')}
+                        disabled={isBusy}
+                        style={{ ...secondaryBtn, opacity: isBusy ? 0.65 : 1 }}>
+                        <Text style={{ fontWeight: '600', color: theme.textMuted }}>
+                          {busyAction === 'apple' ? 'Opening Apple...' : 'Continue with Apple'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </>
+                )}
+
+                {userEmail && (
+                  <>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 8,
+                        marginBottom: 14,
+                      }}>
+                      <View
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: syncDotColor,
+                        }}
+                      />
+                      <Text style={{ fontSize: 12, color: theme.textSubtle }}>{syncLabel}</Text>
+                    </View>
+
+                    <TouchableOpacity onPress={handleLogout} disabled={isBusy} style={secondaryBtn}>
+                      <Text style={{ fontWeight: '600', color: theme.textMuted }}>
+                        {busyAction === 'logout' ? 'Logging out…' : 'Log out'}
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                {!!statusMessage && (
+                  <Text style={{ fontSize: 12, color: theme.textSubtle, marginTop: 12 }}>
+                    {statusMessage}
+                  </Text>
                 )}
               </>
             )}
-          </View>
+          </Card>
         </View>
 
-        <View className="px-4 mt-4">
-          <View
-            className="rounded-2xl p-4"
-            style={{
-              backgroundColor: theme.surfaceMuted,
-              borderColor: theme.border,
-              borderWidth: 1,
-            }}>
-            <Text className="text-sm font-semibold mb-2" style={{ color: theme.textMuted }}>
-              Pro
-            </Text>
+        <SectionLabel>Pro</SectionLabel>
+        <View style={{ paddingHorizontal: 20 }}>
+          <Card>
             {isPro ? (
-              <View style={{ gap: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text className="text-sm font-semibold" style={{ color: '#22c55e' }}>
-                    ✓ You're on Pro
-                  </Text>
-                </View>
+              <View style={{ gap: 10 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.success }}>
+                  ✓ You're on Pro
+                </Text>
                 {isRcPro && (
                   <TouchableOpacity
                     onPress={() =>
@@ -473,13 +425,8 @@ export default function SettingsScreen() {
                           : 'itms-apps://apps.apple.com/account/subscriptions'
                       )
                     }
-                    className="py-2.5 rounded-xl items-center"
-                    style={{
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      borderWidth: 1,
-                    }}>
-                    <Text className="font-semibold" style={{ color: theme.textMuted }}>
+                    style={secondaryBtn}>
+                    <Text style={{ fontWeight: '600', color: theme.textMuted }}>
                       Manage Subscription
                     </Text>
                   </TouchableOpacity>
@@ -487,62 +434,83 @@ export default function SettingsScreen() {
               </View>
             ) : (
               <>
-                <Text className="text-xs mb-3" style={{ color: theme.textSubtle }}>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: theme.textSubtle,
+                    lineHeight: 19,
+                    marginBottom: 12,
+                  }}>
                   Unlock recurring tasks, reminders, unlimited categories, and more.
                 </Text>
                 <TouchableOpacity
                   onPress={() => setShowPaywall(true)}
-                  className="py-2.5 rounded-xl items-center"
-                  style={{ backgroundColor: theme.primary }}>
-                  <Text className="font-semibold text-white">Upgrade to Pro</Text>
+                  style={{
+                    paddingVertical: 12,
+                    borderRadius: 14,
+                    alignItems: 'center',
+                    backgroundColor: theme.primary,
+                  }}>
+                  <Text style={{ fontWeight: '600', color: '#fff' }}>Upgrade to Pro</Text>
                 </TouchableOpacity>
               </>
             )}
-          </View>
+          </Card>
         </View>
 
-        {/* Shared Spaces */}
-        <View className="px-4 mt-4">
-          <View
-            className="rounded-2xl p-4"
-            style={{
-              backgroundColor: theme.surfaceMuted,
-              borderColor: theme.border,
-              borderWidth: 1,
-            }}>
-            <Text className="text-sm font-semibold mb-2" style={{ color: theme.textMuted }}>
-              Shared Spaces
-            </Text>
+        <SectionLabel>Shared Spaces</SectionLabel>
+        <View style={{ paddingHorizontal: 20 }}>
+          <Card>
             {!isPro ? (
               <>
-                <Text className="text-xs mb-3" style={{ color: theme.textSubtle }}>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: theme.textSubtle,
+                    lineHeight: 19,
+                    marginBottom: 12,
+                  }}>
                   Share tasks and budgets with family or team. Pro feature.
                 </Text>
                 <TouchableOpacity
                   onPress={() => setShowPaywall(true)}
-                  className="py-2.5 rounded-xl items-center"
-                  style={{ backgroundColor: theme.primary }}>
-                  <Text className="font-semibold text-white">Upgrade to Pro</Text>
+                  style={{
+                    paddingVertical: 12,
+                    borderRadius: 14,
+                    alignItems: 'center',
+                    backgroundColor: theme.primary,
+                  }}>
+                  <Text style={{ fontWeight: '600', color: '#fff' }}>Upgrade to Pro</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <>
                 <Text
-                  className="text-xs mb-2"
-                  style={{ color: activeSpaceId ? theme.primary : theme.textSubtle }}>
+                  style={{
+                    fontSize: 13,
+                    marginBottom: 12,
+                    color: activeSpaceId ? theme.primary : theme.textSubtle,
+                  }}>
                   {activeSpaceId
                     ? `Space: ${spaces.find((s) => s.id === activeSpaceId)?.name ?? 'Unknown'}`
                     : 'Personal (no space selected)'}
                 </Text>
                 <TouchableOpacity
                   onPress={() => setShowSpaces(true)}
-                  className="py-2.5 rounded-xl items-center flex-row justify-center gap-2"
-                  style={{ backgroundColor: theme.primary }}>
-                  <Text className="font-semibold text-white">Manage Spaces</Text>
+                  style={{
+                    paddingVertical: 12,
+                    borderRadius: 14,
+                    alignItems: 'center',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    gap: 8,
+                    backgroundColor: theme.primary,
+                  }}>
+                  <Text style={{ fontWeight: '600', color: '#fff' }}>Manage Spaces</Text>
                   {pendingInvites.length > 0 && (
                     <View
                       style={{
-                        backgroundColor: '#ef4444',
+                        backgroundColor: theme.danger,
                         borderRadius: 8,
                         paddingHorizontal: 6,
                         paddingVertical: 1,
@@ -555,37 +523,26 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
               </>
             )}
-          </View>
+          </Card>
         </View>
 
-        <View className="px-4 mt-4">
-          <View
-            className="rounded-2xl p-4"
-            style={{
-              backgroundColor: theme.surfaceMuted,
-              borderColor: theme.border,
-              borderWidth: 1,
-            }}>
-            <Text className="text-sm font-semibold mb-2" style={{ color: theme.textMuted }}>
-              About
-            </Text>
-
-            <View className="flex-row justify-between py-1">
-              <Text className="text-sm" style={{ color: theme.textSubtle }}>
-                App Version
-              </Text>
-              <Text className="text-sm font-semibold" style={{ color: theme.text }}>
+        <SectionLabel>About</SectionLabel>
+        <View style={{ paddingHorizontal: 20 }}>
+          <Card>
+            <View
+              style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 }}>
+              <Text style={{ fontSize: 14, color: theme.textSubtle }}>App Version</Text>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: theme.text }}>
                 {appVersion}
               </Text>
             </View>
-
-            <View className="h-px my-2" style={{ backgroundColor: theme.border }} />
-
-            <Text className="text-sm" style={{ color: theme.textSubtle }}>
+            <View style={{ height: 1, backgroundColor: theme.border, marginVertical: 10 }} />
+            <Text style={{ fontSize: 13, color: theme.textSubtle }}>
               © {currentYear} slow-to-pro. All rights reserved.
             </Text>
-          </View>
+          </Card>
         </View>
+
         <PaywallModal
           visible={showPaywall}
           onClose={() => setShowPaywall(false)}
