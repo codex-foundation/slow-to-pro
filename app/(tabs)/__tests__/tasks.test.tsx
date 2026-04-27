@@ -111,22 +111,6 @@ jest.mock('@/utils/confetti', () => ({
   fireConfetti: (...args: unknown[]) => mockFireConfetti(...args),
 }));
 
-jest.mock('@/components/tasks/ManageCategoriesModal', () => {
-  const React = jest.requireActual('react') as typeof import('react');
-  const { View, Text } = jest.requireActual('react-native') as typeof import('react-native');
-
-  return {
-    ManageCategoriesModal: ({ visible }: { visible: boolean; onClose: () => void }) =>
-      visible
-        ? React.createElement(
-            View,
-            { testID: 'mock-manage-categories-modal' },
-            React.createElement(Text, null, 'Manage categories')
-          )
-        : null,
-  };
-});
-
 function resetTaskStore() {
   useTaskStore.setState({
     lastResetDate: new Date().toISOString().slice(0, 10),
@@ -169,39 +153,16 @@ describe('TasksScreen UI', () => {
     resetTaskStore();
   });
 
-  it('filters tasks by active and completed', () => {
-    const { getByText, queryByText } = render(<TasksScreen />);
-
-    // default: active
-    expect(getByText('Read docs')).toBeTruthy();
-    expect(getByText('Write tests')).toBeTruthy();
-    expect(queryByText('Ship feature')).toBeNull();
-
-    fireEvent.press(getByText('all'));
-    expect(getByText('Read docs')).toBeTruthy();
-    expect(getByText('Write tests')).toBeTruthy();
-    expect(getByText('Ship feature')).toBeTruthy();
-
-    fireEvent.press(getByText('completed'));
-    expect(getByText('Ship feature')).toBeTruthy();
-    expect(queryByText('Read docs')).toBeNull();
-    expect(queryByText('Write tests')).toBeNull();
-  });
-
-  it('shows category filter row when categories exist', () => {
-    useTaskStore.setState((s) => ({
-      ...s,
-      categories: [{ id: 'cat-1', name: 'Work', color: '#6366f1' }],
-    }));
-
+  it('renders all tasks (active + completed) ordered by order', () => {
     const { getByText } = render(<TasksScreen />);
-    expect(getByText('Categories')).toBeTruthy();
-    expect(getByText('Work')).toBeTruthy();
+    expect(getByText('Read docs')).toBeTruthy();
+    expect(getByText('Ship feature')).toBeTruthy();
+    expect(getByText('Write tests')).toBeTruthy();
   });
 
-  it('does not show category filter row when no categories', () => {
-    const { queryByText } = render(<TasksScreen />);
-    expect(queryByText('Categories')).toBeNull();
+  it('shows weekday · counts subtitle', () => {
+    const { getByText } = render(<TasksScreen />);
+    expect(getByText(/to do · \d+ done/)).toBeTruthy();
   });
 
   it('opens and closes add task modal from FAB', () => {
@@ -250,7 +211,6 @@ describe('TasksScreen handleTaskCompleted', () => {
     fireEvent.press(getByTestId('mock-task-completed'));
     expect(getByTestId('mock-confetti-cannon')).toBeTruthy();
 
-    // After the timeout, confetti hides
     act(() => {
       jest.advanceTimersByTime(2400);
     });
@@ -267,7 +227,6 @@ describe('TasksScreen handleTaskCompleted', () => {
 
     const { getByTestId, unmount } = render(<TasksScreen />);
     fireEvent.press(getByTestId('mock-task-completed'));
-    // Timeout is pending; unmount should clear it
     unmount();
     expect(clearTimeoutSpy).toHaveBeenCalled();
 
@@ -283,65 +242,10 @@ describe('TasksScreen handleTaskCompleted', () => {
     const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
     const { getByTestId } = render(<TasksScreen />);
     fireEvent.press(getByTestId('mock-task-completed'));
-    // Fire again before timeout — should clear the previous timeout
     fireEvent.press(getByTestId('mock-task-completed'));
     expect(clearTimeoutSpy).toHaveBeenCalled();
 
     clearTimeoutSpy.mockRestore();
     (Platform as { OS: string }).OS = original;
-  });
-});
-
-describe('TasksScreen categories and manage modal', () => {
-  beforeEach(() => {
-    resetTaskStore();
-    useTaskStore.setState((s) => ({
-      ...s,
-      categories: [{ id: 'cat-1', name: 'Work', color: '#6366f1' }],
-    }));
-  });
-
-  it('filters tasks by selected category', () => {
-    useTaskStore.setState((s) => ({
-      ...s,
-      tasks: [
-        ...s.tasks,
-        {
-          id: 'task-4',
-          title: 'Work task',
-          completed: false,
-          priority: 'high' as const,
-          order: 3,
-          categoryId: 'cat-1',
-          recurring: { enabled: false, days: [] },
-          createdAt: Date.now(),
-        },
-      ],
-    }));
-    const { getByText, queryByText } = render(<TasksScreen />);
-    // Select Work category
-    fireEvent.press(getByText('Work'));
-    expect(getByText('Work task')).toBeTruthy();
-    expect(queryByText('Read docs')).toBeNull();
-    // Press Work again to deselect (toggle off)
-    fireEvent.press(getByText('Work'));
-    expect(getByText('Read docs')).toBeTruthy();
-  });
-
-  it('resets to all when "All" category filter is pressed', () => {
-    const { getByText, getAllByText } = render(<TasksScreen />);
-    // Select Work
-    fireEvent.press(getByText('Work'));
-    // Press "All" in the category filter row
-    const allButtons = getAllByText('All');
-    fireEvent.press(allButtons[allButtons.length - 1]);
-    expect(getByText('Read docs')).toBeTruthy();
-  });
-
-  it('opens and closes ManageCategoriesModal', () => {
-    const { getByTestId, queryByTestId } = render(<TasksScreen />);
-    expect(queryByTestId('mock-manage-categories-modal')).toBeNull();
-    fireEvent.press(getByTestId('manage-categories-open'));
-    expect(getByTestId('mock-manage-categories-modal')).toBeTruthy();
   });
 });

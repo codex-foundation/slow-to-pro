@@ -102,17 +102,16 @@ describe('PomodoroScreen UI', () => {
     jest.useRealTimers();
   });
 
-  it('applies theme bg and minHeight to ScrollView contentContainerStyle to prevent white background in dark mode', () => {
+  it('applies minHeight to ScrollView contentContainerStyle', () => {
     const { UNSAFE_getByType } = render(<PomodoroScreen />);
     const scrollView = UNSAFE_getByType(ScrollView);
-    expect(scrollView.props.contentContainerStyle).toMatchObject({ backgroundColor: '#ffffff' });
     expect(scrollView.props.contentContainerStyle).toHaveProperty('minHeight');
   });
 
   it('renders key pomodoro sections', () => {
     const { getByText } = render(<PomodoroScreen />);
 
-    expect(getByText('Focus')).toBeTruthy();
+    expect(getByText('Pomodoro')).toBeTruthy();
     expect(getByText('Link to task')).toBeTruthy();
     expect(getByText('Session log')).toBeTruthy();
   });

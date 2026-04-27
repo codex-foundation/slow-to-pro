@@ -1,6 +1,5 @@
-import { FlatList, Platform, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
-import Animated, { Layout } from 'react-native-reanimated';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import type { Task } from '@/models/task';
@@ -36,14 +35,6 @@ export function TaskList({ tasks, onTaskCompleted }: Props) {
     reorderTasks(nextOrdered.map((task, index) => ({ ...task, order: index })));
   };
 
-  const moveVisibleTask = (fromIndex: number, toIndex: number) => {
-    if (toIndex < 0 || toIndex >= tasks.length || fromIndex === toIndex) return;
-    const reorderedVisible = [...tasks];
-    const [moved] = reorderedVisible.splice(fromIndex, 1);
-    reorderedVisible.splice(toIndex, 0, moved);
-    commitVisibleReorder(reorderedVisible);
-  };
-
   if (tasks.length === 0) {
     return (
       <View className="flex-1 items-center justify-center pb-24">
@@ -54,34 +45,13 @@ export function TaskList({ tasks, onTaskCompleted }: Props) {
     );
   }
 
-  if (Platform.OS !== 'android') {
-    return (
-      <Animated.FlatList
-        data={tasks}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => (
-          <TaskItem
-            item={item}
-            onMoveUp={index > 0 ? () => moveVisibleTask(index, index - 1) : undefined}
-            onMoveDown={
-              index < tasks.length - 1 ? () => moveVisibleTask(index, index + 1) : undefined
-            }
-            onCompleted={onTaskCompleted}
-          />
-        )}
-        itemLayoutAnimation={Platform.OS === 'ios' ? Layout.springify() : undefined}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      />
-    );
-  }
-
   return (
     <DraggableFlatList
       data={tasks}
       keyExtractor={(item) => item.id}
       renderItem={(params) => <TaskItem {...params} onCompleted={onTaskCompleted} />}
       onDragEnd={({ data }) => commitVisibleReorder(data)}
-      contentContainerStyle={{ paddingBottom: 100 }}
+      contentContainerStyle={{ paddingTop: 12, paddingBottom: 100 }}
     />
   );
 }

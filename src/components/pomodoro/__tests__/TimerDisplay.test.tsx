@@ -2,6 +2,7 @@ import { render } from '@testing-library/react-native';
 
 jest.mock('@/hooks/useAppTheme', () => ({
   useAppTheme: () => ({
+    isDark: false,
     primary: '#007AFF',
     success: '#34C759',
     text: '#000000',
@@ -12,11 +13,25 @@ jest.mock('@/hooks/useAppTheme', () => ({
   }),
 }));
 
+jest.mock('react-native-svg', () => {
+  const React = jest.requireActual('react') as typeof import('react');
+  const { View } = jest.requireActual('react-native') as typeof import('react-native');
+  const Stub = ({ children }: { children?: React.ReactNode }) =>
+    React.createElement(View, null, children);
+  return {
+    __esModule: true,
+    default: Stub,
+    Circle: Stub,
+  };
+});
+
 let mockPomodoroState = {
   secondsRemaining: 25 * 60,
   phase: 'work' as 'work' | 'break',
   cycleCount: 0,
   selectedTaskId: null as string | null,
+  workDuration: 25,
+  breakDuration: 5,
 };
 
 jest.mock('@/stores/pomodoroStore', () => ({
@@ -40,19 +55,21 @@ describe('TimerDisplay', () => {
       phase: 'work',
       cycleCount: 0,
       selectedTaskId: null,
+      workDuration: 25,
+      breakDuration: 5,
     };
     mockTasks = [{ id: 'task-1', title: 'Write tests', completed: false }];
   });
 
-  it('shows Focus label during work phase', () => {
+  it('shows FOCUS label during work phase', () => {
     const { getByText } = render(<TimerDisplay />);
-    expect(getByText('Focus')).toBeTruthy();
+    expect(getByText('FOCUS')).toBeTruthy();
   });
 
-  it('shows Break label during break phase', () => {
+  it('shows BREAK label during break phase', () => {
     mockPomodoroState = { ...mockPomodoroState, phase: 'break' };
     const { getByText } = render(<TimerDisplay />);
-    expect(getByText('Break')).toBeTruthy();
+    expect(getByText('BREAK')).toBeTruthy();
   });
 
   it('shows the running task name when selectedTaskId is set and phase is work', () => {
@@ -73,9 +90,9 @@ describe('TimerDisplay', () => {
     expect(queryByText('Write tests')).toBeNull();
   });
 
-  it('shows session count when cycleCount > 0', () => {
-    mockPomodoroState = { ...mockPomodoroState, cycleCount: 3 };
+  it('renders the countdown formatted as mm:ss', () => {
+    mockPomodoroState = { ...mockPomodoroState, secondsRemaining: 125 };
     const { getByText } = render(<TimerDisplay />);
-    expect(getByText('3 sessions completed today')).toBeTruthy();
+    expect(getByText('02:05')).toBeTruthy();
   });
 });

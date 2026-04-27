@@ -7,24 +7,39 @@ interface Props {
   month: string; // 'YYYY-MM'
   onPrev: () => void;
   onNext: () => void;
-  disableNext: boolean; // true when already at the newest available month
+  disableNext: boolean;
 }
 
 export function MonthPicker({ month, onPrev, onNext, disableNext }: Props) {
   const theme = useAppTheme();
   return (
-    <View className="flex-row items-center justify-between px-1 py-2">
-      <TouchableOpacity testID="month-picker-prev" onPress={onPrev} className="p-2">
+    <View
+      testID="month-picker"
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 8,
+        paddingVertical: 10,
+      }}>
+      <TouchableOpacity
+        testID="month-picker-prev"
+        onPress={onPrev}
+        accessibilityRole="button"
+        accessibilityLabel="Previous month"
+        style={{ padding: 8 }}>
         <Ionicons name="chevron-back" size={20} color={theme.primary} />
       </TouchableOpacity>
-      <Text className="text-sm font-semibold" style={{ color: theme.text }}>
+      <Text style={{ fontSize: 14, fontWeight: '600', color: theme.text, letterSpacing: -0.2 }}>
         {monthLabel(month)}
       </Text>
       <TouchableOpacity
         testID="month-picker-next"
         onPress={onNext}
         disabled={disableNext}
-        className="p-2">
+        accessibilityRole="button"
+        accessibilityLabel="Next month"
+        style={{ padding: 8, opacity: disableNext ? 0.5 : 1 }}>
         <Ionicons
           name="chevron-forward"
           size={20}

@@ -133,7 +133,7 @@ describe('TaskItem', () => {
     dismissSpy.mockRestore();
   });
 
-  it('uses right border color to represent priority', () => {
+  it('renders card style with rounded corners', () => {
     const { getByTestId } = render(<TaskItem item={baseTask} />);
 
     const style = getByTestId('task-item-row').props.style;
@@ -141,24 +141,19 @@ describe('TaskItem', () => {
       ? Object.assign({}, ...style.filter((entry: unknown) => typeof entry === 'object' && entry))
       : style;
 
-    expect(flattened.borderRightColor).toBe('#ef4444');
-    expect(flattened.borderRightWidth).toBe(4);
+    expect(flattened.borderRadius).toBe(18);
+    expect(flattened.borderWidth).toBe(1);
   });
 
-  it('uses green border for low priority and amber for medium', () => {
-    const { getByTestId: getL } = render(<TaskItem item={{ ...baseTask, priority: 'low' }} />);
-    const lowStyle = getL('task-item-row').props.style;
-    const flatLow = Array.isArray(lowStyle)
-      ? Object.assign({}, ...lowStyle.filter((e: unknown) => typeof e === 'object' && e))
-      : lowStyle;
-    expect(flatLow.borderRightColor).toBe('#10b981');
+  it('shows P1 pill for high priority only', () => {
+    const { queryByText: qL } = render(<TaskItem item={{ ...baseTask, priority: 'low' }} />);
+    expect(qL('P1')).toBeNull();
 
-    const { getByTestId: getM } = render(<TaskItem item={{ ...baseTask, priority: 'medium' }} />);
-    const medStyle = getM('task-item-row').props.style;
-    const flatMed = Array.isArray(medStyle)
-      ? Object.assign({}, ...medStyle.filter((e: unknown) => typeof e === 'object' && e))
-      : medStyle;
-    expect(flatMed.borderRightColor).toBe('#f59e0b');
+    const { queryByText: qM } = render(<TaskItem item={{ ...baseTask, priority: 'medium' }} />);
+    expect(qM('P1')).toBeNull();
+
+    const { getByText } = render(<TaskItem item={baseTask} />);
+    expect(getByText('P1')).toBeTruthy();
   });
 
   it('toggles the task and fires onCompleted when not completed', () => {
@@ -459,30 +454,11 @@ describe('TaskItem', () => {
     // No crash — setShowPaywall(false) was invoked
   });
 
-  it('renders drag handle when drag prop is provided', () => {
+  it('invokes drag on checkbox long press', () => {
     const drag = jest.fn();
-    const { getByLabelText, queryByLabelText } = render(<TaskItem item={baseTask} drag={drag} />);
-    // Drag handle renders — no up/down arrows
-    expect(getByLabelText(`Reorder task ${baseTask.title}`)).toBeTruthy();
-    expect(queryByLabelText(`Move ${baseTask.title} up`)).toBeNull();
-  });
-
-  it('renders up/down arrows when drag prop is absent', () => {
-    const { getByLabelText } = render(<TaskItem item={baseTask} />);
-    expect(getByLabelText(`Move ${baseTask.title} up`)).toBeTruthy();
-    expect(getByLabelText(`Move ${baseTask.title} down`)).toBeTruthy();
-  });
-
-  it('calls onMoveUp and onMoveDown when arrow buttons are pressed', () => {
-    const onMoveUp = jest.fn();
-    const onMoveDown = jest.fn();
-    const { getByLabelText } = render(
-      <TaskItem item={baseTask} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />
-    );
-    fireEvent.press(getByLabelText(`Move ${baseTask.title} up`));
-    expect(onMoveUp).toHaveBeenCalled();
-    fireEvent.press(getByLabelText(`Move ${baseTask.title} down`));
-    expect(onMoveDown).toHaveBeenCalled();
+    const { getByRole } = render(<TaskItem item={baseTask} drag={drag} />);
+    fireEvent(getByRole('checkbox'), 'longPress');
+    expect(drag).toHaveBeenCalled();
   });
 
   it('displays category name and color when task has matching categoryId', () => {

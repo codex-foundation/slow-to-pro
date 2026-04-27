@@ -36,50 +36,59 @@ export function TimerSettings({ visible, onClose }: Props) {
     onClose();
   };
 
+  const inputStyle = {
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    borderColor: theme.border,
+    borderWidth: 1,
+    backgroundColor: theme.surface,
+    color: theme.text,
+  } as const;
+
+  const labelStyle = {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase' as const,
+    color: theme.textSubtle,
+    marginBottom: 8,
+  };
+
   return (
     <Modal visible={visible} onClose={onClose} title="Timer settings">
-      <View className="gap-4">
+      <View style={{ gap: 16 }}>
         <View>
-          <Text className="text-sm font-medium mb-1" style={{ color: theme.textMuted }}>
-            Focus duration (minutes)
-          </Text>
+          <Text style={labelStyle}>Focus duration (minutes)</Text>
           <TextInput
             value={focusInput}
             onChangeText={setFocusInput}
             keyboardType="number-pad"
-            className="rounded-xl px-4 py-3 text-base"
-            style={{
-              borderColor: theme.border,
-              borderWidth: 1,
-              backgroundColor: theme.surface,
-              color: theme.text,
-            }}
+            style={inputStyle}
           />
         </View>
 
         <View>
-          <Text className="text-sm font-medium mb-1" style={{ color: theme.textMuted }}>
-            Break duration (minutes)
-          </Text>
+          <Text style={labelStyle}>Break duration (minutes)</Text>
           <TextInput
             value={breakInput}
             onChangeText={setBreakInput}
             keyboardType="number-pad"
-            className="rounded-xl px-4 py-3 text-base"
-            style={{
-              borderColor: theme.border,
-              borderWidth: 1,
-              backgroundColor: theme.surface,
-              color: theme.text,
-            }}
+            style={inputStyle}
           />
         </View>
 
         <TouchableOpacity
           onPress={handleSave}
-          className="py-3 rounded-xl items-center"
-          style={{ backgroundColor: theme.primary }}>
-          <Text className="font-semibold text-white">Save</Text>
+          style={{
+            paddingVertical: 14,
+            borderRadius: 14,
+            alignItems: 'center',
+            backgroundColor: theme.primary,
+            marginTop: 4,
+          }}>
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Save</Text>
         </TouchableOpacity>
       </View>
     </Modal>

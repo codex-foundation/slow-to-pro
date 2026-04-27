@@ -57,14 +57,16 @@ export default function AuthScreenWeb() {
       <View
         style={{
           width: '100%',
-          maxWidth: 900,
+          maxWidth: 960,
           flexDirection: 'row',
-          borderRadius: 20,
+          borderRadius: 24,
           overflow: 'hidden',
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: 16 },
-          shadowOpacity: 0.4,
-          shadowRadius: 40,
+          shadowOffset: { width: 0, height: 24 },
+          shadowOpacity: 0.45,
+          shadowRadius: 60,
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.05)',
         }}>
         {/* Left column — branding */}
         <View
@@ -74,15 +76,46 @@ export default function AuthScreenWeb() {
             padding: 48,
             justifyContent: 'center',
           }}>
-          <View style={{ marginBottom: 24 }}>
-            <Ionicons name="timer-outline" size={48} color="#fff" />
+          <View
+            style={{
+              alignSelf: 'flex-start',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 999,
+              backgroundColor: 'rgba(255,255,255,0.14)',
+              marginBottom: 28,
+            }}>
+            <Ionicons name="sparkles-outline" size={14} color="#fff" />
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: '600',
+                letterSpacing: 1.2,
+                textTransform: 'uppercase',
+                color: '#fff',
+              }}>
+              Focus, not noise
+            </Text>
           </View>
-          <Text style={{ fontSize: 32, fontWeight: '800', color: '#fff', marginBottom: 12 }}>
+          <View style={{ marginBottom: 20 }}>
+            <Ionicons name="timer-outline" size={44} color="#fff" />
+          </View>
+          <Text
+            style={{
+              fontSize: 34,
+              fontWeight: '700',
+              letterSpacing: -0.8,
+              color: '#fff',
+              marginBottom: 14,
+              lineHeight: 40,
+            }}>
             Slow to Pro
           </Text>
-          <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.8)', lineHeight: 24 }}>
-            Your all-in-one productivity companion. Manage tasks, track time with Pomodoro, and keep
-            your finances in check.
+          <Text style={{ fontSize: 15, color: 'rgba(255,255,255,0.85)', lineHeight: 23 }}>
+            Tasks, Pomodoro, and finances in a single calm app. Private by default.
           </Text>
         </View>
 
@@ -119,7 +152,7 @@ export default function AuthScreenWeb() {
                     backgroundColor: theme.surface,
                     borderColor: theme.border,
                     borderWidth: 1,
-                    borderRadius: 10,
+                    borderRadius: 14,
                     padding: 12,
                     fontSize: 15,
                     color: theme.text,
@@ -143,7 +176,7 @@ export default function AuthScreenWeb() {
                     backgroundColor: theme.surface,
                     borderColor: theme.border,
                     borderWidth: 1,
-                    borderRadius: 10,
+                    borderRadius: 14,
                     padding: 12,
                     fontSize: 15,
                     color: theme.text,
@@ -194,7 +227,7 @@ export default function AuthScreenWeb() {
                 style={{
                   backgroundColor:
                     (showRegister ? canSubmit : true) && !isBusy ? theme.primary : theme.border,
-                  borderRadius: 10,
+                  borderRadius: 14,
                   padding: 14,
                   alignItems: 'center',
                   marginBottom: 12,
@@ -230,7 +263,7 @@ export default function AuthScreenWeb() {
                   backgroundColor: theme.surface,
                   borderColor: theme.border,
                   borderWidth: 1,
-                  borderRadius: 10,
+                  borderRadius: 14,
                   padding: 12,
                   marginBottom: 10,
                   opacity: isBusy ? 0.65 : 1,
@@ -278,7 +311,7 @@ export default function AuthScreenWeb() {
               disabled={!canSubmit}
               style={{
                 backgroundColor: canSubmit ? theme.primary : theme.border,
-                borderRadius: 10,
+                borderRadius: 14,
                 padding: 14,
                 alignItems: 'center',
                 marginTop: 8,

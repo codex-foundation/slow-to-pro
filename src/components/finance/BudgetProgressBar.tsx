@@ -26,33 +26,48 @@ export function BudgetProgressBar({ category, spent, limit }: Props) {
   }));
 
   return (
-    <View
-      className="mb-3 rounded-xl px-3 py-2"
-      style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, borderWidth: 1 }}>
-      <View className="flex-row justify-between items-center mb-1">
-        <View className="flex-row items-center gap-2">
-          <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: category.color }} />
-          <Text className="text-sm font-medium" style={{ color: theme.textMuted }}>
+    <View style={{ paddingVertical: 8 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 6,
+        }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View
+            style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: category.color }}
+          />
+          <Text style={{ fontSize: 14, fontWeight: '500', color: theme.textMuted }}>
             {category.name}
           </Text>
         </View>
         <Text
-          className="text-sm font-semibold"
-          style={{ color: overBudget ? theme.danger : theme.textMuted }}>
+          style={{
+            fontSize: 13,
+            fontWeight: '600',
+            color: overBudget ? theme.danger : theme.textMuted,
+            fontVariant: ['tabular-nums'],
+          }}>
           ${spent.toFixed(0)}
           {hasLimit ? ` / $${limit.toFixed(0)}` : ''}
         </Text>
       </View>
       {hasLimit && (
         <View
-          className="h-2 rounded-full overflow-hidden"
-          style={{ backgroundColor: theme.surface }}>
+          style={{
+            height: 6,
+            borderRadius: 3,
+            overflow: 'hidden',
+            backgroundColor: theme.surfaceMuted,
+          }}>
           <Animated.View
-            className="h-full rounded-full"
             style={[
               {
+                height: '100%',
                 width: '100%',
-                backgroundColor: overBudget ? '#ef4444' : category.color,
+                borderRadius: 3,
+                backgroundColor: overBudget ? theme.danger : category.color,
               },
               progressStyle,
             ]}
