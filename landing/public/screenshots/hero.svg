@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1e3a8a"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="390" height="844" fill="url(#bg)"/>
+  <text x="28" y="140" fill="#e5e7eb" font-family="Inter, system-ui" font-size="14" font-weight="500" opacity="0.7">TODAY · FRI 18</text>
+  <text x="28" y="178" fill="#e5e7eb" font-family="Inter, system-ui" font-size="28" font-weight="700">Good morning,</text>
+  <text x="28" y="212" fill="#e5e7eb" font-family="Inter, system-ui" font-size="28" font-weight="700">Alessandro.</text>
+
+  <!-- Focus card -->
+  <rect x="24" y="250" width="342" height="172" rx="24" fill="url(#card)"/>
+  <text x="44" y="290" fill="#ffffff" font-family="Inter, system-ui" font-size="13" opacity="0.8">FOCUS</text>
+  <text x="44" y="338" fill="#ffffff" font-family="Inter, system-ui" font-size="56" font-weight="700">24:48</text>
+  <text x="44" y="370" fill="#ffffff" font-family="Inter, system-ui" font-size="14" opacity="0.8">Pomodoro · cycle 2 of 4</text>
+  <circle cx="310" cy="370" r="36" fill="#ffffff"/>
+  <polygon points="302,354 326,370 302,386" fill="#2563eb"/>
+
+  <!-- Tasks -->
+  <text x="28" y="470" fill="#94a3b8" font-family="Inter, system-ui" font-size="13" font-weight="600" letter-spacing="2">TASKS</text>
+  <g font-family="Inter, system-ui" font-size="16" fill="#e5e7eb">
+    <rect x="24" y="490" width="342" height="58" rx="16" fill="#111827"/>
+    <circle cx="52" cy="519" r="10" fill="none" stroke="#60a5fa" stroke-width="2"/>
+    <text x="76" y="524">Ship landing page draft</text>
+    <text x="326" y="524" fill="#94a3b8" font-size="12">· 2h</text>
+
+    <rect x="24" y="560" width="342" height="58" rx="16" fill="#111827"/>
+    <circle cx="52" cy="589" r="10" fill="#10b981"/>
+    <text x="76" y="594" fill="#94a3b8" text-decoration="line-through">Morning stretch</text>
+
+    <rect x="24" y="630" width="342" height="58" rx="16" fill="#111827"/>
+    <circle cx="52" cy="659" r="10" fill="none" stroke="#60a5fa" stroke-width="2"/>
+    <text x="76" y="664">Reply to 3 emails, not more</text>
+  </g>
+
+  <!-- Tab bar -->
+  <rect x="24" y="740" width="342" height="72" rx="28" fill="#111827"/>
+  <g fill="#60a5fa">
+    <circle cx="90" cy="776" r="6"/>
+  </g>
+  <g fill="#64748b">
+    <circle cx="180" cy="776" r="6"/>
+    <circle cx="270" cy="776" r="6"/>
+  </g>
+</svg>

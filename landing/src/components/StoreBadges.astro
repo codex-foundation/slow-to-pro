@@ -1,0 +1,32 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+  variant?: 'default' | 'inverse';
+}
+const { variant = 'default' } = Astro.props;
+
+const base =
+  'group inline-flex items-center gap-3 rounded-2xl px-5 py-3 text-left transition will-change-transform hover:-translate-y-0.5';
+const styles =
+  variant === 'inverse'
+    ? 'bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)]'
+    : 'bg-[var(--color-text)] text-[var(--color-bg)]';
+---
+
+<div class="flex flex-wrap items-center gap-3">
+  <a href="#" aria-label="Download on the App Store" class={`${base} ${styles}`}>
+    <Icon name="apple" size={26} />
+    <span class="flex flex-col leading-tight">
+      <span class="text-[10px] uppercase tracking-widest opacity-70">Download on the</span>
+      <span class="text-base font-semibold">App Store</span>
+    </span>
+  </a>
+  <a href="#" aria-label="Get it on Google Play" class={`${base} ${styles}`}>
+    <Icon name="play" size={22} />
+    <span class="flex flex-col leading-tight">
+      <span class="text-[10px] uppercase tracking-widest opacity-70">Get it on</span>
+      <span class="text-base font-semibold">Google Play</span>
+    </span>
+  </a>
+</div>

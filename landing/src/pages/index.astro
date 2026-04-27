@@ -1,0 +1,27 @@
+---
+import Base from '@/layouts/Base.astro';
+import Nav from '@/components/Nav.astro';
+import Hero from '@/components/Hero.astro';
+import FeaturesGrid from '@/components/FeaturesGrid.astro';
+import FeatureDetail from '@/components/FeatureDetail.astro';
+import Philosophy from '@/components/Philosophy.astro';
+import Pricing from '@/components/Pricing.astro';
+import FAQ from '@/components/FAQ.astro';
+import CTA from '@/components/CTA.astro';
+import Footer from '@/components/Footer.astro';
+import { features } from '@/content/features';
+---
+
+<Base>
+  <Nav />
+  <main>
+    <Hero />
+    <FeaturesGrid />
+    {features.map((feature, i) => <FeatureDetail feature={feature} reverse={i % 2 === 1} />)}
+    <Philosophy />
+    <Pricing />
+    <FAQ />
+    <CTA />
+  </main>
+  <Footer />
+</Base>

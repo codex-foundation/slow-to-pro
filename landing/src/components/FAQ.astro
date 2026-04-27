@@ -1,0 +1,37 @@
+---
+import { faq } from '@/content/faq';
+---
+
+<section id="faq" class="mx-auto max-w-[880px] px-5 py-24 sm:px-8 md:py-32">
+  <div class="mx-auto max-w-3xl text-center">
+    <p class="text-xs font-medium uppercase tracking-[0.18em] text-[var(--color-primary)]">
+      Questions
+    </p>
+    <h2 class="mt-3 text-balance text-4xl font-semibold tracking-tight md:text-5xl">
+      Good questions, calm answers.
+    </h2>
+  </div>
+
+  <div class="mt-14 divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+    {
+      faq.map((item) => (
+        <details class="group py-5">
+          <summary
+            class="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-[17px] font-medium tracking-tight"
+          >
+            {item.q}
+            <span
+              class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-muted)] transition group-open:rotate-45 group-open:border-[var(--color-primary)] group-open:text-[var(--color-primary)]"
+              aria-hidden="true"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            </span>
+          </summary>
+          <p class="mt-3 max-w-[65ch] text-[15px] leading-relaxed text-[var(--color-text-muted)]">
+            {item.a}
+          </p>
+        </details>
+      ))
+    }
+  </div>
+</section>

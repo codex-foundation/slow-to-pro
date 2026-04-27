@@ -1,0 +1,34 @@
+---
+import Icon from './Icon.astro';
+---
+
+<section
+  id="philosophy"
+  class="relative overflow-hidden bg-[var(--color-surface-muted)] py-28 md:py-40"
+>
+  <div class="pointer-events-none absolute inset-0 halo opacity-60"></div>
+
+  <div class="relative mx-auto max-w-[1000px] px-5 text-center sm:px-8">
+    <Icon name="sparkles" size={28} class="mx-auto mb-6 text-[var(--color-primary)]" />
+    <h2
+      class="text-balance text-5xl font-semibold leading-[1.05] tracking-[-0.03em] md:text-7xl"
+    >
+      Slow is steady.<br />
+      <span class="text-[var(--color-primary)]">Steady is pro.</span>
+    </h2>
+    <p
+      class="mx-auto mt-8 max-w-2xl text-pretty text-lg leading-relaxed text-[var(--color-text-muted)] md:text-xl"
+    >
+      The best work is rarely loud. Slow to Pro is for the quiet builders —
+      the ones who show up every day, ship a little, and sleep well.
+    </p>
+
+    <blockquote
+      class="mx-auto mt-14 max-w-xl rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 text-left text-[17px] leading-relaxed text-[var(--color-text)]"
+    >
+      “I stopped trying to outrun my to-do list.
+      Now I just walk with it.”
+      <footer class="mt-4 text-sm text-[var(--color-text-subtle)]">— a Slow to Pro user</footer>
+    </blockquote>
+  </div>
+</section>

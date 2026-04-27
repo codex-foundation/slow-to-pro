@@ -1,0 +1,28 @@
+{
+  "name": "slow-to-pro-landing",
+  "version": "1.0.0",
+  "description": "Landing page for Slow to Pro — productivity companion app",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "check": "astro check"
+  },
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "@astrojs/check": "^0.9.8",
+    "@fontsource-variable/inter": "^5.2.8",
+    "@tailwindcss/vite": "^4.2.2",
+    "astro": "^6.1.8",
+    "lucide": "^1.8.0",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^6.0.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "sharp"]
+  }
+}

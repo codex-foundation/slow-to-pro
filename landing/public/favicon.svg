@@ -1,0 +1,12 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Full square background — no rounded corners, no transparency (OS applies shape) -->
+  <rect width="1024" height="1024" fill="#2563EB"/>
+  <circle cx="512" cy="530" r="274" fill="none" stroke="white" stroke-width="42"/>
+  <line x1="438" y1="228" x2="586" y2="228" stroke="white" stroke-width="38" stroke-linecap="round"/>
+  <line x1="512" y1="180" x2="512" y2="256" stroke="white" stroke-width="38" stroke-linecap="round"/>
+  <line x1="786" y1="530" x2="742" y2="530" stroke="white" stroke-width="30" stroke-linecap="round" opacity="0.45"/>
+  <line x1="238" y1="530" x2="282" y2="530" stroke="white" stroke-width="30" stroke-linecap="round" opacity="0.45"/>
+  <line x1="386" y1="660" x2="638" y2="380" stroke="white" stroke-width="46" stroke-linecap="round"/>
+  <polyline points="602,420 638,380 596,368" fill="none" stroke="white" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="386" cy="660" r="26" fill="white"/>
+</svg>

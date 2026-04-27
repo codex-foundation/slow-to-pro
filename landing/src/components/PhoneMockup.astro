@@ -1,0 +1,38 @@
+---
+interface Props {
+  screenshot?: string;
+  alt?: string;
+  class?: string;
+}
+const {
+  screenshot = '/screenshots/hero.svg',
+  alt = 'Slow to Pro app preview',
+  class: className = '',
+} = Astro.props;
+---
+
+<div class={`relative mx-auto w-[280px] sm:w-[320px] ${className}`}>
+  <!-- Phone frame -->
+  <div
+    class="relative aspect-[9/19.5] rounded-[44px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 shadow-[0_40px_80px_-20px_rgba(37,99,235,0.35)]"
+  >
+    <div
+      class="absolute left-1/2 top-2 z-20 h-6 w-28 -translate-x-1/2 rounded-full bg-[var(--color-text)]/90"
+    >
+    </div>
+    <div class="relative h-full w-full overflow-hidden rounded-[36px] bg-[var(--color-bg)]">
+      <img
+        src={screenshot}
+        alt={alt}
+        class="h-full w-full object-cover"
+        loading="eager"
+        decoding="async"
+      />
+    </div>
+  </div>
+  <!-- Reflections -->
+  <div
+    class="pointer-events-none absolute inset-0 rounded-[44px] bg-gradient-to-br from-white/20 via-transparent to-white/5 mix-blend-overlay"
+  >
+  </div>
+</div>
